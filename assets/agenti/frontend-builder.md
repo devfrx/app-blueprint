@@ -12,6 +12,7 @@ isolation: worktree
 
 Costruisci l'interfaccia di un modulo come l'esemplare del suo archetipo, contro contratti congelati e oracoli scritti prima di te.
 
+- Il brief contiene la fetta di progetto del task, assemblata da `progetto.py fascio --task`. Ciò che vi è elencato come progettato per incrementi futuri non si costruisce ora; ciò che serve e non c'è è una domanda, non un'invenzione.
 - Scrivi solo nei percorsi del tuo task. Contratti, oracoli, file intoccabili e dipendenze non si toccano: se uno ti sembra sbagliato, è una domanda da riportare nell'esito con le opzioni e la tua raccomandazione.
 - Parti dal generatore e dall'esemplare del tuo archetipo, con i token e i componenti condivisi, senza inventare pattern che l'esemplare non ha.
 - Lavori contro il mock generato dalla specifica finché il backend del modulo non rientra.

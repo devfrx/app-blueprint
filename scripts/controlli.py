@@ -209,9 +209,19 @@ def c_stato(ctx, voce):
     if not s:
         return [_r("errore", dove, "manca o è vuoto", "stato")]
     scheda = s.get("scheda", {})
+    versione = str(s.get("metodo", ""))
+    if versione.split(".")[0] != str(ctx.catalogo.get("versione", "")).split(".")[0]:
+        reperti.append(_r("errore", dove, f"metodo = '{versione}': il catalogo è della versione "
+                          f"{ctx.catalogo.get('versione')}, e un progetto di un'altra versione va migrato", "stato"))
+    # La scheda nasce con progetto, responsabile, avvio e incremento (progetto.py inizia);
+    # il profilo si compila alla voce 1.13 e il verdetto alla 1.14: prima mancano per forza.
+    da_compilare = {"esposizione": "1.13", "criticita": "1.13", "processo": "1.13", "verdetto": "1.14"}
     for campo in ("progetto", "responsabile", "esposizione", "criticita", "processo", "avvio", "verdetto", "incremento"):
         if not _pieno(scheda.get(campo)):
-            reperti.append(_r("errore", dove, f"[scheda]: manca '{campo}'", "stato"))
+            if campo in da_compilare and voce != da_compilare[campo] and not _chiusa(ctx, da_compilare[campo]):
+                reperti.append(_r("avviso", dove, f"[scheda]: '{campo}' si compila alla voce {da_compilare[campo]}", "stato"))
+            else:
+                reperti.append(_r("errore", dove, f"[scheda]: manca '{campo}'", "stato"))
     ammessi = {
         "esposizione": set(condizioni.ESPOSIZIONI), "criticita": set(condizioni.CRITICITA),
         "processo": {"cascata", "v", "iterativo", "agile", "ibrido"},
@@ -248,6 +258,10 @@ def c_stato(ctx, voce):
         if riga.get("stato") == "superato" and not (_pieno(riga.get("approvato_da")) and _pieno(riga.get("data"))):
             reperti.append(_r("errore", dove, f"registro, fase {fase}: superato senza approvato_da e data", "stato"))
     return reperti
+
+
+def _chiusa(ctx, ident):
+    return bool(stati_voci(ctx).get(ident, {}).get("chiusa"))
 
 
 def righe_correnti(ctx):
@@ -1313,13 +1327,7 @@ def stati_voci(ctx):
     if cache is not None:
         return cache
     p = ctx.progetto
-    scheda = {"esposizione": p.scheda.get("esposizione", "personale"),
-              "criticita": p.scheda.get("criticita", "bassa"),
-              "inneschi": p.scheda.get("inneschi", [])}
-    if scheda["esposizione"] not in condizioni.ESPOSIZIONI:
-        scheda["esposizione"] = "personale"
-    if scheda["criticita"] not in condizioni.CRITICITA:
-        scheda["criticita"] = "bassa"
+    scheda = condizioni.profilo(p.scheda)
     fasi_skill = {f["numero"]: f["skill"] for f in ctx.catalogo.get("fasi", [])}
     corrente = p.incremento_corrente()
     per_voce = {}
@@ -1423,11 +1431,13 @@ def valida_chiusura(ctx, c, completa=True, scritta=True):
 
 
 def _evidenza_esiste(p, ev):
+    """Un tag o un URL si accettano; altrimenti l'evidenza è un percorso che esiste,
+    dalla radice o da docs/progettazione/, con un'eventuale ancora, o un id che si risolve."""
     if ev.startswith("tag:") or ev.startswith("http"):
         return True
-    if "/" in ev or re.search(r"\.(md|toml|json|html|yaml|yml)(#.*)?$", ev):
-        percorso = ev.split("#", 1)[0]
-        return (p.radice / percorso).exists() or (p.radice / PROGETTAZIONE / percorso).exists()
+    percorso = ev.split("#", 1)[0]
+    if percorso and ((p.radice / percorso).exists() or (p.radice / PROGETTAZIONE / percorso).exists()):
+        return True
     return p.risolvi(ev) is not None
 
 

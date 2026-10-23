@@ -635,6 +635,12 @@ Una riga per elemento: id, descrizione, incremento in cui serve, sorgente. Il de
 | REV-10 | Costruzione degli esemplari clienti e interventi e del motore prezzi, con i soli file del repo | 1 | docs/progettazione/registri.toml |
 | REV-11 | Immaginando la costruzione fallita | 1 | docs/progettazione/registri.toml |
 
+## modifiche
+
+| id | descrizione | inc. | sorgente |
+|---|---|---|---|
+| MOD-1 | Il cliente paga la fattura online dall'area cliente. | 1 | docs/progettazione/registri.toml |
+
 ## adr
 
 | id | descrizione | inc. | sorgente |

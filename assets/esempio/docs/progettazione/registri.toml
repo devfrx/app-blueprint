@@ -212,3 +212,14 @@ oggetto = "Immaginando la costruzione fallita"
 revisore = "responsabile"
 data = 2026-10-22
 esito = "4 cause: numerazione concorrente (già coperta), listino vuoto al primo avvio (seme aggiunto allo scheletro), email in spam (accettato come RK-1), mobile del responsabile (mockup rivisti)."
+
+# Una modifica respinta resta come traccia della decisione; una approvata riapre
+# le voci di "riapre" e si applica con progetto.py modifica.
+[[modifiche]]
+id = "MOD-1"
+descrizione = "Il cliente paga la fattura online dall'area cliente."
+motivo = "Proposta del responsabile dopo il walkthrough dell'area cliente."
+data = 2026-10-17
+impatto = ["FAT-1", "entita:fattura", "modulo:fatture"]
+esito = "respinta"
+note = "Porterebbe un fornitore di pagamento e l'autenticazione forte del cliente nell'incremento 1; si rivaluta dopo il secondo."

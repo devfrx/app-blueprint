@@ -90,6 +90,15 @@ class Lettura(Base):
         self.assertEqual(dati["errori"], [])
         self.assertEqual(dati["conteggi"]["storie"], 17)
 
+    def test_formato(self):
+        esito, testo = self.esegui("formato")
+        self.assertEqual(esito, 0)
+        self.assertIn("storie", testo)
+        esito, testo = self.esegui("formato", "storie")
+        self.assertIn("obbligatori: titolo, attore, priorita, incremento, fonte", testo)
+        self.assertIn("### storie ACC-1", testo)
+        self.assertEqual(self.esegui("formato", "ignoto")[0], 2)
+
     def test_voce_sconosciuta_e_errore_d_uso(self):
         self.assertEqual(self.esegui("fascio", "9.99")[0], 2)
         self.assertEqual(self.esegui("apri", "9.99")[0], 2)
@@ -99,6 +108,31 @@ class Lettura(Base):
         esito, testo = self.esegui("stato")
         self.assertEqual(esito, 2)
         self.assertIn("voce 0.05", testo)
+
+
+class Inizio(Base):
+    def test_inizia_un_progetto_nuovo(self):
+        self.radice = self.tmp / "nuovo"
+        self.radice.mkdir()
+        esito, testo = self.esegui("inizia", "--progetto", "Prova", "--responsabile", "utente", "--data", "2026-10-23")
+        self.assertEqual(esito, 0, testo)
+        stato = self.leggi(f"{P}/stato.toml")
+        self.assertEqual(stato["scheda"], {"progetto": "Prova", "responsabile": "utente",
+                                           "avvio": __import__("datetime").date(2026, 10, 23), "incremento": 1})
+        esito, testo = self.esegui("verifica")
+        self.assertEqual(esito, 0, testo)
+        self.assertIn("si compila alla voce 1.13", testo)
+        _, testo = self.esegui("stato")
+        self.assertIn("0.01 Repo git", testo)
+        self.assertEqual(self.esegui("inizia", "--progetto", "Prova", "--responsabile", "utente")[0], 2)
+
+    def test_la_scheda_si_compila_alla_1_13(self):
+        self.radice = self.tmp / "nuovo"
+        self.radice.mkdir()
+        self.esegui("inizia", "--progetto", "Prova", "--responsabile", "utente")
+        esito, testo = self.esegui("chiudi", "1.13", "--evidenza", "stato.toml")
+        self.assertEqual(esito, 1)
+        self.assertIn("manca 'esposizione'", testo)
 
 
 class Punti(Base):
@@ -191,7 +225,7 @@ class Fasi(Base):
 
 
 class Modifiche(Base):
-    MOD = ('\n[[modifiche]]\nid = "MOD-1"\ndescrizione = "Il veicolo registra il telaio."\nmotivo = "Richiami."\n'
+    MOD = ('\n[[modifiche]]\nid = "MOD-2"\ndescrizione = "Il veicolo registra il telaio."\nmotivo = "Richiami."\n'
            'data = 2026-11-03\nimpatto = ["entita:veicolo"]\nriapre = ["3.07", "5.05.4"]\nesito = "approvata"\n'
            'approvato_da = "responsabile"\n')
 
@@ -201,21 +235,21 @@ class Modifiche(Base):
         esito, testo = self.esegui("verifica")
         self.assertEqual(esito, 1)
         self.assertIn("progetto.py modifica", testo)
-        esito, testo = self.esegui("modifica", "MOD-1")
+        esito, testo = self.esegui("modifica", "MOD-2")
         self.assertEqual(esito, 0, testo)
         self.assertIn("fasi riaperte: 3, 5", testo)
         righe = {r["fase"]: r for r in self.leggi(f"{P}/stato.toml")["registro"]}
         self.assertEqual((righe[3]["stato"], righe[5]["stato"]), ("riaperto", "riaperto"))
-        self.assertIn("MOD-1", righe[3]["note"])
+        self.assertIn("MOD-2", righe[3]["note"])
         self.assertEqual(self.esegui("verifica")[0], 0)
         _, testo = self.esegui("checklist", "--fase", "7")
-        self.assertRegex(testo, r"7\.17\s+↻ riaperta MOD-1")
+        self.assertRegex(testo, r"7\.17\s+↻ riaperta MOD-2")
 
     def test_modifica_sconosciuta_o_incompleta(self):
         self.assertEqual(self.esegui("modifica", "MOD-9")[0], 2)
         with (self.radice / P / "registri.toml").open("a", encoding="utf-8") as f:
             f.write(self.MOD.replace('riapre = ["3.07", "5.05.4"]\n', ""))
-        esito, testo = self.esegui("modifica", "MOD-1")
+        esito, testo = self.esegui("modifica", "MOD-2")
         self.assertEqual(esito, 1)
         self.assertIn("senza 'riapre'", testo)
 

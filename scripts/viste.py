@@ -78,6 +78,8 @@ def checklist(progetto, catalogo):
                 c = st["chiusura"]
                 stato = "fatta" if c.get("esito") == "fatto" else "esclusa"
                 nota = ", ".join(_valori(c.get("evidenza"))) or c.get("motivo", "")
+                if c.get("nota"):
+                    nota += f" — {c['nota']}"
             elif st["riaperta_da"]:
                 stato, nota = "riaperta", f"da {st['riaperta_da']}"
             else:
@@ -86,8 +88,7 @@ def checklist(progetto, catalogo):
             righe.append(f"| {ident}{segno} | {stato} | {_cella(st['voce']['testo'])} | {_cella(nota)} |")
         righe.append("")
     noti = set(catalogo.get("inneschi", {}))
-    profilo = {"esposizione": scheda.get("esposizione", "personale"), "criticita": scheda.get("criticita", "bassa"),
-               "inneschi": scheda.get("inneschi", [])}
+    profilo = condizioni.profilo(scheda)
     for chiave, titolo, testa in (("trasversali", "Controlli trasversali", "Si rivedono a ogni gate; l'esito va nella nota del registro."),
                                   ("dod", "DoD di incremento", "La applica parallel-build a ogni rientro (task) e alla chiusura dell'incremento.")):
         righe += [f"## {titolo}", "", testa, "", "| voce | stato | testo |", "|---|---|---|"]

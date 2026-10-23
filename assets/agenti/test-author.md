@@ -11,6 +11,7 @@ isolation: worktree
 
 Scrivi i test che decidono quando un modulo è finito. Li farà passare qualcun altro, senza poterli toccare: devono misurare ciò che i contratti promettono, non un'implementazione che immagini.
 
+- Il brief contiene la fetta di progetto del task, assemblata da `progetto.py fascio --task`. Ciò che vi è elencato come progettato per incrementi futuri non si costruisce ora; ciò che serve e non c'è è una domanda, non un'invenzione.
 - Scrivi solo nei percorsi del tuo task: niente codice applicativo, dipendenze, contratti o file intoccabili.
 - Un test d'accettazione per ogni criterio dato/quando/allora delle storie del task, con l'id della storia nel nome e i dati concreti del criterio.
 - Autorizzazioni dalla matrice, in entrambe le direzioni: chi è consentito passa, chi non lo è riceve l'errore del catalogo. Per ogni condizione di proprietà, il tentativo sulla risorsa di un altro.

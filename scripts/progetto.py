@@ -4,10 +4,11 @@ calcola ciò che non si scrive e verifica la coerenza.
 
 Si esegue dalla radice del repo progettato (o con --radice):
 
+  progetto.py inizia --progetto N --responsabile R   crea stato, chiusure e registri (voce 0.05)
   progetto.py stato                       lo stato a colpo d'occhio: scheda, registro, frontiera
   progetto.py apri <voce>                 inizio di un punto: lo registra e stampa il suo fascio
   progetto.py chiudi <voce> --evidenza E… fine di un punto: controlla e registra la chiusura
-                [--non-applicabile --motivo M [--approvato A]] [--data AAAA-MM-GG]
+                [--non-applicabile --motivo M [--approvato A]] [--nota "…"] [--data AAAA-MM-GG]
   progetto.py approva <fase> --da NOME    fine di una fase: gate verde, approvazione nel registro
   progetto.py modifica <MOD-n>            applica una modifica approvata: riapre le fasi delle sue voci
   progetto.py congela --da NOME           Definition of Ready verde: congela l'incremento e chiude la 7.17
@@ -16,6 +17,7 @@ Si esegue dalla radice del repo progettato (o con --radice):
   progetto.py fascio <voce> [--modulo M]  ciò che serve leggere per lavorare una voce
   progetto.py fascio --task <id>          la fetta di progetto di un task di parallel-build
   progetto.py impatto <id>                tutto ciò che dipende da un elemento, anche indirettamente
+  progetto.py formato [<tipo>]            il formato di un tipo di sorgente, con un esempio
   progetto.py viste                       rigenera le viste in docs/progettazione/viste/
   progetto.py verifica [--gate N] [--congelamento [AAAA-MM-GG]] [--json]
 
@@ -39,6 +41,10 @@ import scrittura  # noqa: E402
 import viste  # noqa: E402
 
 CATALOGO = Path(__file__).resolve().parent.parent / "assets" / "checklist.toml"
+ESEMPIO = Path(__file__).resolve().parent.parent / "assets" / "esempio"
+# Dove vivono i tipi che l'esempio, congelato, non contiene.
+SORGENTI_SENZA_ESEMPIO = {"domande": f"{modello.PROGETTAZIONE}/registri.toml",
+                          "eventi": f"{modello.PROGETTAZIONE}/moduli/<modulo>.toml"}
 # Budget di dimensione, in caratteri: oltre, una sorgente si spezza (storie per
 # area, un file per modulo) e un fascio segnala un modulo troppo grande.
 BUDGET_STATO = 6_000
@@ -124,6 +130,37 @@ def cmd_stato(args):
     if peso > BUDGET_STATO:
         righe.append(f"Attenzione: stato.toml pesa {peso} caratteri, oltre {BUDGET_STATO}: va letto a ogni avvio")
     print("\n".join(righe))
+    return 0
+
+
+# --- inizio ---------------------------------------------------------------------------------
+
+INTESTAZIONI = {
+    "stato.toml": "# Stato della progettazione: si legge a ogni avvio, quindi resta breve.\n"
+                  "# Lo stato a colpo d'occhio lo stampa `progetto.py stato`.\n",
+    "gate.toml": "# Chiusure delle voci dei gate: le scrive `progetto.py chiudi`. Le voci che il\n"
+                 "# profilo esclude o rinvia le calcola lo script.\n",
+    "registri.toml": "# Registri trasversali: rischi, assunzioni, domande, debito, deperibili,\n"
+                     "# revisioni, modifiche. Formati: `progetto.py formato <tipo>`.\n",
+}
+
+
+def cmd_inizia(args):
+    cartella = Path(args.radice) / modello.PROGETTAZIONE
+    if (cartella / "stato.toml").exists():
+        raise ErroreUso(f"'{cartella / 'stato.toml'}' esiste già: la progettazione è iniziata (progetto.py stato)")
+    catalogo = modello.leggi_catalogo(args.catalogo)
+    cartella.mkdir(parents=True, exist_ok=True)
+    stato = INTESTAZIONI["stato.toml"] + f"\nmetodo = {scrittura.valore(catalogo.get('versione', ''))}\n\n"
+    stato += scrittura.blocco("[scheda]", {"progetto": args.progetto, "responsabile": args.responsabile,
+                                            "avvio": _oggi(args), "incremento": 1})
+    stato += "\n" + scrittura.blocco("[corrente]", {"fase": 0, "punto": ""})
+    (cartella / "stato.toml").write_text(stato, encoding="utf-8")
+    for nome in ("gate.toml", "registri.toml"):
+        if not (cartella / nome).exists():
+            (cartella / nome).write_text(INTESTAZIONI[nome], encoding="utf-8")
+    viste.scrivi(modello.carica(Path(args.radice), catalogo), catalogo)
+    print(f"Progettazione di {args.progetto} iniziata in {modello.PROGETTAZIONE}/. Prossimo passo: progetto.py stato")
     return 0
 
 
@@ -229,6 +266,7 @@ def cmd_chiudi(args):
             raise ErroreUso("una voce fatta ha l'evidenza: --evidenza <percorso | id | tag:…>")
         chiusura.update(esito="fatto", evidenza=args.evidenza)
     chiusura["data"] = _oggi(args)
+    chiusura["nota"] = args.nota
     chiusura = {k: v for k, v in chiusura.items() if v is not None}
     errori = [r for r in controlli.valida_chiusura(ctx, chiusura, scritta=False) if r.livello == "errore"]
     if errori:
@@ -377,9 +415,7 @@ def cmd_congela(args):
 def cmd_checklist(args):
     progetto, catalogo = _carica(args)
     ctx = _contesto(progetto, catalogo)
-    scheda = {"esposizione": progetto.scheda.get("esposizione", "personale"),
-              "criticita": progetto.scheda.get("criticita", "bassa"),
-              "inneschi": progetto.scheda.get("inneschi", [])}
+    scheda = condizioni.profilo(progetto.scheda)
     noti = set(catalogo.get("inneschi", {}))
     if args.dod or args.trasversali:
         chiave = "dod" if args.dod else "trasversali"
@@ -391,6 +427,9 @@ def cmd_checklist(args):
         return 0
     stati = controlli.stati_voci(ctx)
     fase = args.fase if args.fase is not None else progetto.stato.get("corrente", {}).get("fase")
+    info = next((f for f in catalogo.get("fasi", []) if f["numero"] == fase), None)
+    if info and not args.tutte:
+        print(f"Fase {fase} — {info['nome']} ({info['skill']})\nGate: {info['gate']}\n")
     for ident in sorted(stati, key=condizioni.chiave_id):
         st = stati[ident]
         if not args.tutte and st["fase"] != fase:
@@ -661,6 +700,49 @@ def _rendi_tabella(progetto, tabella, corrente, futuri):
     return rendi(progetto, copia)
 
 
+def cmd_formato(args):
+    """Il formato di ogni tipo, ricavato dalle regole dello script e dall'esempio: la
+    documentazione dei formati è il codice che li controlla, non un testo a parte."""
+    catalogo = modello.leggi_catalogo(args.catalogo)
+    esempio = modello.carica(ESEMPIO, catalogo)
+    tipi = sorted(set(controlli.CAMPI) | {"adr"})
+    if not args.tipo:
+        print("Tipi di sorgente (progetto.py formato <tipo> per il dettaglio):")
+        for tipo in tipi:
+            elementi = esempio.tutti(tipo)
+            sorgente = elementi[0].sorgente if elementi else SORGENTI_SENZA_ESEMPIO.get(tipo, "?")
+            print(f"  {tipo:<18} {sorgente}")
+        return 0
+    tipo = args.tipo
+    if tipo not in tipi:
+        raise ErroreUso(f"tipo '{tipo}' sconosciuto: progetto.py formato elenca i tipi")
+    elementi = sorted(esempio.tutti(tipo), key=lambda e: viste._chiave_naturale(e.id))
+    sorgente = elementi[0].sorgente if elementi else SORGENTI_SENZA_ESEMPIO.get(tipo, "?")
+    prefisso = next((k for k, v in modello.PREFISSI.items() if v == tipo), None)
+    tipizzato = next((k for k, v in modello.TIPIZZATI.items() if v == tipo), None)
+    if prefisso:
+        forma = f"{prefisso}-n, citato così da ogni campo"
+    elif tipo == "storie":
+        forma = "<AREA>-n, con il prefisso di un'area di [[aree]]"
+    elif tipo in modello.CONTENITORE:
+        forma = f"<{modello.CONTENITORE[tipo]}>.<nome>, citato come \"{tipizzato or tipo}:<id>\""
+    else:
+        forma = f"slug in minuscolo, citato come \"{tipizzato}:<id>\"" if tipizzato else "slug in minuscolo"
+    obbligatori, ammessi = controlli.CAMPI.get(tipo, ((), {}))
+    righe = [f"## {tipo} — {sorgente}", f"id: {forma}",
+             f"obbligatori: {', '.join(obbligatori) or '—'}"]
+    for campo, valori in ammessi.items():
+        righe.append(f"valori di {campo}: {', '.join(sorted(valori))}")
+    riferimenti = modello.RIFERIMENTI.get(tipo, {})
+    if riferimenti:
+        righe.append("riferimenti: " + "; ".join(f"{c} → {a or 'id prefissati o tipo:id'}" for c, a in riferimenti.items()))
+    righe += ["", "Esempio da assets/esempio:" if elementi else "Nessun esempio: l'esempio è congelato senza."]
+    if elementi:
+        righe.append(rendi(esempio, elementi[0]))
+    print("\n".join(righe))
+    return 0
+
+
 def cmd_impatto(args):
     progetto, catalogo = _carica(args)
     entranti = progetto.entranti()
@@ -737,6 +819,11 @@ def principale(argv=None):
     parser.add_argument("--radice", default=".", help="radice del repo progettato")
     parser.add_argument("--catalogo", default=str(CATALOGO), help=argparse.SUPPRESS)
     sotto = parser.add_subparsers(dest="comando", required=True)
+    ini = sotto.add_parser("inizia")
+    ini.add_argument("--progetto", required=True)
+    ini.add_argument("--responsabile", required=True)
+    ini.add_argument("--data", help=argparse.SUPPRESS)
+    ini.set_defaults(funzione=cmd_inizia)
     sotto.add_parser("stato").set_defaults(funzione=cmd_stato)
     a = sotto.add_parser("apri")
     a.add_argument("voce")
@@ -748,6 +835,7 @@ def principale(argv=None):
     ch.add_argument("--non-applicabile", action="store_true")
     ch.add_argument("--motivo")
     ch.add_argument("--approvato")
+    ch.add_argument("--nota", help="una riga che spiega l'evidenza")
     ch.add_argument("--data")
     ch.set_defaults(funzione=cmd_chiudi)
     ap = sotto.add_parser("approva")
@@ -782,6 +870,9 @@ def principale(argv=None):
     i.add_argument("id")
     i.add_argument("--profondita", type=int, default=2, help="livelli di dipendenza indiretta (default 2)")
     i.set_defaults(funzione=cmd_impatto)
+    fo = sotto.add_parser("formato")
+    fo.add_argument("tipo", nargs="?")
+    fo.set_defaults(funzione=cmd_formato)
     sotto.add_parser("viste").set_defaults(funzione=cmd_viste)
     v = sotto.add_parser("verifica")
     v.add_argument("--gate", type=int)

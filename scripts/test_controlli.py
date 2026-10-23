@@ -301,7 +301,7 @@ class Incrementi(Base):
 
 
 class Modifiche(Base):
-    MOD = ('\n[[modifiche]]\nid = "MOD-1"\ndescrizione = "Il veicolo registra il telaio."\nmotivo = "Richiami."\n'
+    MOD = ('\n[[modifiche]]\nid = "MOD-2"\ndescrizione = "Il veicolo registra il telaio."\nmotivo = "Richiami."\n'
            'data = 2026-11-03\nimpatto = ["entita:veicolo"]\nriapre = ["3.07"]\nesito = "approvata"\n'
            'approvato_da = "responsabile"\n')
 
@@ -311,13 +311,13 @@ class Modifiche(Base):
     def test_riapre_le_voci_chiuse_prima(self):
         self.aggiungi(f"{P}/registri.toml", self.MOD)
         stati = self.stati()
-        self.assertEqual(stati["3.07"]["riaperta_da"], "MOD-1")
+        self.assertEqual(stati["3.07"]["riaperta_da"], "MOD-2")
         self.assertFalse(stati["3.07"]["chiusa"])
         self.assertTrue(stati["3.06"]["chiusa"])
 
     def test_annulla_il_congelamento_anche_senza_nominarlo(self):
         self.aggiungi(f"{P}/registri.toml", self.MOD)
-        self.assertEqual(self.stati()["7.17"]["riaperta_da"], "MOD-1")
+        self.assertEqual(self.stati()["7.17"]["riaperta_da"], "MOD-2")
 
     def test_una_chiusura_successiva_vale(self):
         self.aggiungi(f"{P}/registri.toml", self.MOD.replace("2026-11-03", "2026-10-01"))

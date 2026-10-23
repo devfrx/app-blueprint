@@ -6,26 +6,30 @@
 [[chiusure]]
 voce = "0.01"
 esito = "fatto"
-evidenza = ["tag:progettazione/gate-0-2026-10-05"]
+evidenza = ["https://git.example.test/officina"]
 data = 2026-10-05
+nota = "Branch d'integrazione main; push a ogni chiusura, permesso dall'utente."
 
 [[chiusure]]
 voce = "0.02"
 esito = "fatto"
-evidenza = ["tag:progettazione/gate-0-2026-10-05"]
+evidenza = [".gitignore", ".claude/settings.json"]
 data = 2026-10-05
+nota = ".build/ in .git/info/exclude."
 
 [[chiusure]]
 voce = "0.03"
 esito = "fatto"
 evidenza = ["tag:progettazione/gate-0-2026-10-05"]
 data = 2026-10-05
+nota = "Cinque agenti in .claude/agents/, sonda superata da ciascuno."
 
 [[chiusure]]
 voce = "0.04"
 esito = "fatto"
 evidenza = ["tag:progettazione/gate-0-2026-10-05"]
 data = 2026-10-05
+nota = "Repo nuovo: nessuna convenzione preesistente, valgono i percorsi del metodo."
 
 [[chiusure]]
 voce = "0.05"
@@ -96,8 +100,9 @@ data = 2026-10-07
 [[chiusure]]
 voce = "1.12"
 esito = "fatto"
-evidenza = ["stato.toml#registro"]
+evidenza = ["prodotto/visione.md#fattibilita", "ADR-0001"]
 data = 2026-10-07
+nota = "Go del responsabile: si costruisce (ADR-0001), con RK-1…RK-3 aperti e nessuna scadenza."
 
 [[chiusure]]
 voce = "1.13"

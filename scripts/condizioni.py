@@ -143,9 +143,21 @@ def stato_voce(voce, scheda, fasi_fuori_catena=frozenset({13, 14, 15}), inneschi
     return stato
 
 
+def profilo(scheda):
+    """Il profilo della scheda con i default: finché la voce 1.13 non lo compila, un
+    progetto vale come personale, a criticità bassa, senza inneschi."""
+    scheda = scheda if isinstance(scheda, dict) else {}
+    esposizione = scheda.get("esposizione")
+    criticita = scheda.get("criticita")
+    inneschi = scheda.get("inneschi")
+    return {"esposizione": esposizione if esposizione in ESPOSIZIONI else "personale",
+            "criticita": criticita if criticita in CRITICITA else "bassa",
+            "inneschi": [i for i in inneschi if isinstance(i, str)] if isinstance(inneschi, list) else []}
+
+
 def descrivi_motivo(voce, scheda):
     """Una riga che spiega perché una voce non si applica o è rinviata."""
-    if scheda["esposizione"] == "pubblicabile" and voce.get("natura") == "esercizio":
+    if profilo(scheda)["esposizione"] == "pubblicabile" and voce.get("natura") == "esercizio":
         return f"voce di esercizio rinviata al passaggio al pubblico (quando: {voce['quando']})"
     return f"condizione falsa per la scheda (quando: {voce['quando']})"
 

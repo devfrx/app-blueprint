@@ -10,10 +10,10 @@ Esposizione **pubblicabile**, criticità **media**, inneschi: ui, dati-personali
 
 | voce | stato | testo | evidenza o motivo |
 |---|---|---|---|
-| 0.01 | fatta | Repo git con il branch d'integrazione attivo; in un ambiente effimero il lavoro si pusha a ogni chiusura, con il permesso dell'utente | tag:progettazione/gate-0-2026-10-05 |
-| 0.02 | fatta | `.build/` esclusa da git, `.claude/worktrees/` ignorata, `worktree.baseRef` impostato a "head" | tag:progettazione/gate-0-2026-10-05 |
-| 0.03 | fatta | Agenti installati in `.claude/agents/` e provati con la sonda, oppure ripiego dichiarato | tag:progettazione/gate-0-2026-10-05 |
-| 0.04 | fatta | Convenzioni del repo rilevate: percorsi e formati già in uso per ADR, design e contratti | tag:progettazione/gate-0-2026-10-05 |
+| 0.01 | fatta | Repo git con il branch d'integrazione attivo; in un ambiente effimero il lavoro si pusha a ogni chiusura, con il permesso dell'utente | https://git.example.test/officina — Branch d'integrazione main; push a ogni chiusura, permesso dall'utente. |
+| 0.02 | fatta | `.build/` esclusa da git, `.claude/worktrees/` ignorata, `worktree.baseRef` impostato a "head" | .gitignore, .claude/settings.json — .build/ in .git/info/exclude. |
+| 0.03 | fatta | Agenti installati in `.claude/agents/` e provati con la sonda, oppure ripiego dichiarato | tag:progettazione/gate-0-2026-10-05 — Cinque agenti in .claude/agents/, sonda superata da ciascuno. |
+| 0.04 | fatta | Convenzioni del repo rilevate: percorsi e formati già in uso per ADR, design e contratti | tag:progettazione/gate-0-2026-10-05 — Repo nuovo: nessuna convenzione preesistente, valgono i percorsi del metodo. |
 | 0.05 | fatta | Stato della progettazione inizializzato: stato.toml, gate.toml e registri.toml dall'esempio, senza congelamento | stato.toml, gate.toml, registri.toml |
 
 ## 1. Avvio, analisi del problema e fattibilità
@@ -33,7 +33,7 @@ Esposizione **pubblicabile**, criticità **media**, inneschi: ui, dati-personali
 | 1.09 | fatta | Vincoli raccolti: budget, scadenze, tecnologie imposte, competenze disponibili | V-1, V-2, V-3, V-4 |
 | 1.10 | fatta | Registro dei rischi aperto con i rischi iniziali | RK-1, RK-2, RK-3 |
 | 1.11 | fatta | Stima d'ordine di grandezza, con l'incertezza dichiarata | prodotto/prodotto.toml#stima |
-| 1.12 | fatta | Decisione go/no-go registrata | stato.toml#registro |
+| 1.12 | fatta | Decisione go/no-go registrata | prodotto/visione.md#fattibilita, ADR-0001 — Go del responsabile: si costruisce (ADR-0001), con RK-1…RK-3 aperti e nessuna scadenza. |
 | 1.13 | fatta | Scheda compilata: esposizione, criticità, inneschi, modello di processo | stato.toml#scheda |
 | 1.14 | fatta | Verdetto d'ingresso espresso: nebbia, fuori-metodo, incremento-unico o incrementi | stato.toml#scheda |
 

@@ -35,6 +35,18 @@ STRATEGIE_PER_VOCE = {
     "7.08": ("ci-cd",),
 }
 STRATEGIE_PER_INNESCO = {"denaro": "denaro", "multitenant": "multi-tenancy"}
+# Quanto prima del congelamento si possono aver riaperto le fonti dei deperibili:
+# abbastanza per il giro tra pre-mortem e approvazione, abbastanza poco perché una
+# versione fuori supporto o un advisory nuovi non sfuggano.
+FINESTRA_DEPERIBILI = datetime.timedelta(days=7)
+# Le voci che certifica un giudizio sull'intero incremento: una modifica le annulla
+# sempre, perché hanno giudicato il progetto di prima. Le altre voci lo script le
+# ricontrolla a ogni verifica.
+CATENA_DEL_CONGELAMENTO = ("revisione:prontezza", "revisione:decidibilita", "congelamento")
+# Da quale fase viene una sorgente: al gate di una fase, gli errori nelle sorgenti
+# di fasi successive ancora in corso sono lavoro in corso, e valgono come avvisi.
+FASE_DELLE_SORGENTI = (("prodotto/", 1), ("requisiti/", 2), ("dominio/", 3), ("architettura/", 4),
+                       ("dati/", 5), ("moduli/", 5), ("sequenze/", 5), ("ux/", 6), ("piano/", 7))
 
 # tipo -> (campi obbligatori, {campo: valori ammessi})
 CAMPI = {
@@ -51,7 +63,8 @@ CAMPI = {
                   {"tipo": {"requisiti", "validazione", "walkthrough", "dominio", "architettura", "dettaglio",
                             "accessibilita", "euristica", "usabilita", "prontezza", "decidibilita", "pre-mortem",
                             "accettazione", "operativa"}}),
-    "modifiche": (("descrizione", "motivo", "data", "esito"), {"esito": {"proposta", "approvata", "respinta"}}),
+    "modifiche": (("descrizione", "motivo", "data", "esito", "impatto", "riapre"),
+                  {"esito": {"proposta", "approvata", "respinta"}}),
     "obiettivi": (("testo", "metrica", "valore"), {}),
     "stakeholder": (("descrizione", "categorie", "interesse", "influenza", "usa"),
                     {"interesse": {"alto", "medio", "basso"}, "influenza": {"alta", "media", "bassa"}}),
@@ -137,6 +150,8 @@ class Contesto:
     catalogo: dict
     oggi: datetime.date = field(default_factory=datetime.date.today)
     congelamento: datetime.date | None = None
+    # vero quando il comando rigenera le viste solo se i controlli passano
+    viste_rigenerate: bool = False
 
 
 def _pieno(valore):
@@ -258,6 +273,16 @@ def c_stato(ctx, voce):
             reperti.append(_r("errore", dove, f"registro, fase {fase}: stato '{riga.get('stato')}' non ammesso", "stato"))
         if riga.get("stato") == "superato" and not (_pieno(riga.get("approvato_da")) and _pieno(riga.get("data"))):
             reperti.append(_r("errore", dove, f"registro, fase {fase}: superato senza approvato_da e data", "stato"))
+        if isinstance(riga.get("data"), datetime.date) and riga["data"] > ctx.oggi:
+            reperti.append(_r("errore", dove, f"registro, fase {fase}: data {riga['data']} nel futuro", "stato"))
+    # un incremento passato è chiuso: la sua ultima fase è superata
+    ultima = max((f["numero"] for f in ctx.catalogo.get("fasi", []) if f.get("skill") != "fuori-catena"), default=None)
+    if isinstance(corrente, int) and ultima is not None:
+        for k in range(1, corrente):
+            if not any(r.get("fase") == ultima and r.get("incremento", 1) == k and r.get("stato") == "superato"
+                       for r in s.get("registro", [])):
+                reperti.append(_r("errore", dove, f"incremento {k} non chiuso: la fase {ultima} non è superata; "
+                                  "l'incremento successivo si apre con progetto.py incrementa", "stato"))
     return reperti
 
 
@@ -467,6 +492,12 @@ def c_revisione(tipo):
         if not revisioni:
             return [_r("errore", "[[revisioni]]", f"nessuna revisione di tipo '{tipo}'", f"revisione:{tipo}")]
         ultima = max(revisioni, key=lambda e: str(e.dati.get("data")))
+        annullate = _chiusure_annullate(ctx, voce) if voce is not None else []
+        superate = {ev for c in annullate for ev in _valori(c.get("evidenza"))}
+        if ultima.id in superate:
+            mod = annullate[-1].get("annullata_da")
+            return [_r("errore", ultima.id, f"è la revisione di prima di {mod}: dopo una modifica serve una revisione "
+                       f"di tipo '{tipo}' nuova, almeno sul suo impatto", f"revisione:{tipo}")]
         reperti = []
         if tipo == "prontezza":
             for campo in ("p0", "p1"):
@@ -779,14 +810,20 @@ def c_domande(ctx, voce):
 
 
 def c_deperibili(ctx, voce):
+    """Le fonti dei deperibili sono riaperte di recente: al congelamento (o, chiudendo
+    la 7.15, oggi) da non più di FINESTRA_DEPERIBILI."""
     p, reperti = ctx.progetto, _presenza("deperibili")(ctx, voce)
-    soglia = ctx.congelamento if voce in ("7.15", None) else None
+    riferimento = ctx.congelamento or ctx.oggi
+    soglia = riferimento - FINESTRA_DEPERIBILI if voce in ("7.15", None) else None
     for d in p.tutti("deperibili"):
         data = d.dati.get("verificato_il")
         if not isinstance(data, datetime.date) or isinstance(data, datetime.datetime):
             reperti.append(_r("errore", d.id, "verificato_il è una data (AAAA-MM-GG)", "deperibili"))
+        elif data > ctx.oggi:
+            reperti.append(_r("errore", d.id, f"verificato_il {data} nel futuro", "deperibili"))
         elif soglia and data < soglia:
-            reperti.append(_r("errore", d.id, f"verificato il {data}, prima del congelamento {soglia}", "deperibili"))
+            reperti.append(_r("errore", d.id, f"verificato il {data}, oltre {FINESTRA_DEPERIBILI.days} giorni prima "
+                              f"del congelamento del {riferimento}: si riapre la fonte", "deperibili"))
     return reperti
 
 
@@ -1170,6 +1207,8 @@ def c_piano(ctx, voce):
 
 
 def c_viste(ctx, voce):
+    if ctx.viste_rigenerate:
+        return []
     import viste
     return viste.verifica_freschezza(ctx.progetto, ctx.catalogo)
 
@@ -1186,7 +1225,7 @@ def c_gate(ctx, voce):
                          and st["applicabilita"] == condizioni.APPLICABILE and not st["chiusa"]), key=condizioni.chiave_id)
         if aperte:
             reperti.append(_r("errore", f"{PROGETTAZIONE}/stato.toml", f"registro, fase {fase}: superato con voci "
-                              f"aperte: {aperte}; una modifica le riapre (MOD-n, poi progetto.py modifica MOD-n)",
+                              f"aperte: {aperte}; il registro lo scrivono approva, modifica e apri, non la mano",
                               "gate"))
     return reperti
 
@@ -1195,24 +1234,44 @@ def tag_congelamento(incremento, data):
     return f"progettazione/incremento-{incremento}-{data.isoformat()}"
 
 
+def tag_valido(tag, base):
+    """Il nome di un tag è la sua base, con un suffisso -n se la base era già presa
+    (lo stesso gate approvato due volte nello stesso giorno)."""
+    return isinstance(tag, str) and re.fullmatch(re.escape(base) + r"(-\d+)?", tag) is not None
+
+
+def prova_esclusa(ctx):
+    """La prova di decidibilità è stata esclusa, con motivo e approvazione: senza
+    sotto-agenti non si può fare (fase-0-precondizioni.md)."""
+    st = stati_voci(ctx).get(voce_con_controllo(ctx.catalogo, "revisione:decidibilita"), {})
+    return bool(st.get("chiusa") and st["chiusura"].get("esito") == "non-applicabile")
+
+
 def c_congelamento(ctx, voce):
     """[congelamento] certifica l'incremento corrente: data, approvazione, tag che
-    li nomina, revisione di prontezza e prova di decidibilità dell'incremento."""
+    li nomina, revisione di prontezza e prova di decidibilità dell'incremento (questa,
+    se la 7.14 non è esclusa)."""
     p, reperti = ctx.progetto, []
     c = p.stato.get("congelamento")
     dove = f"{PROGETTAZIONE}/stato.toml [congelamento]"
     if not isinstance(c, dict):
         return [_r("errore", dove, "manca", "congelamento")]
-    for campo in ("incremento", "data", "approvato_da", "tag", "revisione", "prova"):
+    senza_prova = prova_esclusa(ctx)
+    for campo in ("incremento", "data", "approvato_da", "tag", "revisione") + (() if senza_prova else ("prova",)):
         if not _pieno(c.get(campo)):
             reperti.append(_r("errore", dove, f"manca '{campo}'", "congelamento"))
     corrente = p.incremento_corrente()
     if c.get("incremento") != corrente:
         reperti.append(_r("errore", dove, f"incremento {c.get('incremento')!r}: il corrente è {corrente}", "congelamento"))
-    if isinstance(c.get("data"), datetime.date) and c.get("tag") != tag_congelamento(corrente, c["data"]):
-        reperti.append(_r("errore", dove, f"tag '{c.get('tag')}': per questo congelamento è "
-                          f"'{tag_congelamento(corrente, c['data'])}'", "congelamento"))
+    if isinstance(c.get("data"), datetime.date):
+        if not tag_valido(c.get("tag"), tag_congelamento(corrente, c["data"])):
+            reperti.append(_r("errore", dove, f"tag '{c.get('tag')}': per questo congelamento è "
+                              f"'{tag_congelamento(corrente, c['data'])}'", "congelamento"))
+        if c["data"] > ctx.oggi:
+            reperti.append(_r("errore", dove, f"data {c['data']} nel futuro", "congelamento"))
     for campo, tipo in (("revisione", "prontezza"), ("prova", "decidibilita")):
+        if campo == "prova" and senza_prova:
+            continue
         r = p.trova("revisioni", c.get(campo)) if isinstance(c.get(campo), str) else None
         if r is None or r.dati.get("tipo") != tipo or r.dati.get("incremento") != corrente:
             reperti.append(_r("errore", dove, f"'{campo}' è l'id della revisione di tipo '{tipo}' dell'incremento "
@@ -1221,15 +1280,30 @@ def c_congelamento(ctx, voce):
 
 
 def c_modifiche(ctx, voce):
-    """Una modifica approvata dice chi l'ha approvata e quali voci riapre: è la
-    gestione delle modifiche (2.11, T.04) resa verificabile."""
+    """La gestione delle modifiche (2.11, T.04) resa verificabile. Una proposta dice cosa
+    tocca e cosa riapre; una approvata l'ha applicata progetto.py modifica, che ne ha
+    annullato le chiusure e scritto chi, quando e in quale incremento; una respinta
+    dice perché nelle note."""
     reperti = []
     for m in ctx.progetto.tutti("modifiche"):
-        if m.dati.get("esito") != "approvata":
-            continue
-        for campo in ("approvato_da", "impatto", "riapre"):
-            if not _pieno(m.dati.get(campo)):
-                reperti.append(_r("errore", m.id, f"modifica approvata senza '{campo}'", "modifiche"))
+        d, esito = m.dati, m.dati.get("esito")
+        proposta = d.get("data")
+        if isinstance(proposta, datetime.date) and proposta > ctx.oggi:
+            reperti.append(_r("errore", m.id, f"data {proposta} nel futuro", "modifiche"))
+        if esito == "approvata":
+            approvata = d.get("approvata_il")
+            if not (_pieno(d.get("approvato_da")) and isinstance(approvata, datetime.date)
+                    and isinstance(d.get("incremento"), int)):
+                reperti.append(_r("errore", m.id, "approvata ma non applicata: una modifica si approva con "
+                                  f"progetto.py modifica {m.id} --da <chi approva>, che annulla le chiusure "
+                                  "delle voci che riapre", "modifiche"))
+            elif isinstance(proposta, datetime.date) and approvata < proposta:
+                reperti.append(_r("errore", m.id, f"approvata il {approvata}, prima della proposta del {proposta}",
+                                  "modifiche"))
+            elif approvata > ctx.oggi:
+                reperti.append(_r("errore", m.id, f"approvata_il {approvata} nel futuro", "modifiche"))
+        elif esito == "respinta" and not _pieno(d.get("note")):
+            reperti.append(_r("errore", m.id, "respinta senza 'note': la traccia dice perché", "modifiche"))
     return reperti
 
 
@@ -1322,10 +1396,9 @@ def stati_voci(ctx):
     per tutte le voci del catalogo.
 
     La chiusura che vale è, per una voce che si ripete, quella dell'incremento
-    corrente; per le altre, l'unica. Una modifica approvata che elenca la voce in
-    'riapre' annulla una chiusura con data anteriore alla sua; il congelamento lo
-    annulla qualunque modifica approvata dopo, perché certifica il progetto di quel
-    giorno. Una modifica dello stesso giorno di una chiusura si intende recepita."""
+    corrente; per le altre, l'unica. progetto.py modifica annulla le chiusure delle
+    voci che una modifica riapre scrivendoci annullata_da: restano in gate.toml come
+    storia, e la voce è riaperta finché non si richiude."""
     cache = ctx.__dict__.setdefault("_stati_voci", None)
     if cache is not None:
         return cache
@@ -1336,8 +1409,6 @@ def stati_voci(ctx):
     per_voce = {}
     for c in p.chiusure:
         per_voce.setdefault(c.get("voce"), []).append(c)
-    modifiche = [m for m in p.tutti("modifiche")
-                 if m.dati.get("esito") == "approvata" and isinstance(m.dati.get("data"), datetime.date)]
     risultato = {}
     noti = set(ctx.catalogo.get("inneschi", {}))
     for voce in ctx.catalogo.get("voci", []):
@@ -1345,12 +1416,9 @@ def stati_voci(ctx):
         candidate = per_voce.get(voce["id"], [])
         if ripete:
             candidate = [c for c in candidate if c.get("incremento") == corrente]
-        chiusura = candidate[-1] if candidate else None
-        riaperta_da = None
-        if chiusura is not None and isinstance(chiusura.get("data"), datetime.date):
-            congela = "congelamento" in voce.get("controllo", [])
-            riaperta_da = next((m.id for m in modifiche if chiusura["data"] < m.dati["data"]
-                                and (congela or voce["id"] in _valori(m.dati.get("riapre")))), None)
+        valide = [c for c in candidate if not c.get("annullata_da")]
+        chiusura = valide[-1] if valide else None
+        riaperta_da = candidate[-1].get("annullata_da") if candidate and not valide else None
         risultato[voce["id"]] = {
             "fase": voce["fase"], "applicabilita": condizioni.stato_voce(voce, scheda, inneschi_noti=noti),
             "chiusura": chiusura, "riaperta_da": riaperta_da, "per_incremento": ripete,
@@ -1369,7 +1437,13 @@ def chiusure(ctx, fase_avvisi=None):
     p, reperti, stati, viste = ctx.progetto, [], stati_voci(ctx), set()
     for c in p.chiusure:
         st = stati.get(c.get("voce"))
-        if st is not None and isinstance(c.get("incremento", 0), int):
+        annullata = c.get("annullata_da")
+        if annullata:
+            m = p.trova("modifiche", annullata) if isinstance(annullata, str) else None
+            if m is None or m.dati.get("esito") != "approvata":
+                reperti.append(_r("errore", f"{PROGETTAZIONE}/gate.toml", f"voce {c.get('voce')}: annullata da "
+                                  f"'{annullata}', che non è una modifica approvata", "chiusure"))
+        elif st is not None and isinstance(c.get("incremento", 0), int):
             chiave = (c.get("voce"), c.get("incremento") if st["per_incremento"] else None)
             if chiave in viste:
                 reperti.append(_r("errore", f"{PROGETTAZIONE}/gate.toml", f"voce {chiave[0]} chiusa due volte" +
@@ -1405,6 +1479,8 @@ def valida_chiusura(ctx, c, completa=True, scritta=True, avvisi=False):
         return reperti + [_r("errore", dove, f"voce {ident}: esito 'fatto' o 'non-applicabile'", "chiusure")]
     if not isinstance(c.get("data"), datetime.date):
         reperti.append(_r("errore", dove, f"voce {ident}: manca la data", "chiusure"))
+    elif c["data"] > ctx.oggi:
+        reperti.append(_r("errore", dove, f"voce {ident}: data {c['data']} nel futuro", "chiusure"))
     if not completa:
         return reperti
     if st["applicabilita"] != condizioni.APPLICABILE:
@@ -1437,9 +1513,13 @@ def valida_chiusura(ctx, c, completa=True, scritta=True, avvisi=False):
 
 
 def _evidenza_esiste(p, ev):
-    """Un tag o un URL si accettano; altrimenti l'evidenza è un percorso che esiste,
-    dalla radice o da docs/progettazione/, con un'eventuale ancora, o un id che si risolve."""
-    if ev.startswith("tag:") or ev.startswith("http"):
+    """Un tag esiste nel repo, se la radice è un repo git; un URL si accetta;
+    altrimenti l'evidenza è un percorso che esiste, dalla radice o da
+    docs/progettazione/, con un'eventuale ancora, o un id che si risolve."""
+    if ev.startswith("tag:"):
+        tag = p.tag_git()
+        return tag is None or ev[4:] in tag
+    if ev.startswith("http"):
         return True
     percorso = ev.split("#", 1)[0]
     if percorso and ((p.radice / percorso).exists() or (p.radice / PROGETTAZIONE / percorso).exists()):
@@ -1460,19 +1540,81 @@ def gate(ctx, fase):
 
 def congelamento(ctx):
     """La Definition of Ready: ogni voce applicabile di app-blueprint delle fasi 0–7
-    chiusa, nessuna domanda aperta, deperibili riverificati, debito accettato,
-    revisione di prontezza e prova di decidibilità superate, viste aggiornate."""
-    reperti = []
+    chiusa e i gate 0–6 approvati; nessuna domanda aperta né modifica in attesa di
+    decisione; deperibili riverificati, debito accettato, revisione di prontezza e
+    prova di decidibilità (se non esclusa) superate; viste aggiornate."""
+    reperti, p = [], ctx.progetto
     for ident, st in stati_voci(ctx).items():
         if st["fase"] <= 7 and st["skill"] == "app-blueprint" and st["applicabilita"] == condizioni.APPLICABILE and not st["chiusa"]:
             reperti.append(_r("errore", ident, f"aperta: {st['voce']['testo']}", "congelamento"))
+    righe = righe_correnti(ctx)
+    for fase in ctx.catalogo.get("fasi", []):
+        if fase["numero"] <= 6 and righe.get(fase["numero"], {}).get("stato") != "superato":
+            stato = righe.get(fase["numero"], {}).get("stato", "da-fare")
+            reperti.append(_r("errore", f"{PROGETTAZIONE}/stato.toml", f"fase {fase['numero']}: gate non approvato "
+                              f"({stato}); si congela con i gate 0–6 superati", "congelamento"))
+    for m in p.tutti("modifiche"):
+        if m.dati.get("esito") == "proposta":
+            reperti.append(_r("errore", m.id, "proposta in attesa di decisione: si approva o si respinge prima di "
+                              "congelare", "congelamento"))
     reperti += c_domande(ctx, None)
     reperti += c_deperibili(ctx, None)
     reperti += c_debito(ctx, None)
-    reperti += c_revisione("prontezza")(ctx, "7.13")
-    reperti += c_revisione("decidibilita")(ctx, "7.14")
+    reperti += c_revisione("prontezza")(ctx, voce_con_controllo(ctx.catalogo, "revisione:prontezza"))
+    if not prova_esclusa(ctx):
+        reperti += c_revisione("decidibilita")(ctx, voce_con_controllo(ctx.catalogo, "revisione:decidibilita"))
     reperti += c_viste(ctx, None)
     return reperti
+
+
+def voce_con_controllo(catalogo, nome):
+    return next((v["id"] for v in catalogo.get("voci", []) if nome in v.get("controllo", [])), None)
+
+
+def _chiusure_annullate(ctx, ident):
+    """Le chiusure annullate da una modifica della voce, nella chiave che vale ora."""
+    st = stati_voci(ctx).get(ident)
+    if st is None:
+        return []
+    corrente = ctx.progetto.incremento_corrente()
+    return [c for c in ctx.progetto.chiusure if c.get("voce") == ident and c.get("annullata_da")
+            and (not st["per_incremento"] or c.get("incremento") == corrente)]
+
+
+def catena_del_congelamento(catalogo):
+    return [v["id"] for v in catalogo.get("voci", [])
+            if any(n in v.get("controllo", []) for n in CATENA_DEL_CONGELAMENTO)]
+
+
+def voci_da_riaprire(ctx, elementi):
+    """La proposta di 'riapre' per una modifica a questi elementi: le voci chiuse che li
+    producono (il campo produce del catalogo; per una strategia, le voci del suo tema)
+    e le revisioni della stessa fase che dipendono da quelle voci, anche
+    indirettamente: hanno giudicato ciò che cambia. Le altre voci a valle non si
+    riaprono, perché lo script le ricontrolla a ogni verifica. Una voce che si ripete
+    per incremento conta solo per gli elementi già dell'incremento corrente o di uno
+    passato: quelli futuri li certificherà il loro incremento."""
+    p, stati = ctx.progetto, stati_voci(ctx)
+    corrente = p.incremento_corrente()
+    voci = ctx.catalogo.get("voci", [])
+    produttori = set()
+    for el in elementi:
+        candidati = [v["id"] for v in voci if el.tipo in v.get("produce", [])]
+        if el.tipo == "strategie":
+            candidati = [v for v, temi in STRATEGIE_PER_VOCE.items() if el.dati.get("tema") in temi] or candidati
+        produttori |= {i for i in candidati if not (stati[i]["per_incremento"] and p.incremento_di(el) > corrente)}
+    raggiunte, coda = set(produttori), list(produttori)
+    while coda:
+        sopra = coda.pop()
+        for v in voci:
+            if v["id"] not in raggiunte and v["fase"] == stati[sopra]["fase"] and sopra in v.get("dipende", []):
+                raggiunte.add(v["id"])
+                coda.append(v["id"])
+    revisioni = {i for i in raggiunte - produttori
+                 if any(n.startswith("revisione:") for n in stati[i]["voce"].get("controllo", []))}
+    return sorted((i for i in produttori | revisioni
+                   if stati[i]["chiusa"] and stati[i]["applicabilita"] == condizioni.APPLICABILE),
+                  key=condizioni.chiave_id)
 
 
 def frontiera(ctx, limite=5):
@@ -1500,7 +1642,10 @@ def frontiera(ctx, limite=5):
 
 
 def verifica(ctx, fase_gate=None, al_congelamento=False):
-    """Tutti i controlli che valgono sempre, più quelli del gate o del congelamento richiesti."""
+    """Tutti i controlli che valgono sempre, più quelli del gate o del congelamento
+    richiesti. Al gate di una fase, gli errori nelle sorgenti di una fase successiva
+    ancora in corso (la UX intrecciata alle fasi 2–5, un piano in bozza) sono
+    lavoro in corso: valgono come avvisi, e li fermerà il gate della loro fase."""
     p = ctx.progetto
     reperti = list(p.reperti) + struttura(p) + c_stato(ctx, None) + c_gate(ctx, None) + c_modifiche(ctx, None)
     reperti += chiusure(ctx, fase_avvisi=fase_gate)
@@ -1508,10 +1653,35 @@ def verifica(ctx, fase_gate=None, al_congelamento=False):
         reperti += c_piano(ctx, None)
     reperti += c_viste(ctx, None)
     if fase_gate is not None:
-        reperti += gate(ctx, fase_gate)
+        righe, stati = righe_correnti(ctx), stati_voci(ctx)
+        declassati = []
+        for r in reperti:
+            # la fase di un reperto: quella della sorgente, o quella della voce chiusa che lo riporta
+            fase = fase_della_sorgente(r.dove)
+            m = RE_PREFISSO_VOCE.match(r.messaggio)
+            if fase is None and m and m.group(1) in stati:
+                fase = stati[m.group(1)]["fase"]
+            if r.livello == "errore" and fase is not None and fase > fase_gate \
+                    and righe.get(fase, {}).get("stato") != "superato":
+                r = Reperto("avviso", r.dove, f"[fase {fase} in corso] {r.messaggio}", r.controllo)
+            declassati.append(r)
+        reperti = declassati + gate(ctx, fase_gate)
     if al_congelamento:
         reperti += congelamento(ctx)
     return _accorpa(reperti)
+
+
+def fase_della_sorgente(dove):
+    """La fase che scrive la sorgente di un reperto, o None se non è una sorgente di fase."""
+    percorso = dove.split(" → ", 1)[0]
+    if percorso.startswith(f"{PROGETTAZIONE}/"):
+        relativo = percorso[len(PROGETTAZIONE) + 1:]
+        return next((fase for prefisso, fase in FASE_DELLE_SORGENTI if relativo.startswith(prefisso)), None)
+    if percorso.startswith(f"{CONTRATTI}/"):
+        return 5
+    if percorso.startswith(MOCKUP):
+        return 6
+    return None
 
 
 RE_PREFISSO_VOCE = re.compile(r"^\[voce (\S+) chiusa\] ")

@@ -6,7 +6,7 @@ I fatti su Claude Code citati qui sono in `FONTI.md`, con la data della verifica
 
 ## 0.05 prima di tutto: lo stato
 
-Senza stato non c'è checklist, quindi questa voce si fa per prima, anche se ha il numero più alto:
+Senza stato non c'è checklist, quindi questa voce si fa per prima, anche se ha il numero più alto: le altre voci della fase dipendono da lei.
 
 ```bash
 python <cartella della skill>/scripts/progetto.py inizia --progetto "<nome>" --responsabile "<chi approva i gate>"
@@ -40,11 +40,11 @@ python <cartella della skill>/scripts/progetto.py stato
 3. **Sonda.** Una skill precaricata che manca viene saltata con un solo avviso nel log di debug, e l'agente lavora senza. Lancia ogni tipo di agente con questo compito: "Senza usare strumenti, per ogni skill precaricata nel tuo contesto riporta il nome e la prima frase dopo il titolo principale". Confronta le frasi con le skill: un elenco di nomi non basta, perché si ricostruisce anche senza averle. Se una manca, correggi il nome nella copia del progetto (alcuni ambienti espongono le skill con un prefisso, come `anthropic-skills:`) e ripeti.
 4. Evidenza: `.claude/agents/`, con `--nota` sull'esito della sonda.
 
-**Senza agenti di progetto**, se l'ambiente non carica `.claude/agents/` o la sessione non si può riavviare: sotto-agenti generici con il corpo della definizione in testa al brief, e la nota della chiusura dice che strumenti e skill precaricate non sono garantiti. Senza sotto-agenti, ricerca e revisioni si fanno in sequenza nella sessione, dichiarandolo nelle revisioni; la prova di decidibilità invece non si può fare, perché la sessione conosce già le risposte, e la 7.14 si chiude come non applicabile con questo motivo, da far approvare all'utente.
+**Senza agenti di progetto**, se l'ambiente non carica `.claude/agents/` o la sessione non si può riavviare: sotto-agenti generici con il corpo della definizione in testa al brief, e la nota della chiusura dice che strumenti e skill precaricate non sono garantiti. Senza sotto-agenti, ricerca e revisioni si fanno in sequenza nella sessione, dichiarandolo nelle revisioni; la prova di decidibilità invece non si può fare, perché la sessione conosce già le risposte, e la 7.14 si chiude come non applicabile con questo motivo, approvato dall'utente (`--approvato`); il congelamento allora non porta la `prova`.
 
 ## 0.04 Convenzioni del repo
 
-In un repo nuovo valgono i percorsi del metodo (`struttura.md`), e l'evidenza è la nota che lo dice. Se il repo ha già percorsi o formati per ADR, diagrammi o contratti, si decide con l'utente: migrare al layout del metodo, che lo script sa verificare, o non usare il metodo così com'è. Le convenzioni del codice — linguaggio, stile, test — non si decidono qui: si rilevano se esistono e si fissano alla 7.07.
+In un repo nuovo valgono i percorsi del metodo (`struttura.md`). Se il repo ha già percorsi o formati per ADR, diagrammi o contratti, si decide con l'utente: migrare al layout del metodo, che lo script sa verificare, o non usare il metodo così com'è. In entrambi i casi in cui il metodo si usa, l'evidenza è `docs/progettazione/`, con `--nota` su ciò che il repo aveva già e su cosa si è deciso. Le convenzioni del codice — linguaggio, stile, test — non si decidono qui: si rilevano se esistono e si fissano alla 7.07.
 
 ## Gate
 

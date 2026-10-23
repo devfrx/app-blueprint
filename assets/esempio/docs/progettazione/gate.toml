@@ -20,14 +20,14 @@ nota = ".build/ in .git/info/exclude."
 [[chiusure]]
 voce = "0.03"
 esito = "fatto"
-evidenza = ["tag:progettazione/gate-0-2026-10-05"]
+evidenza = [".claude/agents/"]
 data = 2026-10-05
 nota = "Cinque agenti in .claude/agents/, sonda superata da ciascuno."
 
 [[chiusure]]
 voce = "0.04"
 esito = "fatto"
-evidenza = ["tag:progettazione/gate-0-2026-10-05"]
+evidenza = ["docs/progettazione/"]
 data = 2026-10-05
 nota = "Repo nuovo: nessuna convenzione preesistente, valgono i percorsi del metodo."
 
@@ -182,8 +182,9 @@ data = 2026-10-10
 [[chiusure]]
 voce = "2.11"
 esito = "fatto"
-evidenza = ["tag:progettazione/gate-2-2026-10-10"]
+evidenza = ["registri.toml"]
 data = 2026-10-10
+nota = "Procedura di gate.md; la baseline dei requisiti è il tag del gate 2."
 
 [[chiusure]]
 voce = "2.12"

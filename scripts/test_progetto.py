@@ -5,11 +5,14 @@ import io
 import json
 import re
 import shutil
+import subprocess
 import tempfile
 import tomllib
 import unittest
 from pathlib import Path
 
+import controlli
+import modello
 import progetto as cli
 
 ESEMPIO = Path(__file__).resolve().parent.parent / "assets" / "esempio"
@@ -47,8 +50,39 @@ class Base(unittest.TestCase):
         self.assertNotEqual(nuovo, testo)
         percorso.write_text(nuovo, encoding="utf-8")
 
+    def chiudi_incremento_1(self):
+        """La costruzione dell'incremento 1 chiusa: qui non si costruisce, quindi le voci
+        aperte delle fasi 7–12 si escludono, e le fasi risultano approvate."""
+        catalogo = modello.leggi_catalogo(cli.CATALOGO)
+        progetto = modello.carica(self.radice, catalogo)
+        stati = controlli.stati_voci(controlli.Contesto(progetto, catalogo))
+        chiusure = ""
+        for ident, st in stati.items():
+            if 7 <= st["fase"] <= 12 and st["applicabilita"] == "applicabile" and not st["chiusa"]:
+                chiusure += (f'\n[[chiusure]]\nvoce = "{ident}"\n' + ("incremento = 1\n" if st["per_incremento"] else "")
+                             + 'esito = "non-applicabile"\nmotivo = "Costruzione simulata nel test."\ndata = 2026-10-22\n')
+        with (self.radice / P / "gate.toml").open("a", encoding="utf-8") as f:
+            f.write(chiusure)
+        self.sostituisci(f"{P}/stato.toml", 'fase = 7\nincremento = 1\nstato = "in-corso"',
+                         'fase = 7\nincremento = 1\nstato = "superato"\napprovato_da = "responsabile"\ndata = 2026-10-22')
+        with (self.radice / P / "stato.toml").open("a", encoding="utf-8") as f:
+            for fase in range(8, 13):
+                f.write(f'\n[[registro]]\nfase = {fase}\nincremento = 1\nstato = "superato"\n'
+                        'approvato_da = "responsabile"\ndata = 2026-10-22\n')
+        self.esegui("viste")
+
     def apri_incremento_2(self):
-        self.sostituisci(f"{P}/stato.toml", "incremento = 1\ncostruzione", "incremento = 2\ncostruzione")
+        self.chiudi_incremento_1()
+        esito, testo = self.esegui("incrementa")
+        self.assertEqual(esito, 0, testo)
+
+    def aggiungi_modifica(self, **campi):
+        dati = {"id": "MOD-2", "descrizione": "Il veicolo registra il telaio.", "motivo": "Richiami.",
+                "data": "2026-10-22", "impatto": ["entita:veicolo"], "riapre": ["3.07", "5.05.4"], "esito": "proposta"}
+        dati.update(campi)
+        righe = "".join(f"{k} = {json.dumps(v) if not k == 'data' else v}\n" for k, v in dati.items() if v is not None)
+        with (self.radice / P / "registri.toml").open("a", encoding="utf-8") as f:
+            f.write("\n[[modifiche]]\n" + righe)
         self.esegui("viste")
 
 
@@ -73,7 +107,10 @@ class Lettura(Base):
         self.assertIn("citato da:", testo)
         esito, testo = self.esegui("impatto", "entita:fattura")
         self.assertEqual(esito, 0)
-        self.assertIn("tabelle fatture", testo)
+        self.assertIn("tabella:fatture (campo da)", testo)
+        _, testo = self.esegui("impatto", "colonna:veicoli.targa")
+        self.assertIn('impatto = ["colonna:veicoli.targa"]', testo)
+        self.assertIn('riapre = ["5.05", "5.05.4", "5.14"]', testo)
 
     def test_fascio_di_un_task(self):
         esito, testo = self.esegui("fascio", "--task", "C-veicoli-be")
@@ -113,6 +150,11 @@ class Lettura(Base):
         _, testo = self.esegui("schema", "--nuovi")
         self.assertIn("nome=scadenza_revisione", testo)
         self.assertNotIn("### tabelle fatture", testo)
+        self.assertNotIn("Cambiati da modifiche", testo)
+        self.aggiungi_modifica(impatto=["colonna:veicoli.targa"], riapre=["5.05"])
+        self.assertEqual(self.esegui("modifica", "MOD-2", "--da", "responsabile")[0], 0)
+        _, testo = self.esegui("schema", "--nuovi")
+        self.assertIn("- MOD-2: Il veicolo registra il telaio. — impatto colonna:veicoli.targa", testo)
 
     def test_voce_sconosciuta_e_errore_d_uso(self):
         self.assertEqual(self.esegui("fascio", "9.99")[0], 2)
@@ -138,7 +180,7 @@ class Inizio(Base):
         self.assertEqual(esito, 0, testo)
         self.assertIn("si compila alla voce 1.13", testo)
         _, testo = self.esegui("stato")
-        self.assertIn("0.01 Repo git", testo)
+        self.assertIn("Frontiera (voci pronte):\n  0.05 Stato della progettazione", testo)
         self.assertEqual(self.esegui("inizia", "--progetto", "Prova", "--responsabile", "utente")[0], 2)
 
     def test_la_scheda_si_compila_alla_1_13(self):
@@ -201,7 +243,33 @@ class Punti(Base):
         self.assertEqual(len(chiusure), 1)
         self.assertEqual((chiusure[0]["incremento"], chiusure[0]["data"].isoformat()), (1, "2026-10-23"))
 
+    def test_richiudere_in_una_fase_superata_e_una_modifica(self):
+        esito, testo = self.esegui("chiudi", "3.07", "--evidenza", "dominio/entita.toml")
+        self.assertEqual(esito, 2)
+        self.assertIn("è una modifica", testo)
+
+    def test_data_futura_rifiutata(self):
+        self.togli_chiusura("4.12")
+        self.sostituisci(f"{P}/stato.toml", 'fase = 4\nstato = "superato"', 'fase = 4\nstato = "in-corso"')
+        domani = (__import__("datetime").date.today() + __import__("datetime").timedelta(days=1)).isoformat()
+        esito, testo = self.esegui("chiudi", "4.12", "--evidenza", "architettura/analisi.md", "--data", domani)
+        self.assertEqual(esito, 2)
+        self.assertIn("nel futuro", testo)
+
+    def test_chiudi_non_scrive_nulla_se_fallisce(self):
+        self.togli_chiusura("4.12")
+        self.sostituisci(f"{P}/stato.toml", 'fase = 4\nstato = "superato"', 'fase = 4\nstato = "in-corso"')
+        self.sostituisci(f"{P}/requisiti/storie.toml", 'titolo = "L\'operatore accede ed esce"',
+                         'titolo = "L\'operatore entra ed esce"')
+        prima = {f: f.read_text(encoding="utf-8") for f in (self.radice / P).rglob("*") if f.is_file()}
+        esito, _ = self.esegui("chiudi", "4.12", "--evidenza", "inesistente.md")
+        self.assertEqual(esito, 1)
+        dopo = {f: f.read_text(encoding="utf-8") for f in (self.radice / P).rglob("*") if f.is_file()}
+        self.assertEqual(prima, dopo)
+
     def test_esclusione(self):
+        self.togli_chiusura("4.12")
+        self.sostituisci(f"{P}/stato.toml", 'fase = 4\nstato = "superato"', 'fase = 4\nstato = "in-corso"')
         self.assertEqual(self.esegui("chiudi", "4.12", "--non-applicabile")[0], 2)
         self.assertEqual(self.esegui("chiudi", "4.12", "--non-applicabile", "--motivo", "m", "--evidenza", "x")[0], 2)
         esito, _ = self.esegui("chiudi", "4.12", "--non-applicabile", "--motivo", "VPS unico, carico trascurabile")
@@ -225,6 +293,27 @@ class Fasi(Base):
         riga = [r for r in self.leggi(f"{P}/stato.toml")["registro"] if r["fase"] == 2]
         self.assertEqual([(r.get("incremento"), r["stato"]) for r in riga], [(1, "superato"), (2, "in-corso")])
 
+    def test_i_gate_si_approvano_in_ordine(self):
+        self.togli_chiusura("4.12")
+        self.sostituisci(f"{P}/stato.toml", 'fase = 4\nstato = "superato"', 'fase = 4\nstato = "in-corso"')
+        self.sostituisci(f"{P}/stato.toml", 'fase = 5\nincremento = 1\nstato = "superato"',
+                         'fase = 5\nincremento = 1\nstato = "in-corso"')
+        esito, testo = self.esegui("approva", "5", "--da", "responsabile")
+        self.assertEqual(esito, 1)
+        self.assertIn("fase 4: in-corso; i gate si approvano in ordine", testo)
+
+    def test_lo_stesso_tag_nello_stesso_giorno_prende_un_suffisso(self):
+        self.togli_chiusura("4.12")
+        self.sostituisci(f"{P}/stato.toml", 'fase = 4\nstato = "superato"', 'fase = 4\nstato = "in-corso"')
+        self.assertEqual(self.esegui("chiudi", "4.12", "--evidenza", "architettura/analisi.md")[0], 0)
+        subprocess.run(["git", "-C", str(self.radice), "init", "-q"], check=True)
+        subprocess.run(["git", "-C", str(self.radice), "-c", "user.name=t", "-c", "user.email=t@t", "commit", "-q",
+                        "--allow-empty", "-m", "x"], check=True)
+        subprocess.run(["git", "-C", str(self.radice), "tag", "progettazione/gate-4-2026-10-16"], check=True)
+        esito, testo = self.esegui("approva", "4", "--da", "responsabile", "--data", "2026-10-16")
+        self.assertEqual(esito, 0, testo)
+        self.assertIn("git tag -a progettazione/gate-4-2026-10-16-2", testo)
+
     def test_approva(self):
         self.togli_chiusura("4.12")
         self.sostituisci(f"{P}/stato.toml", 'fase = 4\nstato = "superato"', 'fase = 4\nstato = "in-corso"')
@@ -240,33 +329,52 @@ class Fasi(Base):
 
 
 class Modifiche(Base):
-    MOD = ('\n[[modifiche]]\nid = "MOD-2"\ndescrizione = "Il veicolo registra il telaio."\nmotivo = "Richiami."\n'
-           'data = 2026-11-03\nimpatto = ["entita:veicolo"]\nriapre = ["3.07", "5.05.4"]\nesito = "approvata"\n'
-           'approvato_da = "responsabile"\n')
-
-    def test_modifica_riapre_fasi_e_congelamento(self):
-        with (self.radice / P / "registri.toml").open("a", encoding="utf-8") as f:
-            f.write(self.MOD)
-        esito, testo = self.esegui("verifica")
-        self.assertEqual(esito, 1)
-        self.assertIn("progetto.py modifica", testo)
-        esito, testo = self.esegui("modifica", "MOD-2")
+    def test_modifica_approva_e_applica(self):
+        self.aggiungi_modifica()
+        self.assertEqual(self.esegui("verifica")[0], 0)
+        esito, testo = self.esegui("modifica", "MOD-2", "--da", "responsabile", "--data", "2026-10-23")
         self.assertEqual(esito, 0, testo)
-        self.assertIn("fasi riaperte: 3, 5", testo)
+        self.assertIn("Chiusure annullate: 3.07, 5.05.4, 7.13, 7.14, 7.17; fasi riaperte: 3, 5.", testo)
+        mod = next(m for m in self.leggi(f"{P}/registri.toml")["modifiche"] if m["id"] == "MOD-2")
+        self.assertEqual((mod["esito"], mod["approvato_da"], mod["approvata_il"].isoformat(), mod["incremento"]),
+                         ("approvata", "responsabile", "2026-10-23", 1))
+        annullate = {c["voce"] for c in self.leggi(f"{P}/gate.toml")["chiusure"] if c.get("annullata_da") == "MOD-2"}
+        self.assertEqual(annullate, {"3.07", "5.05.4", "7.13", "7.14", "7.17"})
         righe = {r["fase"]: r for r in self.leggi(f"{P}/stato.toml")["registro"]}
         self.assertEqual((righe[3]["stato"], righe[5]["stato"]), ("riaperto", "riaperto"))
-        self.assertIn("MOD-2", righe[3]["note"])
+        self.assertIn("progettazione/gate-3-2026-10-13", righe[3]["note"])
         self.assertEqual(self.esegui("verifica")[0], 0)
         _, testo = self.esegui("checklist", "--fase", "7")
         self.assertRegex(testo, r"7\.17\s+↻ riaperta MOD-2")
+        # la voce riaperta si lavora come un punto, e la chiusura annullata resta storia
+        self.assertEqual(self.esegui("apri", "3.07")[0], 0)
+        esito, testo = self.esegui("chiudi", "3.07", "--evidenza", "dominio/entita.toml")
+        self.assertEqual(esito, 0, testo)
+        chiusure = [c for c in self.leggi(f"{P}/gate.toml")["chiusure"] if c["voce"] == "3.07"]
+        self.assertEqual([c.get("annullata_da") for c in chiusure], ["MOD-2", None])
+        self.assertEqual(self.esegui("modifica", "MOD-2", "--da", "responsabile")[0], 2)
 
-    def test_modifica_sconosciuta_o_incompleta(self):
-        self.assertEqual(self.esegui("modifica", "MOD-9")[0], 2)
-        with (self.radice / P / "registri.toml").open("a", encoding="utf-8") as f:
-            f.write(self.MOD.replace('riapre = ["3.07", "5.05.4"]\n', ""))
-        esito, testo = self.esegui("modifica", "MOD-2")
+    def test_cambio_di_profilo(self):
+        self.sostituisci(f"{P}/stato.toml", 'esposizione = "pubblicabile"', 'esposizione = "pubblico"')
+        esito, testo = self.esegui("verifica")
+        self.assertIn("registro, fase 6: superato con voci aperte: ['6.08']", testo)
+        self.aggiungi_modifica(descrizione="L'app diventa pubblica.", impatto=["voce:6.08"], riapre=["6.08"])
+        self.assertEqual(self.esegui("modifica", "MOD-2", "--da", "responsabile")[0], 0)
+        righe = {r["fase"]: r for r in self.leggi(f"{P}/stato.toml")["registro"]}
+        self.assertEqual(righe[6]["stato"], "riaperto")
+        esito, testo = self.esegui("verifica")
+        self.assertNotIn("superato con voci aperte", testo)
+
+    def test_modifica_rifiutata(self):
+        self.assertEqual(self.esegui("modifica", "MOD-9", "--da", "responsabile")[0], 2)
+        self.assertEqual(self.esegui("modifica", "MOD-1", "--da", "responsabile")[0], 2)
+        self.aggiungi_modifica(riapre=None, impatto=["registraCliente"])
+        prima = (self.radice / P / "registri.toml").read_text(encoding="utf-8")
+        esito, testo = self.esegui("modifica", "MOD-2", "--da", "responsabile")
         self.assertEqual(esito, 1)
-        self.assertIn("senza 'riapre'", testo)
+        self.assertIn("manca 'riapre'", testo)
+        self.assertIn("'registraCliente' non è un id citabile", testo)
+        self.assertEqual((self.radice / P / "registri.toml").read_text(encoding="utf-8"), prima)
 
 
 class Congelamento(Base):
@@ -278,9 +386,10 @@ class Congelamento(Base):
         percorso.write_text(testo.rstrip() + "\n", encoding="utf-8")
 
     def test_definition_of_ready_rossa(self):
-        esito, testo = self.esegui("congela", "--da", "responsabile", "--data", "2026-10-25")
+        self.sostituisci(f"{P}/registri.toml", "verificato_il = 2026-10-22", "verificato_il = 2026-10-10")
+        esito, testo = self.esegui("congela", "--da", "responsabile", "--data", "2026-10-22")
         self.assertEqual(esito, 1)
-        self.assertIn("prima del congelamento 2026-10-25", testo)
+        self.assertIn("prima del congelamento del 2026-10-22", testo)
         self.assertNotIn("congelamento", self.leggi(f"{P}/stato.toml"))
 
     def test_congela(self):
@@ -291,6 +400,46 @@ class Congelamento(Base):
         self.assertTrue(any(x["voce"] == "7.17" for x in self.leggi(f"{P}/gate.toml")["chiusure"]))
         self.assertIn("7.09 [parallel-build]", testo)
         self.assertEqual(self.esegui("verifica", "--congelamento")[0], 0)
+
+    def test_dopo_una_modifica_si_ricongela_con_fasi_e_revisioni_nuove(self):
+        self.assertEqual(self.esegui("congela", "--da", "responsabile", "--data", "2026-10-22")[0], 0)
+        self.aggiungi_modifica(riapre=["3.07"])
+        self.assertEqual(self.esegui("modifica", "MOD-2", "--da", "responsabile", "--data", "2026-10-23")[0], 0)
+        esito, testo = self.esegui("congela", "--da", "responsabile", "--data", "2026-10-23")
+        self.assertEqual(esito, 1)
+        for atteso in ("3.07: aperta", "fase 3: gate non approvato (riaperto)", "7.13: aperta", "7.14: aperta",
+                       "REV-9: è la revisione di prima di MOD-2"):
+            self.assertIn(atteso, testo)
+
+
+class Incrementa(Base):
+    def test_un_incremento_non_chiuso_non_si_lascia(self):
+        esito, testo = self.esegui("incrementa")
+        self.assertEqual(esito, 1)
+        self.assertIn("l'incremento 1 non è chiuso: la fase 12 non è superata", testo)
+        self.assertEqual(self.leggi(f"{P}/stato.toml")["scheda"]["incremento"], 1)
+
+    def test_incrementa(self):
+        self.aggiungi_modifica()
+        self.chiudi_incremento_1()
+        esito, testo = self.esegui("incrementa")
+        self.assertEqual(esito, 0, testo)
+        self.assertIn("Incremento 2 aperto", testo)
+        self.assertIn("Modifiche proposte da decidere per prime: MOD-2", testo)
+        stato = self.leggi(f"{P}/stato.toml")
+        self.assertEqual((stato["scheda"]["incremento"], stato["corrente"]["fase"]), (2, 2))
+        self.assertIn("# Stato della progettazione", (self.radice / P / "stato.toml").read_text(encoding="utf-8"))
+        esito, testo = self.esegui("verifica")
+        self.assertEqual(esito, 0, testo)
+        _, testo = self.esegui("stato")
+        self.assertIn("Frontiera (voci pronte):\n  2.02", testo)
+
+    def test_oltre_la_roadmap(self):
+        self.chiudi_incremento_1()
+        self.sostituisci(f"{P}/piano/piano.toml", "[[incrementi]]\nnumero = 2", "[[incrementi]]\nnumero = 3")
+        esito, testo = self.esegui("incrementa")
+        self.assertEqual(esito, 1)
+        self.assertIn("nessun incremento 2 in [[incrementi]]", testo)
 
 
 if __name__ == "__main__":

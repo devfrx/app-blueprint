@@ -99,7 +99,7 @@ Revisione e prova partono dopo un commit: i `reviewer` lavorano in un worktree e
 
 ## 7.15 Deperibili
 
-Un `researcher` riapre le fonti di tutti i `[[deperibili]]` alla data del congelamento e aggiorna `verificato_il`. Se qualcosa è cambiato — una versione fuori supporto, un advisory, uno standard sostituito — si torna alla decisione che ne dipende prima di congelare.
+Un `researcher` riapre le fonti di tutti i `[[deperibili]]` e aggiorna `verificato_il`, al più sette giorni prima del congelamento: abbastanza per il giro tra pre-mortem e approvazione, abbastanza poco perché una versione fuori supporto o un advisory nuovi non sfuggano. Se qualcosa è cambiato — una versione fuori supporto, un advisory, uno standard sostituito — si torna alla decisione che ne dipende prima di congelare.
 
 ## 7.16 Pre-mortem
 
@@ -121,7 +121,7 @@ Con l'utente: "Immagina che la costruzione sia fallita. Cosa è andato storto?".
    progetto.py congela --da <chi approva>
    ```
 
-   Controlla la Definition of Ready alla data del giorno — ogni voce applicabile di `app-blueprint` delle fasi 0–7 chiusa, nessuna domanda aperta, deperibili verificati da quella data, debito accettato, prontezza e decidibilità superate nell'incremento, viste aggiornate — e solo se è verde scrive `[congelamento]` in `stato.toml` e chiude la 7.17.
+   Controlla la Definition of Ready alla data del giorno — ogni voce applicabile di `app-blueprint` delle fasi 0–7 chiusa e i gate 0–6 approvati, nessuna domanda aperta né modifica in attesa di decisione, deperibili riverificati nella settimana, debito accettato, prontezza e decidibilità superate nell'incremento, viste aggiornate — e solo se è verde scrive `[congelamento]` in `stato.toml` e chiude la 7.17. Con la 7.14 esclusa perché mancano i sotto-agenti (`fase-0-precondizioni.md`), il congelamento non porta la `prova`.
 4. **Commit, tag** con il nome che `congela` stampa, **push** se permesso. L'handoff di progettazione, se c'era, si toglie.
 
-Da qui i contratti sono congelati: ogni cambio è una modifica (`gate.md`), e una modifica approvata dopo il congelamento lo annulla. La frontiera passa a `parallel-build`, che parte dagli ambienti e dallo scheletro.
+Da qui i contratti sono congelati: ogni cambio è una modifica (`gate.md`), e applicarla annulla il congelamento con la prontezza e la prova. Si ricongela con le fasi riaprovate e con revisioni nuove, almeno sull'impatto della modifica. La frontiera passa a `parallel-build`, che parte dagli ambienti e dallo scheletro.

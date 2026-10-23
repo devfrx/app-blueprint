@@ -17,14 +17,14 @@ Un punto è il lavoro su una voce. Ha un inizio e una fine espliciti, sempre:
 
 1. **Inizio**: `progetto.py apri <voce>`. Registra il punto in `stato.toml`, porta la fase a `in-corso` (o `riaperto`) e stampa "Inizio punto …" con il fascio della voce: dove vive l'evidenza, i controlli che dovranno passare, le sorgenti da leggere.
 2. **Lavoro**: si segue la sezione della voce nella reference della fase, si decide con l'utente (`decisioni.md`), si scrivono le sorgenti.
-3. **Fine**: `progetto.py chiudi <voce> --evidenza …`. Prima di scrivere esegue i controlli della voce e verifica che le evidenze esistano: se qualcosa non passa non scrive nulla ed elenca cosa correggere. Poi registra la chiusura, rigenera le viste, stampa gli avvisi dei controlli (non bloccano, ma si leggono adesso), "Fine punto …" e la frontiera.
+3. **Fine**: `progetto.py chiudi <voce> --evidenza …`. Prima di scrivere esegue i controlli della voce e verifica che le evidenze esistano: se qualcosa non passa non scrive nulla, viste comprese, ed elenca cosa correggere. Poi registra la chiusura, rigenera le viste, stampa gli avvisi dei controlli (non bloccano, ma si leggono adesso), "Fine punto …" e la frontiera.
 4. **Commit**.
 
 Regole:
 
 - **Un punto alla volta.** Si lascia un punto aperto solo se lo blocca una domanda registrata (`Q-n` con `punto` uguale alla voce), e allora `apri` accetta un altro punto.
 - **La frontiera propone, l'utente dispone.** `stato` elenca le voci applicabili aperte della fase più bassa le cui dipendenze sono chiuse; l'ordine di lavoro si può cambiare, e `apri` avvisa se una dipendenza è ancora aperta.
-- **Una voce chiusa non si riapre con `apri`**: si riapre con una modifica.
+- **Una voce chiusa non si riapre con `apri`**: si riapre con una modifica. Finché la sua fase non è superata, `chiudi` ne sostituisce la chiusura, per correggerla; dopo, anche questo è una modifica.
 - **Più voci, un artefatto**: quando un lavoro chiude più voci (le quattro del metodo dei dati, per esempio), ognuna si chiude con il suo comando, con l'evidenza che la riguarda.
 
 ## Evidenze
@@ -33,10 +33,10 @@ L'evidenza è ciò che un revisore apre per vedere che la voce è soddisfatta:
 
 - un percorso, relativo alla radice o a `docs/progettazione/`, con un'eventuale ancora: `requisiti/storie.toml`, `prodotto/visione.md#problema`;
 - un id: `REV-6`, `ADR-0004`, `DEP-3`, `RK-2`;
-- un tag: `tag:progettazione/gate-2-2026-10-10`;
+- un tag: `tag:build/incremento-1/scheletro`;
 - un URL, per ciò che vive fuori dal repo.
 
-Lo script verifica che percorsi e id esistano, non che dicano il vero: quello lo dicono i controlli della voce, per ciò che si può controllare, e le revisioni per il resto. Una chiusura come non applicabile non ha evidenze ma un motivo (`profili.md`, *Esclusioni*).
+Lo script verifica che percorsi, id e tag esistano (i tag, se la radice è un repo git), non che dicano il vero: quello lo dicono i controlli della voce, per ciò che si può controllare, e le revisioni per il resto. Il tag di un gate nasce con `approva`, dopo le chiusure della sua fase: non ne è l'evidenza. Una chiusura come non applicabile non ha evidenze ma un motivo (`profili.md`, *Esclusioni*). La data di una chiusura è quella del giorno, o una passata con `--data`; mai una futura, che sfuggirebbe alle modifiche.
 
 ## Fasi e gate
 
@@ -47,7 +47,9 @@ Lo script verifica che percorsi e id esistano, non che dicano il vero: quello lo
   3. controlli trasversali passati in rassegna: `progetto.py checklist --trasversali`, una riga d'esito per voce nella nota del registro;
   4. il brief del gate presentato all'utente;
   5. l'approvazione esplicita dell'utente, e solo allora `progetto.py approva N --da <chi approva> --note "<trasversali, in breve>"`;
-  6. commit, e il tag che `approva` stampa.
+  6. commit, e il tag che `approva` stampa: se lo stesso gate si è già approvato nello stesso giorno, il nome prende un suffisso, `-2`.
+- **In ordine**: `approva` rifiuta una fase se una precedente non è superata. La 6, intrecciata alle 2–5, non blocca le 3–5.
+- **Il lavoro in corso non blocca**: al gate di una fase, gli errori nelle sorgenti di una fase successiva ancora aperta valgono come avvisi, marcati "[fase N in corso]". La bozza di una schermata non ferma il gate 2; ferma il gate 6.
 - **Il brief del gate** sta in una schermata, nella conversazione: le decisioni difficili da invertire della fase, ciascuna con l'alternativa scartata e il suo ADR; le esclusioni con il motivo; assunzioni, rischi e debito nuovi; cosa guardare per primo, cioè dove un errore costerebbe di più; l'esito della verifica. Il rischio di un gate è l'approvazione senza lettura: il brief rende la lettura breve e mirata.
 - **`approva` non approva al posto dell'utente**: registra un'approvazione già data. Senza un sì esplicito la fase resta `in-corso`.
 
@@ -73,10 +75,11 @@ Le voci il cui lavoro dipende dall'incremento corrente si richiudono a ogni incr
 
 Aprire l'incremento successivo, a costruzione dell'incremento corrente chiusa:
 
-1. `[scheda].incremento` aumenta di uno, con un commit `progettazione: apre l'incremento N`. Le voci per incremento si riaprono da sole, e la frontiera riparte dalla 2.02.
-2. Si lavorano le voci riaperte: i criteri delle storie del nuovo incremento, la loro revisione e validazione, il dettaglio dei moduli e i contratti che l'incremento rende completi, le schermate, il piano.
-3. Ciò che il nuovo incremento costringe a cambiare in elementi già costruiti — una colonna, una facciata — è una modifica, con l'analisi d'impatto.
-4. Congelamento e passaggio a `parallel-build`, come per il primo.
+1. `progetto.py incrementa`: controlla che la fase 12 dell'incremento sia superata, che il successivo sia in `[[incrementi]]` e che la verifica sia verde; porta la scheda all'incremento N+1, fa ripartire la frontiera e rigenera le viste. Poi il commit `progettazione: apre l'incremento N`. Le voci per incremento si riaprono da sole; uno stato portato avanti a mano, con l'incremento precedente non chiuso, è un errore di `verifica`.
+2. Le modifiche proposte durante la costruzione si decidono per prime: `incrementa` le elenca.
+3. Si lavorano le voci riaperte: i criteri delle storie del nuovo incremento, la loro revisione e validazione, il dettaglio dei moduli e i contratti che l'incremento rende completi, le schermate, il piano.
+4. Ciò che il nuovo incremento costringe a cambiare in elementi già costruiti — una colonna, una facciata — è una modifica, con l'analisi d'impatto; `schema --nuovi` la mostra a chi scrive le migrazioni.
+5. Congelamento e passaggio a `parallel-build`, che estende lo scheletro (7.10).
 
 Spostare una storia da un incremento all'altro è una decisione di scope: si fa con l'utente, e se tocca l'incremento congelato è una modifica.
 
@@ -84,13 +87,13 @@ Spostare una storia da un incremento all'altro è una decisione di scope: si fa 
 
 Una modifica cambia ciò che una chiusura dà per vero: un requisito nuovo o diverso, una decisione rovesciata, un finding della costruzione, un cambio di profilo. Una correzione che non cambia ciò che si costruisce, come un refuso in una descrizione, non lo è.
 
-1. **Impatto**: `progetto.py impatto <id>` per ogni elemento toccato.
-2. **Registrazione**: un `[[modifiche]]` in `registri.toml` con descrizione, motivo, data, `impatto` (gli id) e `riapre` (le voci da rifare), `esito = "proposta"`.
-3. **Decisione**: all'utente, con ciò che cambia, ciò che si riapre e il costo. Se la respinge, `esito = "respinta"` con una nota: la traccia resta.
-4. **Applicazione**: `esito = "approvata"`, `approvato_da`, poi `progetto.py modifica MOD-n`. Le chiusure con data anteriore delle voci elencate non valgono più, e le fasi superate che le contengono tornano `riaperto` nel registro.
-5. **Lavoro**: le voci riaperte si lavorano come punti, e le fasi si riapprovano.
+1. **Impatto**: `progetto.py impatto <id> [<id>…]` con gli elementi che cambiano. Stampa ciò che li cita, anche indirettamente, e le righe `impatto` e `riapre` da scrivere, con gli id già nella forma citabile. `riapre` propone le voci chiuse che producono quegli elementi (il campo `produce` del catalogo) e le revisioni della loro fase che li hanno giudicati. Si toglie ciò che la modifica non cambia davvero; si aggiungono le voci di ciò che la modifica aggiunge, che `progetto.py formato <tipo>` indica.
+2. **Registrazione**: un `[[modifiche]]` in `registri.toml` con descrizione, motivo, `data` della proposta, `impatto`, `riapre`, `esito = "proposta"`. Il formato: `progetto.py formato modifiche`.
+3. **Decisione**: all'utente, con ciò che cambia, ciò che si riapre e il costo. Se la respinge, `esito = "respinta"` con le `note`: la traccia resta.
+4. **Approvazione**: con il sì, `progetto.py modifica MOD-n --da <chi approva>`. Registra l'approvazione — `approvato_da`, `approvata_il`, `incremento` — e la applica. Annulla le chiusure delle voci in `riapre` e quelle che certificano l'incremento — prontezza, decidibilità, congelamento — se chiuse, e riapre le fasi superate che le contengono. Le chiusure annullate restano in `gate.toml` con `annullata_da`: sono la storia.
+5. **Lavoro**: le voci riaperte si lavorano come punti; le revisioni si rifanno, almeno sull'impatto, con una revisione nuova; le fasi si riapprovano; un incremento congelato si ricongela.
 
-Una modifica approvata dopo il congelamento lo annulla sempre, anche senza nominarlo: il congelamento certifica il progetto di quel giorno. Durante la costruzione `parallel-build` ferma i task toccati, e l'incremento si ricongela prima di riprendere.
+Perché si annulla proprio questo: le voci che lo script controlla si ricontrollano da sole a ogni verifica; quelle che certifica un giudizio — una revisione, un'approvazione, il congelamento — hanno giudicato il progetto di prima. Per lo stesso motivo una revisione che una modifica ha superato non chiude più la sua voce. Durante la costruzione `parallel-build` ferma i task toccati, e l'incremento si ricongela prima di riprendere. Un cambio di profilo è una modifica come le altre: `impatto` e `riapre` sono le voci che diventano applicabili (`voce:6.08`), e `modifica` riapre le fasi superate che le contengono.
 
 ## decision-map
 
@@ -111,4 +114,4 @@ Gli altri punti, se non dipendono dalla domanda, proseguono intanto.
 
 ## Passaggio a parallel-build
 
-`progetto.py congela` chiude la progettazione dell'incremento (`fase-7-pianificazione.md`). Da lì la frontiera mostra le voci di `parallel-build`: ambienti e scheletro (7.09, 7.10), poi le fasi 8–12, sullo stesso registro e con gli stessi comandi. `parallel-build` legge la progettazione per id, e il brief di ogni task è la sua procedura più `progetto.py fascio --task <id>`.
+`progetto.py congela` chiude la progettazione dell'incremento (`fase-7-pianificazione.md`). Da lì la frontiera mostra le voci di `parallel-build`: ambienti e scheletro (7.09, 7.10; lo scheletro si estende a ogni incremento), poi le fasi 8–12, sullo stesso registro e con gli stessi comandi. `parallel-build` legge la progettazione per id, e il brief di ogni task è la sua procedura più `progetto.py fascio --task <id>`.

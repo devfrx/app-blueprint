@@ -33,14 +33,14 @@ In caso di tensione tra qualsiasi indicazione di questa skill, vincono queste, i
 | `stato` | lo stato a colpo d'occhio: scheda, punto aperto, registro, frontiera, verifica. Si esegue a ogni avvio |
 | `apri <voce>` / `chiudi <voce> --evidenza …` | l'inizio e la fine di un punto; `chiudi` controlla prima di scrivere |
 | `approva <fase> --da <chi>` | la fine di una fase, dopo l'approvazione dell'utente |
-| `modifica <MOD-n>` / `congela --da <chi>` | applicare una modifica approvata; congelare l'incremento |
+| `modifica <MOD-n> --da <chi>` / `congela --da <chi>` / `incrementa` | approvare e applicare una modifica; congelare l'incremento; aprire il successivo |
 | `checklist [--fase N] [--dod] [--trasversali]` | le voci con il loro stato e il gate della fase |
-| `mostra <id>`, `fascio <voce>`, `fascio --task <id>`, `impatto <id>` | leggere per id: un elemento e chi lo cita, ciò che serve per una voce o per un task, ciò che dipende da un elemento |
+| `mostra <id>`, `fascio <voce>`, `fascio --task <id>`, `impatto <id>…` | leggere per id: un elemento e chi lo cita, ciò che serve per una voce o per un task, ciò che dipende dagli elementi e le voci che una modifica riapre |
 | `formato [<tipo>]` | il formato di un tipo di sorgente, con un esempio |
 | `schema [--nuovi]` | le tabelle dell'incremento corrente, o solo ciò che aggiunge: la base delle migrazioni |
 | `viste`, `verifica [--gate N] [--congelamento [data]] [--json]` | rigenerare le viste; controllare la coerenza |
 
-Esito: 0 senza errori, 1 con errori, 2 errore d'uso. `assets/esempio/` è un progetto completo, congelato all'incremento 1 e verde: è il modello di ogni file. `assets/checklist.toml` è il catalogo delle voci, con le condizioni d'applicabilità e i controlli.
+Esito: 0 senza errori, 1 con errori, 2 errore d'uso; `stato` riporta gli errori della verifica senza fallire. `assets/esempio/` è un progetto completo, congelato all'incremento 1 e verde: è il modello di ogni file. `assets/checklist.toml` è il catalogo delle voci, con le condizioni d'applicabilità e i controlli.
 
 ## Il protocollo
 
@@ -69,8 +69,8 @@ Si legge la reference della fase quando si apre il suo primo punto, non prima. `
 ## Profilo, incrementi, modifiche
 
 - **Profilo**: esposizione (`personale`, `pubblicabile`, `pubblico`), criticità, inneschi. Con `pubblicabile` le voci di progetto valgono come per un'app pubblica e quelle di esercizio vanno nel debito di pubblicazione, che si paga passando al pubblico. `references/profili.md`.
-- **Incrementi**: le voci che dipendono dall'incremento si richiudono a ogni incremento; aprire il successivo è aumentare `[scheda].incremento`, a costruzione chiusa. `references/gate.md`.
-- **Modifiche**: ciò che cambia una voce chiusa passa da una modifica registrata (`MOD-n`) con l'analisi d'impatto e l'approvazione dell'utente; una modifica dopo il congelamento lo annulla. `references/gate.md`.
+- **Incrementi**: le voci che dipendono dall'incremento si richiudono a ogni incremento; il successivo lo apre `incrementa`, a costruzione chiusa. `references/gate.md`.
+- **Modifiche**: ciò che cambia una voce chiusa passa da una modifica registrata (`MOD-n`) con l'analisi d'impatto e l'approvazione dell'utente, che `modifica --da` registra e applica: le voci che riapre, la prontezza, la prova e il congelamento dell'incremento tornano aperti. `references/gate.md`.
 
 ## Deroghe dichiarate
 

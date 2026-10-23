@@ -79,7 +79,7 @@ Le misure sono in caratteri. Una sorgente oltre il budget di `progetto.py` si sp
 
 - Le sorgenti le scrive la sessione, partendo da `progetto.py formato <tipo>` e dall'esempio. Un'informazione nuova va nella sorgente del suo tipo, e gli altri la citano per id: mai copiata.
 - Le viste non si toccano: `progetto.py viste` le rigenera, `verifica` segnala quelle rimaste indietro, e `chiudi` le rigenera da sé.
-- Chiusure, punto aperto, registro e congelamento li scrivono i comandi `apri`, `chiudi`, `approva`, `modifica` e `congela` (`gate.md`): leggono e scrivono al posto della sessione, che così non apre mai `gate.toml`.
+- Chiusure, punto aperto, registro, congelamento, incremento corrente e approvazione delle modifiche li scrivono i comandi `apri`, `chiudi`, `approva`, `modifica`, `congela` e `incrementa` (`gate.md`): leggono e scrivono al posto della sessione, che così non apre mai `gate.toml`.
 - Ogni chiusura si chiude con un commit; in un ambiente effimero anche con un push, se l'utente l'ha permesso.
 
 ## Deroghe dichiarate

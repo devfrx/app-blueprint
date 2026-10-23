@@ -39,7 +39,7 @@ Per un progetto una voce è:
 
 `progetto.py checklist --fase N` stampa le voci di una fase con il loro stato, `viste/checklist.md` tutte, con il motivo di ogni esclusione calcolata.
 
-Cambiare la scheda cambia le voci che valgono. Se rende applicabili voci di fasi già superate, il registro non è più vero e `verifica` lo dice: il cambio di profilo è una modifica, e si gestisce come tale (`gate.md`).
+Cambiare la scheda cambia le voci che valgono. Se rende applicabili voci di fasi già superate, il registro non è più vero e `verifica` lo dice: il cambio di profilo è una modifica, con `impatto` e `riapre` le voci che diventano applicabili, e `progetto.py modifica` riapre le loro fasi (`gate.md`).
 
 ## Pubblicabile e debito di pubblicazione
 

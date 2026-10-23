@@ -15,12 +15,15 @@
 #   per_incremento
 #              true se la voce si richiude a ogni incremento: la sua chiusura porta
 #              "incremento", e aprire l'incremento successivo la riapre. Lo è ogni
-#              voce il cui controllo dipende dall'incremento corrente, e ogni voce
-#              delle fasi 8–12
+#              voce il cui controllo dipende dall'incremento corrente, lo
+#              scheletro (7.10), che ogni incremento estende, e ogni voce delle
+#              fasi 8–12
 #   origine    "checklist" (testo della checklist di riferimento) |
 #              "adattata" (adattata al lavoro con agenti; il perché in "nota") |
 #              "metodo" (aggiunta dal metodo)
 #   dove       dove vive di solito l'evidenza
+#   produce    i tipi di sorgente che la voce scrive: una modifica a un loro
+#              elemento propone di riaprirla (progetto.py impatto)
 #   legge      tipi di sorgente che servono per lavorarla (progetto.py fascio)
 #   dipende    voci che devono essere chiuse prima (frontiera)
 #   controllo  controlli dello script che devono passare per chiuderla
@@ -152,6 +155,7 @@ quando = "sempre"
 natura = "progetto"
 origine = "metodo"
 dove = "git"
+dipende = ["0.05"]
 
 [[voci]]
 id = "0.02"
@@ -180,17 +184,17 @@ testo = "Convenzioni del repo rilevate: percorsi e formati già in uso per ADR, 
 quando = "sempre"
 natura = "progetto"
 origine = "metodo"
-dove = "stato.toml"
+dove = "docs/progettazione/, con la nota su ciò che il repo aveva già e su cosa si è deciso"
+dipende = ["0.05"]
 
 [[voci]]
 id = "0.05"
 fase = 0
-testo = "Stato della progettazione inizializzato: stato.toml, gate.toml e registri.toml dall'esempio, senza congelamento"
+testo = "Stato della progettazione inizializzato con progetto.py inizia: stato.toml, gate.toml e registri.toml"
 quando = "sempre"
 natura = "progetto"
 origine = "metodo"
 dove = "docs/progettazione/"
-dipende = ["0.01"]
 controllo = ["stato"]
 
 # ---------------------------------------------------------------------------
@@ -215,6 +219,7 @@ quando = "sempre"
 natura = "progetto"
 origine = "checklist"
 dove = "prodotto/prodotto.toml [[obiettivi]]"
+produce = ["obiettivi"]
 dipende = ["1.01"]
 controllo = ["obiettivi"]
 
@@ -226,6 +231,7 @@ quando = "sempre"
 natura = "progetto"
 origine = "checklist"
 dove = "prodotto/prodotto.toml [[stakeholder]]"
+produce = ["stakeholder"]
 controllo = ["stakeholder"]
 
 [[voci]]
@@ -236,6 +242,7 @@ quando = "sempre"
 natura = "progetto"
 origine = "checklist"
 dove = "prodotto/visione.md, sezione Contesto; prodotto/prodotto.toml [[sistemi]]"
+produce = ["sistemi"]
 legge = ["stakeholder"]
 controllo = ["visione", "sistemi"]
 
@@ -280,6 +287,7 @@ quando = "sempre"
 natura = "progetto"
 origine = "checklist"
 dove = "prodotto/visione.md, sezione Perimetro; prodotto/prodotto.toml [[non_obiettivi]]"
+produce = ["non_obiettivi"]
 dipende = ["1.02"]
 controllo = ["non-obiettivi"]
 
@@ -291,6 +299,7 @@ quando = "sempre"
 natura = "progetto"
 origine = "checklist"
 dove = "prodotto/prodotto.toml [[vincoli]]"
+produce = ["vincoli"]
 controllo = ["vincoli"]
 
 [[voci]]
@@ -373,6 +382,7 @@ per_incremento = true
 origine = "adattata"
 nota = "Si sceglie la user story con criteri dato/quando/allora perché diventa test eseguibile; l'inventario completo è ciò che permette di progettare gli schemi con tutte le funzionalità davanti."
 dove = "requisiti/storie*.toml"
+produce = ["storie", "aree"]
 legge = ["stakeholder", "non_obiettivi", "aree"]
 dipende = ["2.13"]
 controllo = ["storie", "criteri"]
@@ -385,6 +395,7 @@ quando = "sempre"
 natura = "progetto"
 origine = "checklist"
 dove = "requisiti/requisiti.toml [[qualita]]"
+produce = ["qualita"]
 legge = ["obiettivi", "vincoli"]
 controllo = ["qualita"]
 
@@ -396,6 +407,7 @@ quando = "sempre"
 natura = "progetto"
 origine = "checklist"
 dove = "requisiti/requisiti.toml [[rnf]]"
+produce = ["rnf"]
 legge = ["qualita", "assunzioni"]
 dipende = ["2.03"]
 controllo = ["rnf"]
@@ -408,6 +420,7 @@ quando = "sempre"
 natura = "progetto"
 origine = "checklist"
 dove = "prodotto/prodotto.toml [[vincoli]] e [[sistemi]]; requisiti/requisiti.toml [[requisiti_dati]]"
+produce = ["requisiti_dati"]
 legge = ["vincoli", "sistemi", "glossario"]
 controllo = ["requisiti-dati"]
 
@@ -442,6 +455,7 @@ quando = "esposizione >= pubblicabile o innesco commissionato"
 natura = "progetto"
 origine = "checklist"
 dove = "requisiti/requisiti.toml [[conflitti]]"
+produce = ["conflitti"]
 legge = ["stakeholder"]
 dipende = ["2.02"]
 
@@ -453,6 +467,7 @@ quando = "sempre"
 natura = "progetto"
 origine = "checklist"
 dove = "requisiti/requisiti.toml metodo_priorita; il campo priorita delle storie"
+produce = ["storie"]
 dipende = ["2.02"]
 controllo = ["storie"]
 
@@ -475,8 +490,8 @@ testo = "Baseline e procedura di gestione delle modifiche definite"
 quando = "sempre"
 natura = "progetto"
 origine = "adattata"
-nota = "La baseline è il tag del gate; la procedura è quella di references/gate.md, uguale per tutti i progetti."
-dove = "tag progettazione/gate-2-<data>"
+nota = "La procedura è quella di references/gate.md, uguale per tutti i progetti, e il suo registro è [[modifiche]]; la baseline è il tag che approva 2 crea, quindi non è l'evidenza della voce."
+dove = "registri.toml [[modifiche]]"
 controllo = ["modifiche"]
 
 [[voci]]
@@ -498,6 +513,7 @@ quando = "sempre"
 natura = "progetto"
 origine = "checklist"
 dove = "dominio/glossario.toml"
+produce = ["glossario"]
 controllo = ["glossario"]
 
 [[voci]]
@@ -520,6 +536,7 @@ quando = "sempre"
 natura = "progetto"
 origine = "metodo"
 dove = "requisiti/requisiti.toml [[percorsi]]"
+produce = ["percorsi"]
 legge = ["storie"]
 dipende = ["2.02"]
 controllo = ["percorsi"]
@@ -536,6 +553,7 @@ quando = "sempre"
 natura = "progetto"
 origine = "checklist"
 dove = "dominio/entita.toml; dominio/regole.toml"
+produce = ["entita", "regole"]
 legge = ["glossario", "storie", "requisiti_dati"]
 dipende = ["3.03"]
 controllo = ["regole"]
@@ -548,6 +566,7 @@ quando = "sempre"
 natura = "progetto"
 origine = "checklist"
 dove = "dominio/glossario.toml; il campo termine delle entità"
+produce = ["glossario"]
 dipende = ["3.07"]
 controllo = ["glossario"]
 
@@ -560,6 +579,7 @@ natura = "progetto"
 origine = "adattata"
 nota = "Il metodo fa coincidere bounded context e modulo: un solo confine da progettare, possedere e verificare."
 dove = "dominio/moduli.toml [[sottodomini]] e [[moduli]]"
+produce = ["sottodomini", "moduli"]
 legge = ["glossario", "storie"]
 controllo = ["moduli"]
 
@@ -571,6 +591,7 @@ quando = "sempre"
 natura = "progetto"
 origine = "checklist"
 dove = "dominio/moduli.toml [[dipendenze]]; vista viste/moduli.md"
+produce = ["dipendenze"]
 legge = ["moduli"]
 dipende = ["3.03"]
 controllo = ["moduli"]
@@ -583,6 +604,7 @@ quando = "sempre"
 natura = "progetto"
 origine = "checklist"
 dove = "dominio/processi/*.md"
+produce = ["processi"]
 legge = ["storie", "percorsi", "glossario"]
 controllo = ["processi"]
 
@@ -594,6 +616,7 @@ quando = "sempre"
 natura = "progetto"
 origine = "checklist"
 dove = "dominio/stati.toml; vista viste/stati.md"
+produce = ["macchine"]
 legge = ["entita", "storie", "regole"]
 dipende = ["3.07"]
 controllo = ["macchine"]
@@ -607,6 +630,7 @@ natura = "progetto"
 origine = "adattata"
 nota = "Esplicitati gli elementi dello schema E/R classico, così la traduzione logica della fase 5 non deve inventare nulla."
 dove = "dominio/entita.toml; vista viste/er-concettuale.md"
+produce = ["entita", "attributi", "relazioni", "generalizzazioni"]
 legge = ["glossario", "storie", "requisiti_dati", "regole", "moduli"]
 dipende = ["3.03"]
 controllo = ["entita", "relazioni"]
@@ -619,6 +643,7 @@ quando = "sempre"
 natura = "progetto"
 origine = "checklist"
 dove = "dominio/regole.toml, tipo eccezione; i criteri d'errore delle storie"
+produce = ["regole"]
 legge = ["regole", "storie"]
 dipende = ["3.07"]
 controllo = ["regole"]
@@ -659,6 +684,7 @@ quando = "sempre"
 natura = "progetto"
 origine = "checklist"
 dove = "architettura/architettura.toml [[driver]]"
+produce = ["driver"]
 legge = ["rnf", "qualita", "vincoli", "percorsi"]
 controllo = ["driver"]
 
@@ -682,6 +708,7 @@ quando = "sempre"
 natura = "progetto"
 origine = "checklist"
 dove = "dominio/moduli.toml: archetipo, rischio e [[dipendenze]]; il campo modulo delle entità"
+produce = ["moduli", "dipendenze"]
 legge = ["moduli", "entita", "storie"]
 dipende = ["4.02"]
 controllo = ["moduli", "proprietari"]
@@ -694,6 +721,7 @@ quando = "sempre"
 natura = "progetto"
 origine = "checklist"
 dove = "dominio/moduli.toml [[dipendenze]] campo comunicazione; strategia ST-versionamento"
+produce = ["dipendenze"]
 legge = ["moduli", "strategie"]
 dipende = ["4.03"]
 controllo = ["moduli", "strategie"]
@@ -730,6 +758,7 @@ quando = "innesco integrazioni"
 natura = "progetto"
 origine = "checklist"
 dove = "architettura/architettura.toml [[integrazioni]]"
+produce = ["integrazioni"]
 legge = ["sistemi", "moduli"]
 dipende = ["4.03"]
 controllo = ["integrazioni"]
@@ -742,6 +771,7 @@ quando = "sempre"
 natura = "progetto"
 origine = "checklist"
 dove = "architettura/architettura.toml [[strategie]]"
+produce = ["strategie"]
 legge = ["rnf", "vincoli", "moduli"]
 dipende = ["4.02"]
 controllo = ["strategie"]
@@ -766,6 +796,7 @@ quando = "sempre"
 natura = "progetto"
 origine = "checklist"
 dove = "architettura/architettura.toml [[ambienti]]; architettura/architettura.md"
+produce = ["ambienti"]
 legge = ["vincoli", "rnf"]
 dipende = ["4.02"]
 controllo = ["ambienti"]
@@ -778,6 +809,7 @@ quando = "sempre"
 natura = "progetto"
 origine = "checklist"
 dove = "architettura/minacce.toml"
+produce = ["confini", "flussi", "minacce"]
 legge = ["stakeholder", "moduli", "sistemi", "percorsi", "entita"]
 dipende = ["4.03"]
 controllo = ["minacce"]
@@ -838,6 +870,7 @@ quando = "sempre"
 natura = "progetto"
 origine = "checklist"
 dove = "i campi indirizzato_da e prova degli RNF"
+produce = ["rnf"]
 legge = ["rnf", "qualita", "strategie"]
 dipende = ["4.08", "4.13"]
 controllo = ["rnf-indirizzati"]
@@ -887,6 +920,7 @@ quando = "sempre"
 natura = "progetto"
 origine = "checklist"
 dove = "i campi modulo e tocca delle storie"
+produce = ["storie"]
 legge = ["storie", "moduli"]
 controllo = ["storie-moduli"]
 
@@ -900,6 +934,7 @@ per_incremento = true
 origine = "adattata"
 nota = "Si specifica ciò che l'archetipo non decide: la struttura ripetuta la fissa l'esemplare in costruzione."
 dove = "moduli/<modulo>.toml [[componenti]]"
+produce = ["dettaglio", "facciata", "eventi", "componenti"]
 legge = ["moduli", "storie", "regole", "entita"]
 dipende = ["5.01"]
 controllo = ["dettaglio"]
@@ -913,6 +948,7 @@ natura = "progetto"
 per_incremento = true
 origine = "checklist"
 dove = "moduli/<modulo>.toml [[pattern]]"
+produce = ["pattern"]
 dipende = ["5.02"]
 controllo = ["dettaglio"]
 
@@ -925,6 +961,7 @@ natura = "progetto"
 per_incremento = true
 origine = "checklist"
 dove = "moduli/<modulo>.toml [[algoritmi]]"
+produce = ["algoritmi"]
 legge = ["volumi", "regole"]
 dipende = ["5.02", "5.05.1"]
 controllo = ["dettaglio"]
@@ -937,6 +974,7 @@ quando = "sempre"
 natura = "progetto"
 origine = "metodo"
 dove = "dati/dati.toml [[volumi]]"
+produce = ["volumi"]
 legge = ["entita", "relazioni", "requisiti_dati"]
 controllo = ["volumi"]
 
@@ -948,6 +986,7 @@ quando = "sempre"
 natura = "progetto"
 origine = "metodo"
 dove = "dati/dati.toml [[accessi]]"
+produce = ["accessi"]
 legge = ["storie", "percorsi", "rnf", "entita", "relazioni", "volumi"]
 dipende = ["5.05.1"]
 controllo = ["accessi"]
@@ -960,6 +999,7 @@ quando = "sempre"
 natura = "progetto"
 origine = "metodo"
 dove = "dati/dati.toml [[ristrutturazione]]"
+produce = ["ristrutturazione"]
 legge = ["entita", "relazioni", "volumi", "accessi"]
 dipende = ["5.05.2"]
 controllo = ["ristrutturazione"]
@@ -972,6 +1012,7 @@ quando = "sempre"
 natura = "progetto"
 origine = "metodo"
 dove = "contracts/schema.toml; vista viste/er-logico.md"
+produce = ["tabelle", "colonne"]
 legge = ["entita", "relazioni", "ristrutturazione"]
 dipende = ["5.05.3"]
 controllo = ["schema"]
@@ -984,6 +1025,7 @@ quando = "sempre"
 natura = "progetto"
 origine = "checklist"
 dove = "contracts/schema.toml"
+produce = ["tabelle", "colonne", "indici"]
 legge = ["tabelle", "accessi"]
 dipende = ["5.05.4"]
 controllo = ["schema", "indici"]
@@ -1008,6 +1050,7 @@ natura = "progetto"
 per_incremento = true
 origine = "checklist"
 dove = "contracts/openapi.json, contracts/asyncapi.json"
+produce = ["api"]
 legge = ["storie", "moduli", "tabelle", "errori", "strategie"]
 dipende = ["5.01", "5.09"]
 controllo = ["api"]
@@ -1020,6 +1063,7 @@ quando = "sempre"
 natura = "progetto"
 origine = "checklist"
 dove = "sequenze/<percorso>.md"
+produce = ["sequenze"]
 legge = ["percorsi", "api", "dettaglio"]
 dipende = ["5.07"]
 controllo = ["sequenze"]
@@ -1032,6 +1076,7 @@ quando = "sempre"
 natura = "progetto"
 origine = "checklist"
 dove = "contracts/errori.toml; strategia ST-errori"
+produce = ["errori", "validazioni"]
 legge = ["storie", "regole", "strategie"]
 dipende = ["5.01"]
 controllo = ["errori"]
@@ -1045,6 +1090,7 @@ natura = "progetto"
 per_incremento = true
 origine = "checklist"
 dove = "moduli/<modulo>.toml [[transazioni]]; strategia ST-concorrenza"
+produce = ["transazioni"]
 legge = ["accessi", "regole", "strategie"]
 dipende = ["5.02"]
 controllo = ["dettaglio"]
@@ -1058,6 +1104,7 @@ natura = "progetto"
 per_incremento = true
 origine = "checklist"
 dove = "moduli/<modulo>.toml [[porte]]"
+produce = ["porte"]
 legge = ["integrazioni", "moduli"]
 dipende = ["5.02"]
 controllo = ["dettaglio"]
@@ -1071,6 +1118,7 @@ natura = "progetto"
 per_incremento = true
 origine = "checklist"
 dove = "moduli/<modulo>.toml [sicurezza]; registri.toml [[deperibili]]"
+produce = ["dettaglio"]
 legge = ["minacce", "moduli", "matrice"]
 dipende = ["5.15"]
 controllo = ["dettaglio", "deperibili"]
@@ -1108,6 +1156,7 @@ quando = "sempre"
 natura = "progetto"
 origine = "metodo"
 dove = "contracts/autorizzazioni.toml"
+produce = ["matrice"]
 legge = ["stakeholder", "entita", "minacce", "storie"]
 dipende = ["5.01"]
 controllo = ["matrice"]
@@ -1120,6 +1169,7 @@ quando = "sempre"
 natura = "progetto"
 origine = "metodo"
 dove = "contracts/configurazione.toml"
+produce = ["variabili", "segreti"]
 legge = ["strategie", "ambienti", "integrazioni"]
 controllo = ["configurazione"]
 
@@ -1135,6 +1185,7 @@ quando = "innesco ui"
 natura = "progetto"
 origine = "checklist"
 dove = "ux/utenti.md; ux/ux.toml [[personas]]"
+produce = ["personas"]
 legge = ["stakeholder", "percorsi", "storie"]
 controllo = ["personas"]
 
@@ -1146,6 +1197,7 @@ quando = "innesco ui"
 natura = "progetto"
 origine = "checklist"
 dove = "ux/ux.toml [[sezioni]] e [[rotte]]"
+produce = ["sezioni", "rotte"]
 legge = ["glossario", "storie", "stakeholder"]
 dipende = ["6.01", "3.02"]
 controllo = ["navigazione"]
@@ -1183,6 +1235,7 @@ natura = "progetto"
 per_incremento = true
 origine = "checklist"
 dove = "ux/ux.toml [[schermate]]"
+produce = ["schermate"]
 legge = ["storie", "rotte", "api", "matrice", "testi"]
 dipende = ["6.02", "5.07"]
 controllo = ["schermate"]
@@ -1208,6 +1261,7 @@ natura = "progetto"
 per_incremento = true
 origine = "checklist"
 dove = "ux/testi.toml; il campo utente degli errori"
+produce = ["testi"]
 legge = ["errori", "glossario"]
 dipende = ["5.09"]
 controllo = ["testi"]
@@ -1261,6 +1315,7 @@ per_incremento = true
 origine = "adattata"
 nota = "La scomposizione è il piano di parallel-build: un task per modulo e lato, ondate fisse, proprietà dei percorsi disgiunta."
 dove = "piano/piano.toml"
+produce = ["task"]
 legge = ["moduli", "storie", "percorsi"]
 dipende = ["7.12"]
 controllo = ["piano"]
@@ -1286,6 +1341,7 @@ quando = "sempre"
 natura = "progetto"
 origine = "checklist"
 dove = "piano/piano.toml [[incrementi]]; il campo incremento delle storie"
+produce = ["incrementi"]
 legge = ["storie", "obiettivi"]
 controllo = ["incrementi"]
 
@@ -1311,6 +1367,7 @@ natura = "progetto"
 origine = "adattata"
 nota = "Aggiunte le tecniche sistematiche della fase 10 (classi di equivalenza, valori limite, tabelle di decisione, transizioni di stato): gli oracoli si scrivono prima del codice, quindi le tecniche si decidono qui."
 dove = "piano/test.toml"
+produce = ["livelli"]
 legge = ["rnf", "strategie", "ambienti"]
 controllo = ["strategia-test"]
 
@@ -1355,6 +1412,7 @@ natura = "esercizio"
 origine = "adattata"
 nota = "Quali ambienti servono lo dice la vista di deployment (4.10); un progetto personale ne ha di solito due."
 dove = "architettura/architettura.toml [[ambienti]]"
+dipende = ["7.17"]
 skill = "parallel-build"
 controllo = ["ambienti"]
 
@@ -1364,8 +1422,11 @@ fase = 7
 testo = "Walking skeleton che attraversa tutti gli strati dell'architettura"
 quando = "sempre"
 natura = "progetto"
-origine = "checklist"
-dove = "tag build/scheletro"
+per_incremento = true
+origine = "adattata"
+nota = "Dal secondo incremento lo scheletro si estende con ciò che l'incremento aggiunge: migrazioni (progetto.py schema --nuovi), stub delle facciate, rotte, generatori."
+dove = "tag build/incremento-<n>/scheletro"
+dipende = ["7.17"]
 skill = "parallel-build"
 
 [[voci]]

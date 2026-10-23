@@ -78,13 +78,25 @@ class EsempioVerde(Base):
 
     def test_ogni_dipendenza_e_legge_esistono(self):
         ids = {v["id"] for v in CATALOGO["voci"]}
-        # ogni tipo che una voce legge ha le sue regole di struttura in CAMPI
+        # ogni tipo che una voce legge o produce ha le sue regole di struttura in CAMPI
         tipi = set(controlli.CAMPI) | {"scheda", "adr"}
         for v in CATALOGO["voci"]:
             for d in v.get("dipende", []):
                 self.assertIn(d, ids, v["id"])
-            for t in v.get("legge", []):
+            for t in v.get("legge", []) + v.get("produce", []):
                 self.assertIn(t, tipi, v["id"])
+
+    def test_ogni_tipo_di_progetto_ha_chi_lo_produce(self):
+        # i registri vivono di vita propria: si aggiornano, non si riaprono
+        registri = {"rischi", "assunzioni", "domande", "debito", "deperibili", "revisioni", "modifiche"}
+        prodotti = {t for v in CATALOGO["voci"] for t in v.get("produce", [])}
+        self.assertEqual(sorted(set(controlli.CAMPI) - registri - prodotti), [])
+
+    def test_gli_agenti_dell_esempio_sono_quelli_della_skill(self):
+        installati = ESEMPIO / ".claude" / "agents"
+        for definizione in (SKILL / "assets" / "agenti").glob("*.md"):
+            self.assertEqual((installati / definizione.name).read_text(encoding="utf-8"),
+                             definizione.read_text(encoding="utf-8"), definizione.name)
 
 
 class Struttura(Base):
@@ -227,6 +239,66 @@ class Congelamento(Base):
         self.assertErrore(self.verifica(al_congelamento=True, congelamento=datetime.date(2026, 10, 22)),
                           "prima del congelamento")
 
+    def test_deperibile_nella_finestra(self):
+        congelato = datetime.date(2026, 10, 22)
+        dentro = congelato - controlli.FINESTRA_DEPERIBILI
+        self.sostituisci(f"{P}/registri.toml", "verificato_il = 2026-10-22", f"verificato_il = {dentro}")
+        self.assertEqual(self.errori(self.verifica(al_congelamento=True, congelamento=congelato)), [])
+        fuori = dentro - datetime.timedelta(days=1)
+        self.sostituisci(f"{P}/registri.toml", f"verificato_il = {dentro}", f"verificato_il = {fuori}")
+        self.assertErrore(self.verifica(al_congelamento=True, congelamento=congelato), "DEP-1", "prima del congelamento")
+
+    def test_gate_non_approvato(self):
+        self.sostituisci(f"{P}/stato.toml", 'fase = 4\nstato = "superato"', 'fase = 4\nstato = "riaperto"')
+        self.assertErrore(self.verifica(al_congelamento=True, congelamento=datetime.date(2026, 10, 22)),
+                          "fase 4: gate non approvato (riaperto)")
+
+    def test_modifica_in_attesa_di_decisione(self):
+        self.aggiungi(f"{P}/registri.toml", '\n[[modifiche]]\nid = "MOD-2"\ndescrizione = "Telaio."\nmotivo = "Richiami."\n'
+                      'data = 2026-10-22\nimpatto = ["entita:veicolo"]\nriapre = ["3.07"]\nesito = "proposta"\n')
+        reperti = self.verifica(al_congelamento=True, congelamento=datetime.date(2026, 10, 22))
+        self.assertErrore(reperti, "MOD-2", "proposta in attesa di decisione")
+        self.assertEqual(self.errori(self.verifica()), [])
+
+    def test_prova_di_decidibilita_esclusa(self):
+        self.sostituisci(f"{P}/gate.toml", 'voce = "7.14"\nincremento = 1\nesito = "fatto"\nevidenza = ["REV-10"]\n',
+                         'voce = "7.14"\nincremento = 1\nesito = "non-applicabile"\n'
+                         'motivo = "Nessun sotto-agente: la sessione conosce le risposte."\napprovato = "responsabile"\n')
+        self.sostituisci(f"{P}/stato.toml", 'prova = "REV-10"\n', "")
+        reperti = self.verifica(al_congelamento=True, congelamento=datetime.date(2026, 10, 22))
+        self.assertEqual([r.testo() for r in self.errori(reperti)], [])
+
+
+class GateEFasiSuccessive(Base):
+    """Al gate di una fase, il lavoro in corso di una fase successiva non blocca."""
+    BOZZA = '\n[[schermate]]\nid = "bozza"\nscopo = "In lavorazione."\n'
+
+    def test_la_bozza_della_ux_non_blocca_il_gate_3(self):
+        self.sostituisci(f"{P}/stato.toml", 'fase = 6\nincremento = 1\nstato = "superato"', 'fase = 6\nincremento = 1\nstato = "in-corso"')
+        self.aggiungi(f"{P}/ux/ux.toml", self.BOZZA)
+        al_gate = self.verifica(fase_gate=3)
+        self.assertEqual([r.testo() for r in self.errori(al_gate)], [])
+        self.assertTrue(any("[fase 6 in corso]" in r.messaggio and "bozza" in r.dove for r in al_gate))
+        self.assertErrore(self.verifica(), "bozza", "manca 'ruoli'")
+        self.assertErrore(self.verifica(fase_gate=6), "bozza", "manca 'ruoli'")
+
+    def test_una_fase_successiva_superata_resta_un_errore(self):
+        self.aggiungi(f"{P}/ux/ux.toml", self.BOZZA)
+        self.assertErrore(self.verifica(fase_gate=3), "bozza", "manca 'ruoli'")
+
+
+class EvidenzeTag(Base):
+    def test_il_tag_si_verifica_nel_repo(self):
+        import subprocess
+        def git(*a):
+            subprocess.run(["git", "-C", str(self.radice), *a], check=True, capture_output=True)
+        git("init", "-q")
+        git("-c", "user.name=t", "-c", "user.email=t@t", "commit", "-q", "--allow-empty", "-m", "x")
+        self.sostituisci(f"{P}/gate.toml", 'evidenza = ["REV-6"]', 'evidenza = ["tag:progettazione/gate-5-2026-10-19"]')
+        self.assertErrore(self.verifica(), "evidenza 'tag:progettazione/gate-5-2026-10-19' non trovata")
+        git("tag", "progettazione/gate-5-2026-10-19")
+        self.assertEqual(self.errori(self.verifica()), [])
+
 
 class Piano(Base):
     def test_sovrapposizione_nella_stessa_ondata(self):
@@ -258,7 +330,11 @@ class Profilo(Base):
 
 class Incrementi(Base):
     def apri_incremento_2(self):
+        """L'incremento 2 a mano, con l'incremento 1 chiuso nel registro (lo fa
+        progetto.py incrementa, provato in test_progetto)."""
         self.sostituisci(f"{P}/stato.toml", "incremento = 1\ncostruzione", "incremento = 2\ncostruzione")
+        self.aggiungi(f"{P}/stato.toml", '\n[[registro]]\nfase = 12\nincremento = 1\nstato = "superato"\n'
+                      'approvato_da = "responsabile"\ndata = 2026-10-22\n')
 
     def contesto(self):
         progetto = modello.carica(self.radice, CATALOGO)
@@ -309,6 +385,10 @@ class Incrementi(Base):
         self.assertEqual(progetto.incremento_di(progetto.trova("tabelle", "veicoli")), 1)
         self.assertEqual(progetto.incremento_di(progetto.trova("api", "cercaClienti")), 2)
 
+    def test_incremento_aperto_senza_chiudere_il_precedente(self):
+        self.sostituisci(f"{P}/stato.toml", "incremento = 1\ncostruzione", "incremento = 2\ncostruzione")
+        self.assertErrore(self.verifica(), "incremento 1 non chiuso: la fase 12 non è superata")
+
     def test_cio_che_si_usa_non_anticipa_l_incremento(self):
         progetto = modello.carica(self.radice, CATALOGO)
         # l'algoritmo usa i volumi di un'entità dell'incremento 1, ma esiste per VEI-2
@@ -317,38 +397,69 @@ class Incrementi(Base):
 
 
 class Modifiche(Base):
+    """Le chiusure annullate da progetto.py modifica (che è provato in test_progetto):
+    qui si scrivono a mano lo stato che il comando lascia, e i guasti tipici."""
     MOD = ('\n[[modifiche]]\nid = "MOD-2"\ndescrizione = "Il veicolo registra il telaio."\nmotivo = "Richiami."\n'
-           'data = 2026-11-03\nimpatto = ["entita:veicolo"]\nriapre = ["3.07"]\nesito = "approvata"\n'
-           'approvato_da = "responsabile"\n')
+           'data = 2026-10-22\nimpatto = ["entita:veicolo"]\nriapre = ["3.07"]\nesito = "approvata"\n'
+           'approvato_da = "responsabile"\napprovata_il = 2026-10-22\nincremento = 1\n')
+
+    def annulla(self, voce, mod="MOD-2"):
+        self.sostituisci(f"{P}/gate.toml", f'voce = "{voce}"\n', f'voce = "{voce}"\nannullata_da = "{mod}"\n')
 
     def stati(self):
         return controlli.stati_voci(controlli.Contesto(modello.carica(self.radice, CATALOGO), CATALOGO))
 
-    def test_riapre_le_voci_chiuse_prima(self):
+    def test_la_chiusura_annullata_riapre_la_voce(self):
         self.aggiungi(f"{P}/registri.toml", self.MOD)
+        self.annulla("3.07")
         stati = self.stati()
-        self.assertEqual(stati["3.07"]["riaperta_da"], "MOD-2")
-        self.assertFalse(stati["3.07"]["chiusa"])
+        self.assertEqual((stati["3.07"]["riaperta_da"], stati["3.07"]["chiusa"]), ("MOD-2", False))
         self.assertTrue(stati["3.06"]["chiusa"])
 
-    def test_annulla_il_congelamento_anche_senza_nominarlo(self):
+    def test_una_nuova_chiusura_vale_e_l_annullata_resta_storia(self):
         self.aggiungi(f"{P}/registri.toml", self.MOD)
-        self.assertEqual(self.stati()["7.17"]["riaperta_da"], "MOD-2")
+        self.annulla("3.07")
+        self.aggiungi(f"{P}/gate.toml", '\n[[chiusure]]\nvoce = "3.07"\nesito = "fatto"\n'
+                      'evidenza = ["dominio/entita.toml"]\ndata = 2026-10-23\n')
+        stati = self.stati()
+        self.assertTrue(stati["3.07"]["chiusa"])
+        self.assertEqual(stati["3.07"]["chiusura"]["data"], datetime.date(2026, 10, 23))
+        self.assertEqual([r.testo() for r in self.errori(self.verifica())], [])
 
-    def test_una_chiusura_successiva_vale(self):
-        self.aggiungi(f"{P}/registri.toml", self.MOD.replace("2026-11-03", "2026-10-01"))
-        self.assertTrue(self.stati()["3.07"]["chiusa"])
+    def test_annullata_da_una_modifica_non_approvata(self):
+        self.aggiungi(f"{P}/registri.toml", self.MOD.replace('esito = "approvata"', 'esito = "proposta"'))
+        self.annulla("3.07")
+        self.assertErrore(self.verifica(), "annullata da 'MOD-2', che non è una modifica approvata")
 
-    def test_proposta_o_respinta_non_riapre(self):
-        for esito in ("proposta", "respinta"):
-            with self.subTest(esito):
-                self.setUp()
-                self.aggiungi(f"{P}/registri.toml", self.MOD.replace('"approvata"', f'"{esito}"'))
-                self.assertTrue(self.stati()["3.07"]["chiusa"])
+    def test_approvata_a_mano(self):
+        self.aggiungi(f"{P}/registri.toml", self.MOD.replace("approvata_il = 2026-10-22\n", ""))
+        self.assertErrore(self.verifica(), "approvata ma non applicata", "progetto.py modifica MOD-2")
 
-    def test_approvata_senza_chi_la_approva(self):
-        self.aggiungi(f"{P}/registri.toml", self.MOD.replace('approvato_da = "responsabile"\n', ""))
-        self.assertErrore(self.verifica(), "modifica approvata senza 'approvato_da'")
+    def test_proposta_senza_riapre(self):
+        self.aggiungi(f"{P}/registri.toml", self.MOD.replace('riapre = ["3.07"]\n', "")
+                      .replace('esito = "approvata"', 'esito = "proposta"'))
+        self.assertErrore(self.verifica(), "MOD-2", "manca 'riapre'")
+
+    def test_respinta_senza_note(self):
+        self.aggiungi(f"{P}/registri.toml", self.MOD.replace('esito = "approvata"', 'esito = "respinta"'))
+        self.assertErrore(self.verifica(), "respinta senza 'note'")
+
+    def test_date_nel_futuro(self):
+        domani = datetime.date.today() + datetime.timedelta(days=1)
+        self.aggiungi(f"{P}/registri.toml", self.MOD.replace("data = 2026-10-22", f"data = {domani}"))
+        self.sostituisci(f"{P}/gate.toml", 'voce = "4.12"\nesito = "fatto"\nevidenza = ["architettura/analisi.md"]\n'
+                         'data = 2026-10-15', f'voce = "4.12"\nesito = "fatto"\nevidenza = ["architettura/analisi.md"]\n'
+                         f'data = {domani}')
+        reperti = self.verifica()
+        self.assertErrore(reperti, "MOD-2", "nel futuro")
+        self.assertErrore(reperti, "voce 4.12", "nel futuro")
+
+    def test_dopo_una_modifica_serve_una_revisione_nuova(self):
+        self.aggiungi(f"{P}/registri.toml", self.MOD)
+        self.annulla("7.13")
+        self.aggiungi(f"{P}/gate.toml", '\n[[chiusure]]\nvoce = "7.13"\nincremento = 1\nesito = "fatto"\n'
+                      'evidenza = ["REV-9"]\ndata = 2026-10-23\n')
+        self.assertErrore(self.verifica(), "REV-9", "è la revisione di prima di MOD-2")
 
 
 class RecordDelCongelamento(Base):

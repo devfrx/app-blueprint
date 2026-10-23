@@ -9,6 +9,7 @@ Solo libreria standard. Nessuna scrittura: le sorgenti le modifica la sessione.
 """
 import json
 import re
+import subprocess
 import tomllib
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -40,8 +41,12 @@ TIPIZZATI = {
     "macchina": "macchine", "termine": "glossario", "persona": "personas",
     "sezione": "sezioni", "confine": "confini", "variabile": "variabili",
     "segreto": "segreti", "livello": "livelli", "task": "task",
-    "integrazione": "integrazioni", "sottodominio": "sottodomini",
+    "integrazione": "integrazioni", "sottodominio": "sottodomini", "dipendenza": "dipendenze",
+    "volume": "volumi", "ristrutturazione": "ristrutturazione", "validazione": "validazioni",
+    "algoritmo": "algoritmi", "transazione": "transazioni", "porta": "porte", "pattern": "pattern",
+    "dettaglio": "dettaglio", "incremento": "incrementi", "area": "aree", "qualita": "qualita",
 }
+_TIPO_CITATO = {tipo: nome for nome, tipo in TIPIZZATI.items()}
 RE_PREFISSATO = re.compile(r"^([A-Z]+)-([A-Za-z0-9][A-Za-z0-9._-]*)$")
 RE_SLUG = re.compile(r"^[a-z0-9][a-z0-9_-]*$")
 RE_FRONTMATTER = re.compile(r"\A\+\+\+\n(.*?)\n\+\+\+\n?(.*)\Z", re.S)
@@ -229,6 +234,21 @@ class Progetto:
         cache[chiave] = risultato
         return risultato
 
+    def tag_git(self):
+        """I tag del repo, se la radice è un repo git; altrimenti None, e chi li usa
+        non li può verificare. Si leggono una volta."""
+        if "_tag_git" not in self.__dict__:
+            tag = None
+            if (self.radice / ".git").exists():
+                try:
+                    uscita = subprocess.run(["git", "-C", str(self.radice), "tag", "--list"],
+                                            capture_output=True, text=True, timeout=30, check=True)
+                    tag = set(uscita.stdout.split())
+                except (OSError, subprocess.SubprocessError):
+                    tag = None
+            self.__dict__["_tag_git"] = tag
+        return self.__dict__["_tag_git"]
+
     def modulo_di(self, elemento):
         """Il modulo che possiede un elemento, o None. Una storia è del modulo che la
         orchestra; gli annidati sono del modulo del loro contenitore; una regola della
@@ -248,6 +268,15 @@ class Progetto:
             contenitore = self.trova(tipo_contenitore, elemento.contenitore)
             return self.modulo_di(contenitore) if contenitore else None
         return d.get("modulo") if isinstance(d.get("modulo"), str) else None
+
+
+def citabile(elemento):
+    """L'id con cui un elemento si cita in un campo di riferimenti: prefissato, o
+    "tipo:id"."""
+    if elemento.tipo == "storie" or elemento.tipo in PREFISSI.values():
+        return elemento.id
+    tipo = _TIPO_CITATO.get(elemento.tipo)
+    return f"{tipo}:{elemento.id}" if tipo else elemento.id
 
 
 def _valori(valore):

@@ -1,5 +1,6 @@
-"""Le sole scritture dello strumento sulle sorgenti: le chiusure in gate.toml, il
-punto aperto e le righe del registro in stato.toml. Tutto il resto lo scrive la
+"""Le sole scritture dello strumento sulle sorgenti: le chiusure in gate.toml; il
+punto aperto, le righe del registro, il congelamento e l'incremento in stato.toml;
+l'approvazione di una modifica in registri.toml. Tutto il resto lo scrive la
 sessione.
 
 Si modifica il testo per sezioni ([tabella] o [[voce di un array]]) senza
@@ -82,3 +83,30 @@ def aggiorna_sezione(testo, intestazione, trova, campi):
     risultato = "".join(p for _, p in sezioni).rstrip("\n") + "\n"
     tomllib.loads(risultato)
     return risultato, esito
+
+
+def imposta_campi(testo, intestazione, trova, campi):
+    """Nella prima sezione con questa intestazione per cui trova(dati) è vero, imposta i
+    campi: la riga 'chiave = …' che c'è si sostituisce, una che manca si aggiunge in
+    fondo alla sezione. Il resto della sezione, commenti compresi, resta com'è. Solo
+    per valori di una riga: un valore su più righe non si riscrive, e il testo che
+    non si rilegge non si salva."""
+    sezioni = _sezioni(testo)
+    for i, (testa, parte) in enumerate(sezioni):
+        if testa != intestazione or not trova(_dati(testa, parte)):
+            continue
+        corpo = parte.rstrip("\n")
+        coda = parte[len(corpo):] or "\n"
+        righe = corpo.split("\n")
+        for chiave, v in campi.items():
+            riga = f"{chiave} = {valore(v)}"
+            n = next((j for j, r in enumerate(righe) if re.match(rf"{re.escape(chiave)}\s*=", r)), None)
+            if n is None:
+                righe.append(riga)
+            else:
+                righe[n] = riga
+        sezioni[i] = (testa, "\n".join(righe) + coda)
+        risultato = "".join(p for _, p in sezioni)
+        tomllib.loads(risultato)
+        return risultato
+    raise KeyError(f"nessuna sezione {intestazione} corrisponde")

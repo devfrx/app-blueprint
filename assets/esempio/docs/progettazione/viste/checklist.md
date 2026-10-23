@@ -12,9 +12,9 @@ Esposizione **pubblicabile**, criticità **media**, inneschi: ui, dati-personali
 |---|---|---|---|
 | 0.01 | fatta | Repo git con il branch d'integrazione attivo; in un ambiente effimero il lavoro si pusha a ogni chiusura, con il permesso dell'utente | https://git.example.test/officina — Branch d'integrazione main; push a ogni chiusura, permesso dall'utente. |
 | 0.02 | fatta | `.build/` esclusa da git, `.claude/worktrees/` ignorata, `worktree.baseRef` impostato a "head" | .gitignore, .claude/settings.json — .build/ in .git/info/exclude. |
-| 0.03 | fatta | Agenti installati in `.claude/agents/` e provati con la sonda, oppure ripiego dichiarato | tag:progettazione/gate-0-2026-10-05 — Cinque agenti in .claude/agents/, sonda superata da ciascuno. |
-| 0.04 | fatta | Convenzioni del repo rilevate: percorsi e formati già in uso per ADR, design e contratti | tag:progettazione/gate-0-2026-10-05 — Repo nuovo: nessuna convenzione preesistente, valgono i percorsi del metodo. |
-| 0.05 | fatta | Stato della progettazione inizializzato: stato.toml, gate.toml e registri.toml dall'esempio, senza congelamento | stato.toml, gate.toml, registri.toml |
+| 0.03 | fatta | Agenti installati in `.claude/agents/` e provati con la sonda, oppure ripiego dichiarato | .claude/agents/ — Cinque agenti in .claude/agents/, sonda superata da ciascuno. |
+| 0.04 | fatta | Convenzioni del repo rilevate: percorsi e formati già in uso per ADR, design e contratti | docs/progettazione/ — Repo nuovo: nessuna convenzione preesistente, valgono i percorsi del metodo. |
+| 0.05 | fatta | Stato della progettazione inizializzato con progetto.py inizia: stato.toml, gate.toml e registri.toml | stato.toml, gate.toml, registri.toml |
 
 ## 1. Avvio, analisi del problema e fattibilità
 
@@ -53,7 +53,7 @@ Esposizione **pubblicabile**, criticità **media**, inneschi: ui, dati-personali
 | 2.08 | fatta | Conflitti tra stakeholder risolti e registrati | CO-1 |
 | 2.09 | fatta | Priorità assegnate con un metodo esplicito | requisiti/requisiti.toml#metodo_priorita |
 | 2.10 ↻ | fatta | Requisiti validati con gli stakeholder tramite revisione, prototipo o walkthrough | REV-2 |
-| 2.11 | fatta | Baseline e procedura di gestione delle modifiche definite | tag:progettazione/gate-2-2026-10-10 |
+| 2.11 | fatta | Baseline e procedura di gestione delle modifiche definite | registri.toml — Procedura di gate.md; la baseline dei requisiti è il tag del gate 2. |
 | 2.12 | fatta | Matrice di tracciabilità avviata | viste/tracciabilita.md |
 | 2.13 | fatta | Glossario condiviso | dominio/glossario.toml |
 | 2.14 | fatta | Funzionalità trasversali passate in rassegna, ognuna con le sue storie o tra i non-obiettivi | requisiti/requisiti.toml#trasversali |
@@ -161,7 +161,7 @@ Esposizione **pubblicabile**, criticità **media**, inneschi: ui, dati-personali
 | 7.07 | fatta | Repository, strategia di branching, linter, formatter e analisi statica decisi | ST-qualita-codice, ADR-0002 |
 | 7.08 | fatta | Pipeline CI/CD progettata | ST-ci-cd |
 | 7.09 | aperta | Ambienti disponibili: sviluppo, test, staging, produzione, secondo il profilo |  |
-| 7.10 | aperta | Walking skeleton che attraversa tutti gli strati dell'architettura |  |
+| 7.10 ↻ | aperta | Walking skeleton che attraversa tutti gli strati dell'architettura |  |
 | 7.11 ↻ | fatta | Registro dei rischi aggiornato | registri.toml#rischi |
 | 7.12 ↻ | fatta | Modalità di costruzione decisa: parallela con parallel-build, o seriale in una sessione | stato.toml#scheda |
 | 7.13 ↻ | fatta | Revisione di prontezza senza P0 né P1 | REV-9 |

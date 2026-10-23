@@ -201,8 +201,8 @@ class Progetto:
             return None
         visitati = visitati | {chiave}
         candidati = []
-        for _, _, risolto in self.uscenti(elemento):
-            if risolto and risolto[0] in TIPI_CHE_PORTANO_INCREMENTO:
+        for campo, _, risolto in self.uscenti(elemento):
+            if campo in CAMPI_DI_TRACCIA and risolto and risolto[0] in TIPI_CHE_PORTANO_INCREMENTO:
                 inc = self.incremento_di(self.trova(*risolto), visitati)
                 if inc is not None:
                     candidati.append(inc)
@@ -211,6 +211,13 @@ class Progetto:
             for s in self.tutti("storie"):
                 if elemento.id in _valori(s.dati.get("entita")):
                     candidati.append(self.incremento_di(s))
+        if not candidati and elemento.tipo == "relazioni":
+            # senza traccia, una relazione non esiste prima delle sue entità
+            incrementi = [self.incremento_di(e, visitati) for e in
+                          (self.trova("entita", x) for x in _valori(elemento.dati.get("entita"))) if e]
+            incrementi = [i for i in incrementi if i is not None]
+            if incrementi:
+                candidati.append(max(incrementi))
         if not candidati and elemento.contenitore:
             tipo_contenitore = CONTENITORE.get(elemento.tipo)
             contenitore = self.trova(tipo_contenitore, elemento.contenitore) if tipo_contenitore else None
@@ -289,6 +296,11 @@ RIFERIMENTI = {
 # I tipi la cui presenza in una traccia porta un incremento.
 TIPI_CHE_PORTANO_INCREMENTO = {"storie", "entita", "relazioni", "attributi", "tabelle",
                                "accessi", "api", "facciata", "schermate", "percorsi"}
+# I campi che dicono perché un elemento esiste: solo loro gli trasmettono un
+# incremento. Gli altri riferimenti dicono cosa l'elemento usa (i dati di una
+# schermata, i volumi di un algoritmo, i concetti di un accesso), e un elemento
+# non si costruisce prima perché usa qualcosa che esiste già.
+CAMPI_DI_TRACCIA = {"traccia", "storie", "x-storie", "da", "accessi", "operazione", "percorso"}
 CONTENITORE = {"attributi": "entita", "colonne": "tabelle", "indici": "tabelle",
                "facciata": "dettaglio", "eventi": "dettaglio", "componenti": "dettaglio",
                "algoritmi": "dettaglio", "transazioni": "dettaglio", "porte": "dettaglio",

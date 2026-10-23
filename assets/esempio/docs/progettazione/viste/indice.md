@@ -516,7 +516,7 @@ Una riga per elemento: id, descrizione, incremento in cui serve, sorgente. Il de
 | /attivazione/{token} | /attivazione/{token} | 1 | docs/progettazione/ux/ux.toml |
 | /clienti | /clienti | 1 | docs/progettazione/ux/ux.toml |
 | /clienti/{id} | /clienti/{id} | 1 | docs/progettazione/ux/ux.toml |
-| /fatture/esportazione | /fatture/esportazione | 2 | docs/progettazione/ux/ux.toml |
+| /fatture/esportazione | /fatture/esportazione | 1 | docs/progettazione/ux/ux.toml |
 | /fatture/{id} | /fatture/{id} | 1 | docs/progettazione/ux/ux.toml |
 | /informativa | /informativa | 1 | docs/progettazione/ux/ux.toml |
 | /interventi | /interventi | 1 | docs/progettazione/ux/ux.toml |
@@ -539,7 +539,7 @@ Una riga per elemento: id, descrizione, incremento in cui serve, sorgente. Il de
 | informativa | Leggere l'informativa privacy senza accedere. | 1 | docs/progettazione/ux/ux.toml |
 | interventi-aperti | Vedere gli interventi non chiusi, i più vecchi per primi. | 1 | docs/progettazione/ux/ux.toml |
 | intervento | Seguire un intervento: preventivo, approvazione, chiusura, fattura. | 1 | docs/progettazione/ux/ux.toml |
-| listino | Aggiornare prezzi e descrizioni del listino. | 1 | docs/progettazione/ux/ux.toml |
+| listino | Aggiornare prezzi e descrizioni del listino. | 2 | docs/progettazione/ux/ux.toml |
 | non-trovato | Dire che la pagina non esiste e riportare alla pagina iniziale. | 1 | docs/progettazione/ux/ux.toml |
 | recupero-password | Chiedere il link di recupero e impostare una nuova password. | 1 | docs/progettazione/ux/ux.toml |
 

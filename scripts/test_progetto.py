@@ -80,7 +80,10 @@ class Lettura(Base):
         self.assertEqual(esito, 0)
         self.assertIn("# Fascio del task C-veicoli-be", testo)
         self.assertIn("non costruire ora", testo)
-        self.assertIn("scadenza_revisione", testo.split("non costruire ora", 1)[1])
+        prima, dopo = testo.split("non costruire ora", 1)
+        self.assertIn("scadenza_revisione", dopo)
+        self.assertIn("componente veicoli.PromemoriaRevisione (incremento 2)", dopo)
+        self.assertNotIn("PromemoriaRevisione", prima)
         self.assertLess(len(testo), cli.BUDGET_FASCIO)
 
     def test_verifica_json(self):
@@ -98,6 +101,18 @@ class Lettura(Base):
         self.assertIn("obbligatori: titolo, attore, priorita, incremento, fonte", testo)
         self.assertIn("### storie ACC-1", testo)
         self.assertEqual(self.esegui("formato", "ignoto")[0], 2)
+
+    def test_schema_dell_incremento(self):
+        esito, testo = self.esegui("schema")
+        self.assertEqual(esito, 0)
+        self.assertIn("### tabelle veicoli", testo)
+        futuri = testo.split("Progettato per incrementi futuri", 1)[1]
+        self.assertIn("colonna veicoli.scadenza_revisione (incremento 2)", futuri)
+        self.assertNotIn("scadenza_revisione", testo.split("Progettato per incrementi futuri", 1)[0])
+        self.apri_incremento_2()
+        _, testo = self.esegui("schema", "--nuovi")
+        self.assertIn("nome=scadenza_revisione", testo)
+        self.assertNotIn("### tabelle fatture", testo)
 
     def test_voce_sconosciuta_e_errore_d_uso(self):
         self.assertEqual(self.esegui("fascio", "9.99")[0], 2)

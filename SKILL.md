@@ -37,6 +37,7 @@ In caso di tensione tra qualsiasi indicazione di questa skill, vincono queste, i
 | `checklist [--fase N] [--dod] [--trasversali]` | le voci con il loro stato e il gate della fase |
 | `mostra <id>`, `fascio <voce>`, `fascio --task <id>`, `impatto <id>` | leggere per id: un elemento e chi lo cita, ciò che serve per una voce o per un task, ciò che dipende da un elemento |
 | `formato [<tipo>]` | il formato di un tipo di sorgente, con un esempio |
+| `schema [--nuovi]` | le tabelle dell'incremento corrente, o solo ciò che aggiunge: la base delle migrazioni |
 | `viste`, `verifica [--gate N] [--congelamento [data]] [--json]` | rigenerare le viste; controllare la coerenza |
 
 Esito: 0 senza errori, 1 con errori, 2 errore d'uso. `assets/esempio/` è un progetto completo, congelato all'incremento 1 e verde: è il modello di ogni file. `assets/checklist.toml` è il catalogo delle voci, con le condizioni d'applicabilità e i controlli.

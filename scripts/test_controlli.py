@@ -299,6 +299,12 @@ class Incrementi(Base):
         self.assertEqual(progetto.incremento_di(progetto.trova("tabelle", "veicoli")), 1)
         self.assertEqual(progetto.incremento_di(progetto.trova("api", "cercaClienti")), 2)
 
+    def test_cio_che_si_usa_non_anticipa_l_incremento(self):
+        progetto = modello.carica(self.radice, CATALOGO)
+        # l'algoritmo usa i volumi di un'entità dell'incremento 1, ma esiste per VEI-2
+        algoritmo = progetto.trova("algoritmi", "veicoli.Selezione delle revisioni in scadenza")
+        self.assertEqual(progetto.incremento_di(algoritmo), 2)
+
 
 class Modifiche(Base):
     MOD = ('\n[[modifiche]]\nid = "MOD-2"\ndescrizione = "Il veicolo registra il telaio."\nmotivo = "Richiami."\n'

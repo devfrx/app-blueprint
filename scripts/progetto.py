@@ -18,6 +18,7 @@ Si esegue dalla radice del repo progettato (o con --radice):
   progetto.py fascio --task <id>          la fetta di progetto di un task di parallel-build
   progetto.py impatto <id>                tutto ciò che dipende da un elemento, anche indirettamente
   progetto.py formato [<tipo>]            il formato di un tipo di sorgente, con un esempio
+  progetto.py schema [--nuovi]            le tabelle dell'incremento corrente, da cui si scrivono le migrazioni
   progetto.py viste                       rigenera le viste in docs/progettazione/viste/
   progetto.py verifica [--gate N] [--congelamento [AAAA-MM-GG]] [--json]
 
@@ -590,6 +591,7 @@ def fascio_task(progetto, ident):
     modulo = d.get("modulo")
     corrente = progetto.incremento_corrente()
     righe = [f"# Fascio del task {ident}", "", rendi(progetto, t)]
+    futuri = []
     storie_ids = set(modello._valori(d.get("storie")))
     if modulo:
         storie_ids |= {s.id for s in progetto.tutti("storie")
@@ -599,7 +601,7 @@ def fascio_task(progetto, ident):
             righe += ["", "## Modulo", rendi(progetto, m)]
         det = progetto.trova("dettaglio", modulo)
         if det:
-            righe += ["", "## Progetto di dettaglio", rendi(progetto, det)]
+            righe += ["", "## Progetto di dettaglio", _rendi_dettaglio(progetto, det, corrente, futuri)]
     storie = [progetto.trova("storie", s) for s in sorted(storie_ids, key=viste._chiave_naturale)]
     storie = [s for s in storie if s]
     if storie:
@@ -615,7 +617,6 @@ def fascio_task(progetto, ident):
         regole = [r for r in progetto.tutti("regole") if set(modello._valori(r.dati.get("entita"))) & entita_ids]
         if regole:
             righe += ["", "## Regole"] + [rendi(progetto, r) for r in regole]
-    futuri = []
     if modulo:
         tabelle = [x for x in progetto.tutti("tabelle") if x.dati.get("modulo") == modulo and progetto.incremento_di(x) <= corrente]
         if tabelle:
@@ -675,6 +676,29 @@ def fascio_task(progetto, ident):
     return testo + f"\n\n— {_misura(testo)}"
 
 
+DETTAGLIO = (("facciata", "operazione", "operazione di facciata"), ("eventi", "nome", "evento"),
+             ("componenti", "nome", "componente"), ("pattern", "nome", "pattern"),
+             ("algoritmi", "nome", "algoritmo"), ("transazioni", "operazione", "transazione"),
+             ("porte", "nome", "porta"))
+
+
+def _rendi_dettaglio(progetto, det, corrente, futuri):
+    """Il dettaglio di un modulo con i soli elementi dell'incremento corrente; quelli
+    tracciati a storie future finiscono nell'elenco del progettato per dopo."""
+    dati = dict(det.dati)
+    for chiave, campo, nome in DETTAGLIO:
+        tenuti = []
+        for x in dati.get(chiave, []) or []:
+            el = progetto.trova(chiave, f"{det.id}.{x.get(campo)}") if isinstance(x, dict) else None
+            if el and progetto.incremento_di(el) > corrente:
+                futuri.append(f"{nome} {el.id} (incremento {progetto.incremento_di(el)})")
+            else:
+                tenuti.append(x)
+        if chiave in dati:
+            dati[chiave] = tenuti
+    return rendi(progetto, modello.Elemento(det.tipo, det.id, dati, det.sorgente, det.contenitore))
+
+
 def _rendi_tabella(progetto, tabella, corrente, futuri):
     """Una tabella con le sole colonne e i soli indici dell'incremento corrente; il
     resto finisce nell'elenco del progettato per gli incrementi futuri."""
@@ -698,6 +722,42 @@ def _rendi_tabella(progetto, tabella, corrente, futuri):
         dati["indici"] = indici
     copia = modello.Elemento(tabella.tipo, tabella.id, dati, tabella.sorgente, tabella.contenitore)
     return rendi(progetto, copia)
+
+
+def cmd_schema(args):
+    """Lo schema che l'incremento corrente costruisce: tabelle, colonne e indici con
+    incremento fino al corrente, oppure, con --nuovi, solo quelli che il corrente
+    aggiunge. È ciò da cui lo scheletro scrive le migrazioni."""
+    progetto, catalogo = _carica(args)
+    corrente = progetto.incremento_corrente()
+    futuri = []
+    righe = [f"# Schema dell'incremento {corrente}" + (", solo ciò che aggiunge" if args.nuovi else ""), ""]
+    for tabella in sorted(progetto.tutti("tabelle"), key=lambda e: viste._chiave_naturale(e.id)):
+        inc = progetto.incremento_di(tabella)
+        if inc > corrente:
+            futuri.append(f"tabella {tabella.id} (incremento {inc})")
+            continue
+        if args.nuovi and inc < corrente:
+            dati = {"modulo": tabella.dati.get("modulo"), "esistente": True}
+            for chiave, tipo in (("colonne", "colonne"), ("indici", "indici")):
+                nuovi = []
+                for x in tabella.dati.get(chiave, []) or []:
+                    ident = f"{tabella.id}.{x.get('nome')}" if tipo == "colonne" else x.get("nome")
+                    el = progetto.trova(tipo, ident) if isinstance(x, dict) else None
+                    if el and progetto.incremento_di(el) == corrente:
+                        nuovi.append(x)
+                    elif el and progetto.incremento_di(el) > corrente:
+                        futuri.append(f"{tipo[:-1] if tipo == 'indici' else 'colonna'} {el.id} (incremento {progetto.incremento_di(el)})")
+                if nuovi:
+                    dati[chiave] = nuovi
+            if len(dati) > 2:
+                righe.append(rendi(progetto, modello.Elemento(tabella.tipo, tabella.id, dati, tabella.sorgente)))
+            continue
+        righe.append(_rendi_tabella(progetto, tabella, corrente, futuri))
+    if futuri:
+        righe += ["", "## Progettato per incrementi futuri: nessuna migrazione ora"] + [f"- {f}" for f in sorted(futuri)]
+    print("\n".join(righe))
+    return 0
 
 
 def cmd_formato(args):
@@ -873,6 +933,9 @@ def principale(argv=None):
     fo = sotto.add_parser("formato")
     fo.add_argument("tipo", nargs="?")
     fo.set_defaults(funzione=cmd_formato)
+    sc = sotto.add_parser("schema")
+    sc.add_argument("--nuovi", action="store_true", help="solo ciò che l'incremento corrente aggiunge")
+    sc.set_defaults(funzione=cmd_schema)
     sotto.add_parser("viste").set_defaults(funzione=cmd_viste)
     v = sotto.add_parser("verifica")
     v.add_argument("--gate", type=int)

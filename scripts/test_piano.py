@@ -214,6 +214,97 @@ class Copertura(Base):
         self.assertErrore(p, "[oracoli]: manca 'veicoli'")
 
 
+def incremento_2():
+    """L'esempio all'incremento 2, con il suo piano: cambiano clienti, veicoli, fatture
+    e il motore dei prezzi, che acquista una schermata; accessi e interventi, costruiti
+    nell'incremento 1, restano fuori. Gli esemplari esistono già."""
+    p = progetto()
+    p.stato["scheda"]["incremento"] = 2
+    pi = p.piano
+    pi["progetto"]["incremento"] = 2
+    pi["oracoli"] = {m: pi["oracoli"][m] for m in ("clienti", "veicoli", "fatture")}
+    pi["oracoli"]["prezzi"] = ["tests/Oracoli/Prezzi/**", "tests/frontend/prezzi/**"]
+    for a in pi["archetipi"]:
+        a["costruito_in"] = 1
+
+    def oracoli(modulo, storie):
+        return {"id": f"O-{modulo}", "ondata": "oracoli", "agente": "test-author", "modulo": modulo,
+                "storie": storie, "possiede": pi["oracoli"][modulo], "criteri": ["lint"]}
+
+    def costruzione(modulo, lato, *altri):
+        cartella = (f"app/Moduli/{modulo.capitalize()}/**" if lato == "be"
+                    else f"resources/js/moduli/{modulo}/**")
+        criteri = (["modulo_backend", "fitness", "lint"] if lato == "be"
+                   else ["modulo_frontend", "fitness", "lint", "typecheck"])
+        return {"id": f"C-{modulo}-{lato}", "ondata": "costruzione",
+                "agente": "backend-builder" if lato == "be" else "frontend-builder", "modulo": modulo,
+                "possiede": [cartella], "dipende_da": [f"O-{modulo}"], "criteri": criteri + list(altri)}
+
+    pi["task"] = [
+        oracoli("clienti", ["CLI-2"]), oracoli("veicoli", ["VEI-2"]), oracoli("fatture", ["FAT-2"]),
+        oracoli("prezzi", ["PRZ-1"]),
+        {"id": "M-prezzi", "ondata": "motore", "agente": "sessione", "modulo": "prezzi",
+         "possiede": ["app/Moduli/Prezzi/**", "resources/js/moduli/prezzi/**"], "dipende_da": ["O-prezzi"],
+         "criteri": ["modulo_backend", "modulo_frontend", "fitness", "lint", "typecheck", "mutazioni"]},
+        costruzione("clienti", "be"), costruzione("clienti", "fe"), costruzione("veicoli", "be"),
+        costruzione("fatture", "be", "mutazioni"), costruzione("fatture", "fe"),
+    ]
+    return p
+
+
+class IncrementoSuccessivo(Base):
+    def test_piano_dell_incremento_2_valido(self):
+        self.assertEqual(vp.valida(incremento_2()), [])
+
+    def test_scope_dell_incremento_2(self):
+        self.assertEqual(vp.moduli_in_scope(incremento_2()), {"clienti", "veicoli", "fatture", "prezzi"})
+
+    def test_modulo_costruito_prima_e_non_toccato_resta_fuori(self):
+        p = incremento_2()
+        p.piano["task"].append({"id": "C-accessi-be", "ondata": "costruzione", "agente": "backend-builder",
+                                "modulo": "accessi", "possiede": ["app/Moduli/Accessi/**"],
+                                "criteri": ["modulo_backend", "fitness", "lint", "mutazioni"]})
+        self.assertErrore(p, "modulo 'accessi' non è dell'incremento corrente")
+
+    def test_elemento_nuovo_porta_il_suo_modulo_nello_scope(self):
+        p = incremento_2()
+        p.trova("storie", "VEI-2").dati["incremento"] = 3
+        # senza VEI-2 restano gli elementi nuovi di veicoli tracciati altrove: nessuno
+        self.assertNotIn("veicoli", vp.moduli_in_scope(p))
+        p.trova("indici", "ix_veicoli_scadenza_revisione").dati["traccia"] = ["CLI-2"]
+        p.__dict__.pop("_incrementi", None)
+        self.assertIn("veicoli", vp.moduli_in_scope(p))
+
+    def test_esemplare_costruito_prima_e_un_modulo_normale(self):
+        p = incremento_2()
+        p.piano["task"].append({"id": "E-clienti", "ondata": "esemplari", "agente": "sessione",
+                                "modulo": "clienti", "possiede": ["app/Moduli/ClientiEsemplare/**"],
+                                "criteri": ["modulo_backend", "fitness", "lint"]})
+        self.assertErrore(p, "nell'ondata 'esemplari' si costruiscono solo moduli esemplari")
+
+    def test_esemplare_costruito_prima_senza_costruito_in(self):
+        p = incremento_2()
+        del next(a for a in p.piano["archetipi"] if a["id"] == "workflow")["costruito_in"]
+        self.assertErrore(p, "dichiara costruito_in")
+
+    def test_costruito_in_non_precedente(self):
+        p = incremento_2()
+        p.piano["archetipi"][0]["costruito_in"] = 2
+        self.assertErrore(p, "costruito_in è un incremento precedente al corrente (2)")
+
+    def test_oracoli_di_una_storia_che_il_modulo_tocca(self):
+        p = incremento_2()
+        task(p, "O-clienti")["storie"].append("VEI-2")
+        self.assertEqual(errori(p), [])
+
+    def test_la_copertura_resta_del_modulo_che_orchestra(self):
+        p = incremento_2()
+        task(p, "O-clienti")["storie"].append("VEI-2")
+        task(p, "O-veicoli")["storie"] = ["CLI-2"]
+        self.assertErrore(p, "la storia 'CLI-2' è orchestrata dal modulo 'clienti' e 'veicoli' non è tra quelli che tocca")
+        self.assertErrore(p, "storia 'VEI-2': nessun task di oracoli del modulo che la orchestra")
+
+
 class CriteriEComandi(Base):
     def test_costruzione_senza_fitness(self):
         p = progetto()

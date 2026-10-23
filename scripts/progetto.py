@@ -527,19 +527,11 @@ def cmd_mostra(args):
 
 
 def _legato_al_modulo(progetto, el, modulo):
+    """Il modulo possiede l'elemento, oppure l'elemento (una storia, una dipendenza)
+    lo coinvolge."""
     d = el.dati
-    if el.contenitore == modulo or d.get("modulo") == modulo or d.get("x-modulo") == modulo:
-        return True
-    if modulo in modello._valori(d.get("tocca")) or modulo in (d.get("a_valle"), d.get("a_monte")):
-        return True
-    if el.tipo in ("entita",) and d.get("modulo") == modulo:
-        return True
-    if el.tipo == "matrice":
-        entita = progetto.trova("entita", d.get("risorsa"))
-        return bool(entita and entita.dati.get("modulo") == modulo)
-    if el.tipo == "storie":
-        return d.get("modulo") == modulo
-    return False
+    return (progetto.modulo_di(el) == modulo or modulo in modello._valori(d.get("tocca"))
+            or modulo in (d.get("a_valle"), d.get("a_monte")))
 
 
 def _misura(testo):

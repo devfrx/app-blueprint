@@ -229,6 +229,26 @@ class Progetto:
         cache[chiave] = risultato
         return risultato
 
+    def modulo_di(self, elemento):
+        """Il modulo che possiede un elemento, o None. Una storia è del modulo che la
+        orchestra; gli annidati sono del modulo del loro contenitore; una regola della
+        matrice è del modulo dell'entità che protegge."""
+        d = elemento.dati
+        if elemento.tipo == "api":
+            return d.get("x-modulo")
+        if elemento.tipo == "dettaglio":
+            return elemento.id
+        if elemento.tipo == "matrice":
+            entita = self.trova("entita", d.get("risorsa"))
+            return self.modulo_di(entita) if entita else None
+        tipo_contenitore = CONTENITORE.get(elemento.tipo)
+        if tipo_contenitore == "dettaglio":
+            return elemento.contenitore
+        if tipo_contenitore:
+            contenitore = self.trova(tipo_contenitore, elemento.contenitore)
+            return self.modulo_di(contenitore) if contenitore else None
+        return d.get("modulo") if isinstance(d.get("modulo"), str) else None
+
 
 def _valori(valore):
     """Normalizza un campo di riferimenti in una lista di stringhe."""

@@ -24,9 +24,11 @@ Indice: Incrementi e modalità · Il piano · Strategia di test e DoD · Qualit�
 | `[comandi]` | i comandi del progetto, una sola fonte citata dai criteri: obbligatori `lint`, `fitness`, `suite`, `e2e`, `supply_chain`; per lato `modulo_backend` e `modulo_frontend`, con il segnaposto `{modulo}` |
 | `[rischio]` | `criteri_alto_backend`, `criteri_alto_frontend`: i comandi in più per i moduli ad alto rischio, per lato |
 | `[oracoli]` | per ogni modulo dell'incremento, dove vivono i suoi test |
-| `[[archetipi]]` | per ogni archetipo presente, il modulo `esemplare` |
+| `[[archetipi]]` | per ogni archetipo dei moduli dell'incremento, il modulo `esemplare`; `costruito_in` se l'esemplare è di un incremento precedente |
 | `[stima]` | metodo e incertezza (7.02) |
 | `[[task]]` | id, `ondata`, `agente`, `modulo`, `storie`, `possiede`, `dipende_da`, `criteri` |
+
+**I moduli dell'incremento** li calcola lo script: quelli che orchestrano o toccano una sua storia, e quelli che possiedono un elemento che nasce nell'incremento — entità, attributo, tabella, colonna, indice, operazione, regola della matrice, schermata, elemento del dettaglio. Un modulo costruito prima e che l'incremento non tocca resta fuori dal piano, con i suoi oracoli verdi nella suite.
 
 **Le ondate** sono fisse, perché sono il metodo:
 
@@ -37,7 +39,7 @@ Indice: Incrementi e modalità · Il piano · Strategia di test e DoD · Qualit�
 | `esemplari` | `sessione` | un modulo completo per archetipo, verde contro i suoi oracoli |
 | `costruzione` | `backend-builder`, `frontend-builder` | i moduli restanti, verdi contro oracoli scritti da altri |
 
-**Gli esemplari.** Per ogni archetipo l'esemplare è il modulo più rappresentativo, non il più semplice: lo costruisce la sessione, l'utente lo approva, e gli altri lo replicano. Di solito gli archetipi presenti sono da uno a tre.
+**Gli esemplari.** Per ogni archetipo l'esemplare è il modulo più rappresentativo, non il più semplice: lo costruisce la sessione, l'utente lo approva, e gli altri lo replicano. Di solito gli archetipi presenti sono da uno a tre. Dal secondo incremento l'esemplare di un archetipo già costruito esiste: l'archetipo dichiara `costruito_in`, nessuno lo ricostruisce, e se l'incremento cambia quel modulo lo costruiscono i costruttori, come gli altri. Un archetipo nuovo ha il suo esemplare come nel primo incremento.
 
 **Ownership.** Un percorso si scrive come `cartella/**` o come file esatto; niente altri caratteri jolly, percorsi assoluti o `..`. Così la sovrapposizione tra due task è decidibile. Lo script verifica che:
 
@@ -50,7 +52,7 @@ Indice: Incrementi e modalità · Il piano · Strategia di test e DoD · Qualit�
 
 - **un task, un modulo, un lato**: backend e frontend di un modulo sono due task, con due cartelle; è la misura che un agente tiene in contesto senza degradare. Esemplari e motore non hanno task di costruzione;
 - **i criteri sono chiavi di `[comandi]`**: ogni task che scrive codice esegue `fitness` e i test del proprio lato del modulo; un modulo ad alto rischio anche i comandi di `[rischio]` del suo lato;
-- **`storie` crea la tracciabilità**: ogni storia dell'incremento ha un task di oracoli del modulo che la orchestra; ogni percorso critico ha un task end-to-end, senza `modulo`, che cita tutte le sue storie dell'incremento, accesso compreso;
+- **`storie` crea la tracciabilità**: ogni storia dell'incremento ha un task di oracoli del modulo che la orchestra; il task di un modulo che la storia tocca può citarla, per ciò che la storia gli chiede; ogni percorso critico ha un task end-to-end, senza `modulo`, che cita tutte le sue storie dell'incremento, accesso compreso;
 - **un task dipende solo da task di ondate precedenti**: dentro un'ondata i task partono insieme, ed è ciò che rende il grafo aciclico per costruzione. Se due task di costruzione sembrano dipendere l'uno dall'altro, il piano è sbagliato: un modulo usa l'altro tramite la facciata finta dello scheletro, e un frontend lavora contro il mock generato dalla specifica;
 - **la concorrenza**: oltre il limite di sotto-agenti concorrenti (`FONTI.md`) l'ondata procede a lotti, ed è spesso il segnale che serve un incremento in più.
 

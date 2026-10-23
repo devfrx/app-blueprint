@@ -18,6 +18,8 @@ Controlli:
   6. copertura: ogni modulo dell'incremento ha oracoli e chi lo costruisce; ogni
      storia dell'incremento ha un task di oracoli del modulo che la orchestra; ogni
      percorso critico ha un task end-to-end che cita tutte le sue storie
+     dell'incremento. Un archetipo il cui esemplare è stato costruito in un
+     incremento precedente (costruito_in) non ha un'ondata di esemplari
   7. criteri: chi scrive codice esegue fitness e i test del proprio lato del
      modulo, e per un modulo ad alto rischio anche i criteri aggiuntivi del lato
 
@@ -46,6 +48,10 @@ SEGNAPOSTO_MODULO = "{modulo}"
 LIMITE_CONCORRENZA = 20
 CARATTERI_JOLLY = set("*?[]")
 DOVE = "docs/progettazione/piano/piano.toml"
+# Gli elementi che appartengono a un modulo: uno nuovo nell'incremento porta il suo
+# modulo nello scope, anche senza storie che il modulo orchestra.
+TIPI_DEL_MODULO = ("entita", "attributi", "tabelle", "colonne", "indici", "api", "matrice", "schermate",
+                   "facciata", "eventi", "componenti", "pattern", "algoritmi", "transazioni", "porte")
 
 
 def errore_percorso(p):
@@ -96,8 +102,9 @@ def versione(piano):
 
 
 def moduli_in_scope(progetto):
-    """I moduli che l'incremento corrente costruisce: quelli che orchestrano o toccano
-    una sua storia, o che possiedono un'entità che gli serve."""
+    """I moduli che l'incremento corrente costruisce o cambia: quelli che orchestrano o
+    toccano una sua storia, e quelli che possiedono un elemento che nasce in questo
+    incremento. Un modulo costruito prima e che l'incremento non tocca resta fuori."""
     corrente = progetto.incremento_corrente()
     in_scope = set()
     for s in progetto.tutti("storie"):
@@ -105,9 +112,11 @@ def moduli_in_scope(progetto):
             if s.dati.get("modulo"):
                 in_scope.add(s.dati["modulo"])
             in_scope.update(_valori(s.dati.get("tocca")))
-    for e in progetto.tutti("entita"):
-        if progetto.incremento_di(e) <= corrente and e.dati.get("modulo"):
-            in_scope.add(e.dati["modulo"])
+    for tipo in TIPI_DEL_MODULO:
+        for el in progetto.tutti(tipo):
+            modulo = progetto.modulo_di(el)
+            if modulo and progetto.incremento_di(el) == corrente:
+                in_scope.add(modulo)
     return in_scope
 
 
@@ -212,10 +221,23 @@ def valida(progetto):
                 errori.append(f"archetipo '{a['id']}': id duplicato")
             archetipi[a["id"]] = a
     esemplari = set()
+    corrente = progetto.incremento_corrente()
     for ident, a in archetipi.items():
         es = a.get("esemplare")
+        costruito = a.get("costruito_in")
+        if costruito is not None:
+            # l'esemplare esiste già: i costruttori lo seguono, nessuno lo ricostruisce
+            if not (isinstance(costruito, int) and not isinstance(costruito, bool) and 1 <= costruito < corrente):
+                errori.append(f"archetipo '{ident}': costruito_in è un incremento precedente al corrente ({corrente})")
+            modulo_es = progetto.trova("moduli", es)
+            if modulo_es is None:
+                errori.append(f"archetipo '{ident}': esemplare '{es}' non è un modulo")
+            elif modulo_es.dati.get("archetipo") != ident:
+                errori.append(f"archetipo '{ident}': l'esemplare '{es}' appartiene a un altro archetipo")
+            continue
         if es not in moduli:
-            errori.append(f"archetipo '{ident}': esemplare '{es}' non è un modulo dell'incremento")
+            errori.append(f"archetipo '{ident}': esemplare '{es}' non è un modulo dell'incremento "
+                          "(se è stato costruito in un incremento precedente, dichiara costruito_in)")
         elif moduli[es].get("archetipo") != ident:
             errori.append(f"archetipo '{ident}': l'esemplare '{es}' appartiene a un altro archetipo")
         else:
@@ -328,9 +350,11 @@ def valida(progetto):
         for s in storie_task:
             if s not in storie:
                 errori.append(f"task '{ident}': la storia '{s}' non è dell'incremento corrente")
-            elif ondata == "oracoli" and not e2e and modulo and storie[s].get("modulo") != modulo:
-                errori.append(f"task '{ident}': la storia '{s}' è orchestrata dal modulo '{storie[s].get('modulo')}'")
-            elif ondata == "oracoli" and not e2e:
+            elif ondata == "oracoli" and not e2e and modulo and storie[s].get("modulo") != modulo \
+                    and modulo not in _valori(storie[s].get("tocca")):
+                errori.append(f"task '{ident}': la storia '{s}' è orchestrata dal modulo '{storie[s].get('modulo')}' "
+                              f"e '{modulo}' non è tra quelli che tocca")
+            elif ondata == "oracoli" and not e2e and storie[s].get("modulo") == modulo:
                 storie_con_oracoli.add(s)
         if e2e:
             storie_e2e[ident] = set(storie_task)

@@ -1,0 +1,32 @@
+# Progetto di dettaglio del modulo clienti (archetipo crud, rischio standard):
+# l'esemplare dell'archetipo crud.
+modulo = "clienti"
+
+[[facciata]]
+operazione = "accountDi"
+firma = "accountDi(cliente: ClienteId): AccountId | null"
+semantica = "L'account del cliente, o null se il cliente non ne ha uno; non-trovato se il cliente non esiste."
+errori = ["non-trovato"]
+traccia = ["INT-3"]
+
+[[facciata]]
+operazione = "esiste"
+firma = "esiste(cliente: ClienteId): bool"
+semantica = "Se il cliente esiste; non solleva errori."
+errori = ["validazione"]
+traccia = ["VEI-1"]
+
+[[componenti]]
+nome = "ValidatoreCodiceFiscale"
+responsabilita = "Verifica forma e carattere di controllo del codice fiscale."
+traccia = ["R-7", "CLI-1"]
+
+[[transazioni]]
+operazione = "api:registraCliente"
+confine = "Creazione del cliente e dell'account invitato (facciata di accessi) nella stessa transazione: senza account il cliente non si crea."
+isolamento = "read committed"
+concorrenza = "Due registrazioni dello stesso codice fiscale: il vincolo d'unicità fa fallire la seconda con cliente-duplicato."
+
+[sicurezza]
+asvs = 1
+requisiti = ["Validazione: codice fiscale ed email validati ai confini con le regole del catalogo."]

@@ -1,0 +1,203 @@
+# Registri vivi della progettazione: rischi, assunzioni, domande aperte, debito,
+# riferimenti deperibili, revisioni. Si aggiornano a ogni gate (controlli
+# trasversali). Le domande aperte bloccano il congelamento: a progettazione finita
+# l'elenco è vuoto, e la risposta di ciascuna sta dove si applica.
+
+[[rischi]]
+id = "RK-1"
+testo = "L'officina continua a usare i fogli di calcolo accanto a Officina."
+tipo = "prodotto"
+probabilita = "media"
+impatto = "alto"
+risposta = "mitiga"
+azione = "Formazione di persona il primo giorno; OB-1 misurato ogni mese."
+responsabile = "responsabile"
+stato = "aperto"
+segnale = "Meno del 90% degli interventi in Officina alla fine del primo mese."
+
+[[rischi]]
+id = "RK-2"
+testo = "La libreria PDF non genera 50 fatture in meno di 2 secondi sul VPS."
+tipo = "tecnico"
+probabilita = "media"
+impatto = "medio"
+risposta = "mitiga"
+azione = "Spike con il criterio misurabile; esito in ADR-0002: 50 fatture in 0,8 s."
+responsabile = "sviluppatore"
+stato = "chiuso"
+
+[[rischi]]
+id = "RK-3"
+testo = "Un incidente del fornitore del VPS colpisce insieme server e backup."
+tipo = "esercizio"
+probabilita = "bassa"
+impatto = "alto"
+risposta = "accetta"
+azione = "Debito DEB-1, con il piano di rientro."
+responsabile = "responsabile"
+stato = "accettato"
+segnale = "Un incidente del fornitore, o il primo anno di fatture in archivio."
+
+[[rischi]]
+id = "RK-4"
+testo = "Le credenziali di un operatore, senza secondo fattore, vengono indovinate o riusate."
+tipo = "sicurezza"
+probabilita = "bassa"
+impatto = "medio"
+risposta = "accetta"
+azione = "Blocco dopo cinque tentativi e limite per IP; secondo fattore per tutti valutato al passaggio al pubblico."
+responsabile = "sviluppatore"
+stato = "accettato"
+segnale = "Un blocco d'account non richiesto, o tentativi da IP sconosciuti nei log."
+
+[[rischi]]
+id = "RK-5"
+testo = "Raffiche di richieste saturano il VPS condiviso con il sito."
+tipo = "tecnico"
+probabilita = "bassa"
+impatto = "medio"
+risposta = "accetta"
+azione = "Limite di frequenza applicativo (ST-resilienza); protezione di rete rinviata al pubblico."
+responsabile = "sviluppatore"
+stato = "accettato"
+segnale = "Errori troppe-richieste frequenti o latenza oltre RNF-1."
+
+[[assunzioni]]
+id = "A-1"
+testo = "I 20 utenti contemporanei e i 50.000 interventi in cinque anni sono una stima del responsabile."
+verifica = "Si rivedono dopo il primo mese d'uso con i dati reali."
+
+[[debito]]
+id = "DEB-1"
+descrizione = "Il backup sta presso lo stesso fornitore del VPS."
+motivo = "Il budget d'esercizio non copre un secondo fornitore (V-2)."
+segnale = "Un incidente del fornitore, o il primo anno di fatture in archivio."
+rientro = "Copia cifrata periodica presso un secondo fornitore."
+accettato_il = 2026-10-22
+
+[[deperibili]]
+id = "DEP-1"
+cosa = "Laravel: versione stabile e finestra di supporto"
+fonte = "https://laravel.com/docs/releases"
+verificato_il = 2026-10-22
+
+[[deperibili]]
+id = "DEP-2"
+cosa = "Vue: versione stabile e politica dei rilasci"
+fonte = "https://vuejs.org/about/releases"
+verificato_il = 2026-10-22
+
+[[deperibili]]
+id = "DEP-3"
+cosa = "PostgreSQL: versione stabile e fine del supporto"
+fonte = "https://www.postgresql.org/support/versioning/"
+verificato_il = 2026-10-22
+
+[[deperibili]]
+id = "DEP-4"
+cosa = "OWASP ASVS: versione stabile e livelli di verifica"
+fonte = "https://owasp.org/www-project-application-security-verification-standard/"
+verificato_il = 2026-10-22
+
+[[deperibili]]
+id = "DEP-5"
+cosa = "OpenAPI: versione della specifica supportata dagli strumenti scelti"
+fonte = "https://spec.openapis.org/oas/"
+verificato_il = 2026-10-22
+
+[[deperibili]]
+id = "DEP-6"
+cosa = "Problem Details for HTTP APIs (RFC 9457): stato e sostituzioni"
+fonte = "https://www.rfc-editor.org/rfc/rfc9457"
+verificato_il = 2026-10-22
+
+[[revisioni]]
+id = "REV-1"
+tipo = "requisiti"
+oggetto = "Storie, RNF e requisiti sui dati, sui criteri della ISO/IEC/IEEE 29148"
+revisore = "reviewer"
+data = 2026-10-09
+esito = "12 findings: 2 criteri senza caso d'errore, 1 RNF senza misura, 9 di forma; tutti corretti."
+
+[[revisioni]]
+id = "REV-2"
+tipo = "validazione"
+oggetto = "Requisiti dell'incremento 1, con il walkthrough dei percorsi critici"
+revisore = "responsabile"
+data = 2026-10-10
+esito = "Approvati; aggiunta ACC-7 (sblocco), CO-1 risolto."
+
+[[revisioni]]
+id = "REV-3"
+tipo = "walkthrough"
+oggetto = "Il modello concettuale provato su tutte le storie, compresi gli incrementi futuri"
+revisore = "sessione"
+data = 2026-10-12
+esito = "VEI-2 ha richiesto scadenza_revisione e promemoria_inviato_il; nessuna contraddizione residua."
+
+[[revisioni]]
+id = "REV-4"
+tipo = "dominio"
+oggetto = "Modello di dominio, glossario, macchine a stati"
+revisore = "responsabile"
+data = 2026-10-13
+esito = "Riconosciuto; rinominato 'commessa' in 'intervento' ovunque."
+
+[[revisioni]]
+id = "REV-5"
+tipo = "architettura"
+oggetto = "Valutazione dell'architettura contro gli scenari di qualità"
+revisore = "reviewer"
+data = 2026-10-15
+esito = "Nessun rischio non accettato; vedi architettura/valutazione.md."
+
+[[revisioni]]
+id = "REV-6"
+tipo = "dettaglio"
+oggetto = "Progetto di dettaglio dei moduli, schema, contratti"
+revisore = "reviewer"
+data = 2026-10-19
+esito = "7 findings: un indice senza accesso, una transazione senza idempotenza, 5 di forma; corretti."
+
+[[revisioni]]
+id = "REV-7"
+tipo = "euristica"
+oggetto = "Mockup dei percorsi critici, con frontend-craft"
+revisore = "reviewer"
+data = 2026-10-18
+esito = "3 problemi: azioni del preventivo poco distinguibili, stato vuoto senza azione, contrasto di un badge; corretti."
+
+[[revisioni]]
+id = "REV-8"
+tipo = "accessibilita"
+oggetto = "Mockup e contratto UI sui criteri WCAG 2.2 AA"
+revisore = "reviewer"
+data = 2026-10-19
+esito = "Nomi accessibili completati per 4 azioni; area minima dei bottoni portata a 44 px."
+
+[[revisioni]]
+id = "REV-9"
+tipo = "prontezza"
+oggetto = "Tutta la progettazione, con la checklist del catalogo e un reviewer per modulo ad alto rischio"
+revisore = "reviewer"
+data = 2026-10-21
+esito = "Nessun P0 né P1 aperto; 9 findings P2 e P3 corretti."
+p0 = 0
+p1 = 0
+
+[[revisioni]]
+id = "REV-10"
+tipo = "decidibilita"
+oggetto = "Costruzione degli esemplari clienti e interventi e del motore prezzi, con i soli file del repo"
+revisore = "reviewer"
+data = 2026-10-21
+esito = "Nessuna domanda: ogni file, operazione, errore e stato d'interfaccia è decidibile."
+domande = 0
+
+[[revisioni]]
+id = "REV-11"
+tipo = "pre-mortem"
+oggetto = "Immaginando la costruzione fallita"
+revisore = "responsabile"
+data = 2026-10-22
+esito = "4 cause: numerazione concorrente (già coperta), listino vuoto al primo avvio (seme aggiunto allo scheletro), email in spam (accettato come RK-1), mobile del responsabile (mockup rivisti)."

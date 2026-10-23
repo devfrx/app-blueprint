@@ -1,0 +1,43 @@
+# Progetto di dettaglio del modulo veicoli (archetipo crud, rischio standard).
+modulo = "veicoli"
+
+[[facciata]]
+operazione = "veicolo"
+firma = "veicolo(veicolo: VeicoloId): VeicoloRiassunto"
+semantica = "Targa, marca, modello e cliente del veicolo; non-trovato se non esiste."
+errori = ["non-trovato"]
+traccia = ["INT-1", "INT-6"]
+
+[[facciata]]
+operazione = "proprietarioAccount"
+firma = "proprietarioAccount(veicolo: VeicoloId): AccountId | null"
+semantica = "L'account del cliente proprietario, chiesto a clienti; serve alla condizione di proprietà della matrice."
+errori = ["non-trovato"]
+traccia = ["INT-3", "MI-1"]
+
+[[componenti]]
+nome = "NormalizzatoreTarga"
+responsabilita = "Porta la targa in maiuscolo senza spazi prima di validarla e salvarla."
+traccia = ["R-8", "VEI-1"]
+
+[[componenti]]
+nome = "PromemoriaRevisione"
+responsabilita = "Ogni giorno trova le revisioni che scadono entro 30 giorni e accoda un promemoria per veicolo, una volta sola."
+traccia = ["VEI-2"]
+
+[[algoritmi]]
+nome = "Selezione delle revisioni in scadenza"
+problema = "Trovare ogni giorno le revisioni in scadenza senza scorrere tutti i veicoli."
+soluzione = "Intervallo sull'indice di scadenza_revisione, escludendo chi ha già ricevuto il promemoria per quella scadenza."
+complessita = "O(log n + k) con k veicoli in scadenza; n = 10.500 (volumi)"
+volumi = ["entita:veicolo"]
+traccia = ["VEI-2", "AC-8"]
+
+[[porte]]
+nome = "clienti"
+verso = "modulo:clienti"
+finto = "Lo stub della facciata generato dallo scheletro."
+
+[sicurezza]
+asvs = 1
+requisiti = ["Validazione: targa normalizzata e validata ai confini."]

@@ -1,0 +1,65 @@
+# Regole di business, invarianti ed eccezioni. Gli oracoli le provano; il motore e i
+# moduli le applicano.
+
+[[regole]]
+id = "R-1"
+tipo = "regola"
+testo = "Un intervento si chiude solo con il preventivo approvato."
+entita = ["intervento", "preventivo"]
+traccia = ["INT-4"]
+
+[[regole]]
+id = "R-2"
+tipo = "invariante"
+testo = "I totali di preventivi e fatture li calcola solo il motore dei prezzi: righe, IVA per aliquota, arrotondamento al centesimo per riga, metà per eccesso."
+entita = ["preventivo", "fattura", "riga_preventivo", "riga_fattura"]
+traccia = ["INT-5", "INT-2", "FAT-1", "RNF-7"]
+
+[[regole]]
+id = "R-3"
+tipo = "invariante"
+testo = "Le fatture hanno un numero progressivo per anno, senza buchi; una fattura emessa non si cancella né si modifica."
+entita = ["fattura"]
+traccia = ["FAT-1", "V-6"]
+
+[[regole]]
+id = "R-4"
+tipo = "regola"
+testo = "Un veicolo ha al massimo un intervento non chiuso."
+entita = ["intervento", "veicolo"]
+traccia = ["INT-1"]
+
+[[regole]]
+id = "R-5"
+tipo = "eccezione"
+testo = "Una fattura emessa a cavallo della mezzanotte del 31 dicembre prende l'anno della data di emissione nel fuso Europe/Rome."
+entita = ["fattura"]
+traccia = ["FAT-1"]
+
+[[regole]]
+id = "R-6"
+tipo = "eccezione"
+testo = "Dopo cinque tentativi d'accesso falliti l'account si blocca; lo sblocca solo il responsabile, e il conteggio torna a zero."
+entita = ["account"]
+traccia = ["ACC-1", "ACC-7"]
+
+[[regole]]
+id = "R-7"
+tipo = "regola"
+testo = "Il codice fiscale è valido e unico per cliente."
+entita = ["cliente"]
+traccia = ["CLI-1"]
+
+[[regole]]
+id = "R-8"
+tipo = "regola"
+testo = "La targa si normalizza (maiuscole, senza spazi) ed è unica."
+entita = ["veicolo"]
+traccia = ["VEI-1"]
+
+[[regole]]
+id = "R-9"
+tipo = "eccezione"
+testo = "Una riga con quantità zero o negativa è rifiutata; un preventivo approvato non accetta righe nuove."
+entita = ["riga_preventivo", "preventivo"]
+traccia = ["INT-5"]

@@ -1,0 +1,133 @@
+# Matrice delle autorizzazioni — contratto congelato al gate.
+#
+# Lo scheletro la applica nel kernel condiviso; gli autori dei test ne ricavano i
+# test di autorizzazione in entrambe le direzioni: chi è consentito passa, chi non
+# lo è riceve l'errore previsto, e per ogni condizione si prova la risorsa di un
+# altro. Ciò che non è consentito qui è vietato. I ruoli sono gli stakeholder che
+# usano il prodotto, né uno di più né uno di meno. Le operazioni senza accesso
+# (accesso, recupero della password, attivazione dall'invito, informativa) non
+# stanno qui: il contratto API le dichiara pubbliche.
+#
+# Una regola per risorsa e azione: id "risorsa.azione". Una condizione vale per il
+# ruolo a cui la si lega in "condizioni", e il suo significato sta in [condizioni].
+
+predefinito = "nega"
+ruoli = ["operatore", "responsabile", "cliente"]
+
+[condizioni]
+proprietario = "Il cliente è il proprietario del veicolo dell'intervento: interventi chiede a veicoli l'account del proprietario. Dimenticarla lascia leggere i dati altrui cambiando un id nell'URL."
+
+[[regole]]
+risorsa = "account"
+azione = "leggi"
+consenti = ["responsabile"]
+traccia = ["ACC-2"]
+
+[[regole]]
+risorsa = "account"
+azione = "crea"
+consenti = ["responsabile"]
+traccia = ["ACC-2"]
+
+[[regole]]
+risorsa = "account"
+azione = "sblocca"
+consenti = ["responsabile"]
+traccia = ["ACC-7"]
+
+[[regole]]
+risorsa = "cliente"
+azione = "leggi"
+consenti = ["operatore", "responsabile"]
+traccia = ["CLI-1", "VEI-1"]
+
+[[regole]]
+risorsa = "cliente"
+azione = "crea"
+consenti = ["operatore", "responsabile"]
+traccia = ["CLI-1"]
+
+[[regole]]
+risorsa = "cliente"
+azione = "cerca"
+consenti = ["operatore", "responsabile"]
+traccia = ["CLI-2"]
+
+[[regole]]
+risorsa = "veicolo"
+azione = "leggi"
+consenti = ["operatore", "responsabile"]
+traccia = ["VEI-1"]
+
+[[regole]]
+risorsa = "veicolo"
+azione = "crea"
+consenti = ["operatore", "responsabile"]
+traccia = ["VEI-1"]
+
+[[regole]]
+risorsa = "intervento"
+azione = "elenca"
+consenti = ["operatore", "responsabile"]
+traccia = ["INT-6"]
+
+[[regole]]
+risorsa = "intervento"
+azione = "leggi"
+consenti = ["operatore", "responsabile", "cliente"]
+condizioni = { cliente = "proprietario" }
+traccia = ["INT-3", "MI-1"]
+
+[[regole]]
+risorsa = "intervento"
+azione = "crea"
+consenti = ["operatore", "responsabile"]
+traccia = ["INT-1"]
+
+[[regole]]
+risorsa = "intervento"
+azione = "chiudi"
+consenti = ["operatore", "responsabile"]
+traccia = ["INT-4"]
+
+[[regole]]
+risorsa = "preventivo"
+azione = "modifica"
+consenti = ["operatore", "responsabile"]
+traccia = ["INT-5"]
+
+[[regole]]
+risorsa = "preventivo"
+azione = "approva"
+consenti = ["responsabile"]
+traccia = ["INT-2", "MI-3"]
+
+[[regole]]
+risorsa = "fattura"
+azione = "leggi"
+consenti = ["responsabile"]
+traccia = ["FAT-3"]
+
+[[regole]]
+risorsa = "fattura"
+azione = "emetti"
+consenti = ["responsabile"]
+traccia = ["FAT-1", "MI-3"]
+
+[[regole]]
+risorsa = "fattura"
+azione = "esporta"
+consenti = ["responsabile"]
+traccia = ["FAT-2"]
+
+[[regole]]
+risorsa = "voce_listino"
+azione = "leggi"
+consenti = ["operatore", "responsabile"]
+traccia = ["INT-5"]
+
+[[regole]]
+risorsa = "voce_listino"
+azione = "modifica"
+consenti = ["responsabile"]
+traccia = ["PRZ-1"]

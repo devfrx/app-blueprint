@@ -1,0 +1,294 @@
+# UX — personas, architettura dell'informazione, una voce per schermata.
+# Ogni schermata è progettata nei sei stati; "non-applicabile: motivo" quando uno
+# stato non può verificarsi. I nomi accessibili sono quelli che gli oracoli e i test
+# end-to-end cercano per ruolo e nome.
+
+[[personas]]
+id = "giulia"
+attore = "operatore"
+descrizione = "Operatrice d'accettazione, al banco con il telefono che squilla; usa il PC dell'officina."
+obiettivi = "Aprire un intervento in meno di un minuto e non riscrivere mai lo stesso dato."
+
+[[personas]]
+id = "marco"
+attore = "responsabile"
+descrizione = "Titolare: approva tra un lavoro e l'altro, spesso dal telefono."
+obiettivi = "Approvare e fatturare in pochi tocchi, con i totali giusti."
+
+[[personas]]
+id = "anna"
+attore = "cliente"
+descrizione = "Cliente occasionale, apre il link dal telefono."
+obiettivi = "Sapere quando riavrà l'auto senza telefonare."
+
+[[sezioni]]
+id = "lavoro"
+nome = "Lavoro"
+ruoli = ["operatore", "responsabile"]
+
+[[sezioni]]
+id = "amministrazione"
+nome = "Amministrazione"
+ruoli = ["responsabile"]
+
+[[sezioni]]
+id = "area-cliente"
+nome = "I miei interventi"
+ruoli = ["cliente"]
+
+[[rotte]]
+percorso = "/accesso"
+schermata = "accesso"
+ruoli = ["operatore", "responsabile", "cliente"]
+
+[[rotte]]
+percorso = "/attivazione/{token}"
+schermata = "attivazione"
+ruoli = ["operatore", "responsabile", "cliente"]
+
+[[rotte]]
+percorso = "/recupero-password"
+schermata = "recupero-password"
+ruoli = ["operatore", "responsabile", "cliente"]
+
+[[rotte]]
+percorso = "/informativa"
+schermata = "informativa"
+ruoli = ["operatore", "responsabile", "cliente"]
+
+[[rotte]]
+percorso = "/*"
+schermata = "non-trovato"
+ruoli = ["operatore", "responsabile", "cliente"]
+
+[[rotte]]
+percorso = "/interventi"
+schermata = "interventi-aperti"
+ruoli = ["operatore", "responsabile"]
+
+[[rotte]]
+percorso = "/interventi/{id}"
+schermata = "intervento"
+ruoli = ["operatore", "responsabile"]
+
+[[rotte]]
+percorso = "/clienti"
+schermata = "clienti"
+ruoli = ["operatore", "responsabile"]
+
+[[rotte]]
+percorso = "/clienti/{id}"
+schermata = "cliente-scheda"
+ruoli = ["operatore", "responsabile"]
+
+[[rotte]]
+percorso = "/fatture/{id}"
+schermata = "fattura"
+ruoli = ["responsabile"]
+
+[[rotte]]
+percorso = "/fatture/esportazione"
+schermata = "esportazione-fatture"
+ruoli = ["responsabile"]
+
+[[rotte]]
+percorso = "/account"
+schermata = "account"
+ruoli = ["responsabile"]
+
+[[rotte]]
+percorso = "/listino"
+schermata = "listino"
+ruoli = ["responsabile"]
+
+[[rotte]]
+percorso = "/area-cliente/interventi/{id}"
+schermata = "area-cliente-intervento"
+ruoli = ["cliente"]
+
+[[schermate]]
+id = "accesso"
+pattern = "modulo"
+scopo = "Accedere con email e password, e con il codice per il responsabile."
+ruoli = ["operatore", "responsabile", "cliente"]
+storie = ["ACC-1", "ACC-4"]
+dati = ["accedi", "verificaSecondoFattore"]
+testi = ["accesso.titolo", "accesso.recupero"]
+mockup = "docs/design/mockups/accesso.html"
+stati = { caricamento = "Il bottone Accedi resta premuto e disabilitato fino alla risposta.", vuoto = "non-applicabile: un modulo senza dati da caricare", errore = "Il messaggio del catalogo sopra il modulo, annunciato ai lettori di schermo; il focus torna al campo email.", parziale = "non-applicabile: nessun dato parziale", successo = "Reindirizza alla pagina iniziale del ruolo, o al campo del codice per il responsabile.", permesso_negato = "non-applicabile: pagina pubblica" }
+azioni = [
+  { nome = "Accedi", ruoli = ["operatore", "responsabile", "cliente"], operazione = "accedi", nome_accessibile = "Accedi" },
+  { nome = "Verifica il codice", ruoli = ["responsabile"], operazione = "verificaSecondoFattore", nome_accessibile = "Verifica il codice" },
+]
+
+[[schermate]]
+id = "attivazione"
+pattern = "modulo"
+scopo = "Scegliere la password e attivare l'account dall'invito."
+ruoli = ["operatore", "responsabile", "cliente"]
+storie = ["ACC-5", "ACC-6"]
+dati = ["attivaAccount"]
+testi = ["attivazione.titolo", "attivazione.informativa"]
+stati = { caricamento = "Bottone disabilitato fino alla risposta.", vuoto = "non-applicabile: un modulo", errore = "link-non-valido mostra come chiedere un nuovo invito; password-debole resta sul campo.", parziale = "non-applicabile", successo = "Account attivo: entra nella pagina iniziale del ruolo.", permesso_negato = "non-applicabile: pagina pubblica" }
+azioni = [
+  { nome = "Attiva l'account", ruoli = ["operatore", "responsabile", "cliente"], operazione = "attivaAccount", nome_accessibile = "Attiva l'account" },
+]
+
+[[schermate]]
+id = "recupero-password"
+pattern = "modulo"
+scopo = "Chiedere il link di recupero e impostare una nuova password."
+ruoli = ["operatore", "responsabile", "cliente"]
+storie = ["ACC-3"]
+dati = ["chiediRecuperoPassword", "impostaPasswordDaRecupero"]
+testi = ["recupero.titolo", "recupero.conferma"]
+stati = { caricamento = "Bottone disabilitato fino alla risposta.", vuoto = "non-applicabile: un modulo", errore = "troppe-richieste o link-non-valido, con l'azione da fare.", parziale = "non-applicabile", successo = "La stessa conferma che l'account esista o no.", permesso_negato = "non-applicabile: pagina pubblica" }
+azioni = [
+  { nome = "Invia il link", ruoli = ["operatore", "responsabile", "cliente"], operazione = "chiediRecuperoPassword", nome_accessibile = "Invia il link di recupero" },
+]
+
+[[schermate]]
+id = "informativa"
+pattern = "pagina"
+scopo = "Leggere l'informativa privacy senza accedere."
+ruoli = ["operatore", "responsabile", "cliente"]
+storie = ["ACC-6"]
+testi = ["informativa.titolo"]
+stati = { caricamento = "non-applicabile: pagina statica", vuoto = "non-applicabile: pagina statica", errore = "non-applicabile: pagina statica", parziale = "non-applicabile", successo = "Il testo dell'informativa.", permesso_negato = "non-applicabile: pagina pubblica" }
+azioni = []
+
+[[schermate]]
+id = "non-trovato"
+pattern = "pagina"
+scopo = "Dire che la pagina non esiste e riportare alla pagina iniziale."
+ruoli = ["operatore", "responsabile", "cliente"]
+storie = ["ACC-6"]
+testi = ["errore.non-trovato"]
+stati = { caricamento = "non-applicabile", vuoto = "non-applicabile", errore = "È essa stessa lo stato d'errore.", parziale = "non-applicabile", successo = "non-applicabile", permesso_negato = "non-applicabile" }
+azioni = [
+  { nome = "Torna alla pagina iniziale", ruoli = ["operatore", "responsabile", "cliente"], nome_accessibile = "Torna alla pagina iniziale" },
+]
+
+[[schermate]]
+id = "interventi-aperti"
+pattern = "elenco"
+scopo = "Vedere gli interventi non chiusi, i più vecchi per primi."
+ruoli = ["operatore", "responsabile"]
+storie = ["INT-6", "ACC-1"]
+dati = ["elencoInterventiAperti"]
+testi = ["interventi.titolo", "interventi.vuoto"]
+mockup = "docs/design/mockups/interventi.html"
+stati = { caricamento = "Righe scheletro della tabella, intestazioni visibili.", vuoto = "Nessun intervento aperto, con il collegamento ai clienti per aprirne uno.", errore = "Avviso con Riprova; la tabella non si svuota se una pagina successiva fallisce.", parziale = "Prima pagina mostrata, il comando Pagina successiva carica le altre.", successo = "Tabella con codice, targa, cliente, stato e apertura.", permesso_negato = "Il cliente che arriva qui vede non-trovato." }
+azioni = [
+  { nome = "Pagina successiva", ruoli = ["operatore", "responsabile"], operazione = "elencoInterventiAperti", nome_accessibile = "Pagina successiva" },
+]
+
+[[schermate]]
+id = "intervento"
+pattern = "dettaglio"
+scopo = "Seguire un intervento: preventivo, approvazione, chiusura, fattura."
+ruoli = ["operatore", "responsabile"]
+storie = ["INT-1", "INT-5", "INT-2", "INT-4", "FAT-1"]
+dati = ["dettaglioIntervento", "elencoVociListino"]
+testi = ["intervento.titolo", "intervento.preventivo-vuoto"]
+mockup = "docs/design/mockups/intervento.html"
+stati = { caricamento = "Intestazione e preventivo in scheletro.", vuoto = "Preventivo senza righe: il comando Aggiungi riga in evidenza.", errore = "conflitto-di-versione ricarica e spiega; gli altri errori accanto all'azione che li ha causati.", parziale = "Preventivo mostrato anche se il listino non si carica: Aggiungi riga disabilitato con il motivo.", successo = "Stato, righe, totali del motore e le azioni consentite al ruolo.", permesso_negato = "Le azioni non consentite al ruolo non compaiono; il backend le rifiuta comunque." }
+azioni = [
+  { nome = "Aggiungi riga", ruoli = ["operatore", "responsabile"], operazione = "aggiungiRigaPreventivo", nome_accessibile = "Aggiungi riga" },
+  { nome = "Approva preventivo", ruoli = ["responsabile"], operazione = "approvaPreventivo", nome_accessibile = "Approva il preventivo" },
+  { nome = "Chiudi intervento", ruoli = ["operatore", "responsabile"], operazione = "chiudiIntervento", nome_accessibile = "Chiudi l'intervento" },
+  { nome = "Emetti fattura", ruoli = ["responsabile"], operazione = "emettiFattura", nome_accessibile = "Emetti la fattura" },
+]
+
+[[schermate]]
+id = "clienti"
+pattern = "elenco"
+scopo = "Trovare un cliente o registrarne uno nuovo."
+ruoli = ["operatore", "responsabile"]
+storie = ["CLI-1", "CLI-2"]
+dati = ["elencoClienti", "cercaClienti"]
+testi = ["clienti.titolo", "clienti.vuoto"]
+stati = { caricamento = "Righe scheletro.", vuoto = "Nessun cliente: il comando Nuovo cliente in evidenza.", errore = "Avviso con Riprova.", parziale = "Pagina successiva a cursore.", successo = "Tabella di cognome, nome, codice fiscale.", permesso_negato = "Il cliente che arriva qui vede non-trovato." }
+azioni = [
+  { nome = "Nuovo cliente", ruoli = ["operatore", "responsabile"], operazione = "registraCliente", nome_accessibile = "Nuovo cliente" },
+]
+
+[[schermate]]
+id = "cliente-scheda"
+pattern = "dettaglio"
+scopo = "Dati del cliente, i suoi veicoli, l'apertura di un intervento."
+ruoli = ["operatore", "responsabile"]
+storie = ["CLI-1", "VEI-1", "INT-1"]
+dati = ["dettaglioCliente", "elencoVeicoliCliente"]
+testi = ["cliente.titolo", "cliente.nessun-veicolo"]
+stati = { caricamento = "Scheda in scheletro.", vuoto = "Nessun veicolo: il comando Aggiungi veicolo in evidenza.", errore = "Avviso con Riprova.", parziale = "Dati del cliente mostrati anche se i veicoli non si caricano.", successo = "Dati, veicoli e per ogni veicolo il comando Apri intervento.", permesso_negato = "non-trovato." }
+azioni = [
+  { nome = "Aggiungi veicolo", ruoli = ["operatore", "responsabile"], operazione = "associaVeicolo", nome_accessibile = "Aggiungi veicolo" },
+  { nome = "Apri intervento", ruoli = ["operatore", "responsabile"], operazione = "apriIntervento", nome_accessibile = "Apri un intervento su questo veicolo" },
+]
+
+[[schermate]]
+id = "fattura"
+pattern = "dettaglio"
+scopo = "Vedere una fattura emessa e scaricarne il PDF."
+ruoli = ["responsabile"]
+storie = ["FAT-1", "FAT-3"]
+dati = ["dettaglioFattura", "pdfFattura"]
+testi = ["fattura.titolo"]
+mockup = "docs/design/mockups/fattura.html"
+stati = { caricamento = "Scheletro del documento.", vuoto = "non-applicabile: una fattura ha sempre righe", errore = "Avviso con Riprova.", parziale = "Fattura mostrata anche se il PDF fallisce: il comando Scarica spiega l'errore.", successo = "Numero, data, righe, imponibile, IVA e totale; Scarica PDF.", permesso_negato = "L'operatore vede non-autorizzato con il ritorno agli interventi." }
+azioni = [
+  { nome = "Scarica PDF", ruoli = ["responsabile"], operazione = "pdfFattura", nome_accessibile = "Scarica il PDF della fattura" },
+]
+
+[[schermate]]
+id = "esportazione-fatture"
+pattern = "modulo"
+scopo = "Esportare in CSV le fatture di un mese per il commercialista."
+ruoli = ["responsabile"]
+storie = ["FAT-2"]
+dati = ["esportaFatture"]
+testi = ["esportazione.titolo"]
+stati = { caricamento = "Bottone disabilitato fino al download.", vuoto = "Nessuna fattura nel mese: lo dice prima di scaricare.", errore = "Avviso con Riprova.", parziale = "non-applicabile: il file è intero o non c'è", successo = "Il download parte.", permesso_negato = "non-autorizzato." }
+azioni = [
+  { nome = "Esporta", ruoli = ["responsabile"], operazione = "esportaFatture", nome_accessibile = "Esporta le fatture del mese" },
+]
+
+[[schermate]]
+id = "account"
+pattern = "elenco"
+scopo = "Creare gli account degli operatori e sbloccare quelli bloccati."
+ruoli = ["responsabile"]
+storie = ["ACC-2", "ACC-7"]
+dati = ["elencoAccount"]
+testi = ["account.titolo"]
+stati = { caricamento = "Righe scheletro.", vuoto = "Solo il proprio account: il comando Crea account in evidenza.", errore = "Avviso con Riprova.", parziale = "Pagina successiva a cursore.", successo = "Email, ruolo, stato; Sblocca sugli account bloccati.", permesso_negato = "non-autorizzato." }
+azioni = [
+  { nome = "Crea account", ruoli = ["responsabile"], operazione = "creaAccount", nome_accessibile = "Crea account" },
+  { nome = "Sblocca", ruoli = ["responsabile"], operazione = "sbloccaAccount", nome_accessibile = "Sblocca l'account" },
+]
+
+[[schermate]]
+id = "listino"
+pattern = "elenco"
+scopo = "Aggiornare prezzi e descrizioni del listino."
+ruoli = ["responsabile"]
+storie = ["PRZ-1"]
+dati = ["elencoVociListino", "aggiornaVoceListino"]
+testi = ["listino.titolo"]
+stati = { caricamento = "Righe scheletro.", vuoto = "Listino vuoto: si carica con il comando dello scheletro.", errore = "Avviso con Riprova.", parziale = "Pagina successiva a cursore.", successo = "Tabella modificabile per voce.", permesso_negato = "non-autorizzato." }
+azioni = [
+  { nome = "Salva voce", ruoli = ["responsabile"], operazione = "aggiornaVoceListino", nome_accessibile = "Salva la voce" },
+]
+
+[[schermate]]
+id = "area-cliente-intervento"
+pattern = "dettaglio"
+scopo = "Il cliente vede stato, preventivo e data prevista del proprio intervento."
+ruoli = ["cliente"]
+storie = ["INT-3"]
+dati = ["dettaglioIntervento"]
+testi = ["area-cliente.titolo"]
+mockup = "docs/design/mockups/area-cliente.html"
+stati = { caricamento = "Scheletro della scheda.", vuoto = "non-applicabile: un intervento ha sempre uno stato", errore = "Avviso con Riprova.", parziale = "Stato mostrato anche se il preventivo è ancora in bozza: lo dice.", successo = "Stato, preventivo approvato, data prevista.", permesso_negato = "L'intervento di un altro mostra non-trovato, senza indizi che esista." }
+azioni = []

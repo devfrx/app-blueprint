@@ -1,0 +1,234 @@
+# Piano di costruzione — il contratto con parallel-build per l'incremento corrente.
+# Storie, moduli, archetipi dei moduli e classi di rischio non si ripetono qui: lo
+# script li legge dalle loro sorgenti. Il piano aggiunge solo ciò che è suo.
+# L'ownership si esprime solo per cartella ("dir/**") o per file esatto, e gli
+# oracoli vivono fuori dalle cartelle di chi scrive codice: chi possiede i propri
+# test potrebbe riscriverli per farli passare.
+
+[progetto]
+nome = "Officina"
+versione_metodo = "3.0.0"
+branch_integrazione = "main"
+percorsi_e2e = ["tests/e2e/**"]
+# Nessun task li possiede: li crea e li congela lo scheletro. Toccarli durante la
+# costruzione è un'escalation, non una modifica.
+intoccabili = [
+  "composer.json", "composer.lock", "package.json", "package-lock.json",
+  "database/migrations/**", "contracts/**", "routes/**",
+  "app/Condiviso/**", "resources/js/condiviso/**", "resources/js/router/**",
+  "tests/in-attesa.txt", ".github/**", ".claude/**", "docs/**", "CLAUDE.md",
+]
+
+# Una sola fonte, citata dai criteri dei task. {modulo} diventa l'id del modulo.
+[comandi]
+installa = "composer install && npm ci"
+typecheck = "npm run typecheck"
+lint = "composer lint && npm run lint"
+fitness = "vendor/bin/deptrac analyse && npm run fitness"
+modulo_backend = "composer test:modulo -- {modulo}"
+modulo_frontend = "npm run test:modulo -- {modulo}"
+suite = "composer test && npm test"
+e2e = "npx playwright test"
+supply_chain = "composer audit && npm audit --audit-level=high"
+mutazioni = "composer mutazioni -- {modulo}"
+
+[rischio]
+criteri_alto_backend = ["mutazioni"]
+criteri_alto_frontend = []
+
+# Dove vivono gli oracoli di ogni modulo dell'incremento.
+[oracoli]
+accessi = ["tests/Oracoli/Accessi/**", "tests/frontend/accessi/**"]
+clienti = ["tests/Oracoli/Clienti/**", "tests/frontend/clienti/**"]
+veicoli = ["tests/Oracoli/Veicoli/**", "tests/frontend/veicoli/**"]
+interventi = ["tests/Oracoli/Interventi/**", "tests/frontend/interventi/**"]
+fatture = ["tests/Oracoli/Fatture/**", "tests/frontend/fatture/**"]
+prezzi = ["tests/Oracoli/Prezzi/**"]
+
+[[archetipi]]
+id = "crud"
+esemplare = "clienti"
+descrizione = "Risorsa con elenco paginato, dettaglio, creazione"
+
+[[archetipi]]
+id = "workflow"
+esemplare = "interventi"
+descrizione = "Entità con macchina a stati e transizioni autorizzate"
+
+[[incrementi]]
+numero = 1
+obiettivo = "Interventi, preventivi e fatture senza fogli di calcolo (OB-1, OB-2), con l'area cliente (OB-3)."
+rilascio = "produzione"
+mvp = true
+
+[[incrementi]]
+numero = 2
+obiettivo = "Ricerca dei clienti, esportazione CSV, promemoria di revisione, listino dall'interfaccia."
+rilascio = "produzione"
+mvp = false
+
+[stima]
+metodo = "Conteggio dei task per ondata e dei rientri seriali dal piano; sessioni stimate dall'esperienza del registro di costruzione."
+task = "8 oracoli, 1 motore, 2 esemplari, 6 costruzione"
+rientri_seriali = "17"
+sessioni = "3: scheletro e oracoli, esemplari e gate degli esemplari, costruzione e chiusura"
+incertezza = "±1 sessione: dipende dai rientri respinti e dalle escalation."
+
+# --- ondata oracoli: test rossi prima del codice ----------------------------------
+
+[[task]]
+id = "O-accessi"
+ondata = "oracoli"
+agente = "test-author"
+modulo = "accessi"
+storie = ["ACC-1", "ACC-2", "ACC-3", "ACC-4", "ACC-5", "ACC-6", "ACC-7"]
+possiede = ["tests/Oracoli/Accessi/**", "tests/frontend/accessi/**"]
+criteri = ["lint"]
+
+[[task]]
+id = "O-clienti"
+ondata = "oracoli"
+agente = "test-author"
+modulo = "clienti"
+storie = ["CLI-1"]
+possiede = ["tests/Oracoli/Clienti/**", "tests/frontend/clienti/**"]
+criteri = ["lint"]
+
+[[task]]
+id = "O-veicoli"
+ondata = "oracoli"
+agente = "test-author"
+modulo = "veicoli"
+storie = ["VEI-1"]
+possiede = ["tests/Oracoli/Veicoli/**", "tests/frontend/veicoli/**"]
+criteri = ["lint"]
+
+[[task]]
+id = "O-interventi"
+ondata = "oracoli"
+agente = "test-author"
+modulo = "interventi"
+storie = ["INT-1", "INT-2", "INT-3", "INT-4", "INT-5", "INT-6"]
+possiede = ["tests/Oracoli/Interventi/**", "tests/frontend/interventi/**"]
+criteri = ["lint"]
+
+[[task]]
+id = "O-fatture"
+ondata = "oracoli"
+agente = "test-author"
+modulo = "fatture"
+storie = ["FAT-1", "FAT-3"]
+possiede = ["tests/Oracoli/Fatture/**", "tests/frontend/fatture/**"]
+criteri = ["lint"]
+
+# La suite di conformità del motore discende dal suo contratto, non da storie.
+[[task]]
+id = "O-prezzi"
+ondata = "oracoli"
+agente = "test-author"
+modulo = "prezzi"
+possiede = ["tests/Oracoli/Prezzi/**"]
+criteri = ["lint"]
+
+[[task]]
+id = "X-intervento-completo"
+ondata = "oracoli"
+agente = "test-author"
+storie = ["ACC-1", "ACC-4", "INT-1", "INT-5", "INT-2", "INT-4", "FAT-1"]
+possiede = ["tests/e2e/intervento-completo/**"]
+criteri = ["lint"]
+
+[[task]]
+id = "X-cliente-segue-intervento"
+ondata = "oracoli"
+agente = "test-author"
+storie = ["CLI-1", "VEI-1", "ACC-5", "INT-3"]
+possiede = ["tests/e2e/cliente-segue-intervento/**"]
+criteri = ["lint"]
+
+# --- ondata motore: la sessione, prima degli esemplari ------------------------------
+
+[[task]]
+id = "M-prezzi"
+ondata = "motore"
+agente = "sessione"
+modulo = "prezzi"
+possiede = ["app/Moduli/Prezzi/**"]
+dipende_da = ["O-prezzi"]
+criteri = ["modulo_backend", "fitness", "lint", "mutazioni"]
+
+# --- ondata esemplari: la sessione, uno per archetipo ---------------------------------
+
+[[task]]
+id = "E-clienti"
+ondata = "esemplari"
+agente = "sessione"
+modulo = "clienti"
+possiede = ["app/Moduli/Clienti/**", "resources/js/moduli/clienti/**"]
+dipende_da = ["O-clienti"]
+criteri = ["modulo_backend", "modulo_frontend", "fitness", "lint", "typecheck"]
+
+[[task]]
+id = "E-interventi"
+ondata = "esemplari"
+agente = "sessione"
+modulo = "interventi"
+possiede = ["app/Moduli/Interventi/**", "resources/js/moduli/interventi/**"]
+dipende_da = ["O-interventi", "M-prezzi"]
+criteri = ["modulo_backend", "modulo_frontend", "fitness", "lint", "typecheck"]
+
+# --- ondata costruzione: costruttori in worktree isolati --------------------------------
+
+[[task]]
+id = "C-accessi-be"
+ondata = "costruzione"
+agente = "backend-builder"
+modulo = "accessi"
+possiede = ["app/Moduli/Accessi/**"]
+dipende_da = ["O-accessi", "E-interventi"]
+criteri = ["modulo_backend", "fitness", "lint", "mutazioni"]
+
+[[task]]
+id = "C-accessi-fe"
+ondata = "costruzione"
+agente = "frontend-builder"
+modulo = "accessi"
+possiede = ["resources/js/moduli/accessi/**"]
+dipende_da = ["O-accessi", "E-interventi"]
+criteri = ["modulo_frontend", "fitness", "lint", "typecheck"]
+
+[[task]]
+id = "C-veicoli-be"
+ondata = "costruzione"
+agente = "backend-builder"
+modulo = "veicoli"
+possiede = ["app/Moduli/Veicoli/**"]
+dipende_da = ["O-veicoli", "E-clienti"]
+criteri = ["modulo_backend", "fitness", "lint"]
+
+[[task]]
+id = "C-veicoli-fe"
+ondata = "costruzione"
+agente = "frontend-builder"
+modulo = "veicoli"
+possiede = ["resources/js/moduli/veicoli/**"]
+dipende_da = ["O-veicoli", "E-clienti"]
+criteri = ["modulo_frontend", "fitness", "lint", "typecheck"]
+
+[[task]]
+id = "C-fatture-be"
+ondata = "costruzione"
+agente = "backend-builder"
+modulo = "fatture"
+possiede = ["app/Moduli/Fatture/**"]
+dipende_da = ["O-fatture", "E-clienti", "M-prezzi"]
+criteri = ["modulo_backend", "fitness", "lint", "mutazioni"]
+
+[[task]]
+id = "C-fatture-fe"
+ondata = "costruzione"
+agente = "frontend-builder"
+modulo = "fatture"
+possiede = ["resources/js/moduli/fatture/**"]
+dipende_da = ["O-fatture", "E-clienti"]
+criteri = ["modulo_frontend", "fitness", "lint", "typecheck"]

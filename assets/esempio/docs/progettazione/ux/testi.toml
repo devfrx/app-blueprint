@@ -1,0 +1,174 @@
+# Testi dell'interfaccia: ogni testo passa da una chiave (ST-i18n). I messaggi
+# d'errore dicono cosa è successo e cosa fare.
+
+[[testi]]
+chiave = "errore.validazione"
+testo = "Alcuni dati non vanno bene: correggi i campi segnalati."
+
+[[testi]]
+chiave = "errore.non-autenticato"
+testo = "Accedi per continuare."
+
+[[testi]]
+chiave = "errore.credenziali-non-valide"
+testo = "Email o password non corrette. Riprova, o recupera la password."
+
+[[testi]]
+chiave = "errore.account-bloccato"
+testo = "Account bloccato dopo troppi tentativi. Chiedi al responsabile di sbloccarlo."
+
+[[testi]]
+chiave = "errore.codice-non-valido"
+testo = "Codice non valido o già usato. Inserisci il codice che vedi ora nell'app."
+
+[[testi]]
+chiave = "errore.link-non-valido"
+testo = "Questo link non vale più. Chiedi un nuovo invito o un nuovo link di recupero."
+
+[[testi]]
+chiave = "errore.password-debole"
+testo = "Usa una password di almeno 12 caratteri."
+
+[[testi]]
+chiave = "errore.non-autorizzato"
+testo = "Non puoi fare questa operazione con il tuo ruolo."
+
+[[testi]]
+chiave = "errore.non-trovato"
+testo = "Pagina non trovata. Torna alla pagina iniziale."
+
+[[testi]]
+chiave = "errore.troppe-richieste"
+testo = "Troppi tentativi in poco tempo. Riprova tra un minuto."
+
+[[testi]]
+chiave = "errore.conflitto-di-versione"
+testo = "Qualcuno ha modificato questi dati nel frattempo. Li abbiamo ricaricati: controlla e riprova."
+
+[[testi]]
+chiave = "errore.account-esistente"
+testo = "Esiste già un account con questa email."
+
+[[testi]]
+chiave = "errore.cliente-duplicato"
+testo = "Esiste già un cliente con questo codice fiscale: cercalo nell'elenco."
+
+[[testi]]
+chiave = "errore.codice-fiscale-non-valido"
+testo = "Il codice fiscale non è valido: controlla i 16 caratteri."
+
+[[testi]]
+chiave = "errore.veicolo-duplicato"
+testo = "Questa targa è già associata a un altro cliente."
+
+[[testi]]
+chiave = "errore.intervento-gia-aperto"
+testo = "Su questo veicolo c'è già un intervento aperto: aprilo dall'elenco."
+
+[[testi]]
+chiave = "errore.quantita-non-valida"
+testo = "La quantità deve essere maggiore di zero."
+
+[[testi]]
+chiave = "errore.preventivo-approvato"
+testo = "Il preventivo è già approvato: non si possono aggiungere righe."
+
+[[testi]]
+chiave = "errore.preventivo-vuoto"
+testo = "Il preventivo non ha righe: aggiungine almeno una prima di approvarlo."
+
+[[testi]]
+chiave = "errore.preventivo-non-approvato"
+testo = "Il preventivo non è ancora approvato: l'intervento non si può chiudere."
+
+[[testi]]
+chiave = "errore.intervento-non-chiuso"
+testo = "L'intervento non è chiuso: chiudilo prima di emettere la fattura."
+
+[[testi]]
+chiave = "errore.fattura-esistente"
+testo = "La fattura di questo intervento è già stata emessa."
+
+[[testi]]
+chiave = "errore.interno"
+testo = "Qualcosa non ha funzionato da parte nostra. Riprova tra poco."
+
+[[testi]]
+chiave = "accesso.titolo"
+testo = "Accedi a Officina"
+
+[[testi]]
+chiave = "accesso.recupero"
+testo = "Hai dimenticato la password?"
+
+[[testi]]
+chiave = "attivazione.titolo"
+testo = "Scegli la tua password"
+
+[[testi]]
+chiave = "attivazione.informativa"
+testo = "Leggi l'informativa sulla privacy"
+
+[[testi]]
+chiave = "recupero.titolo"
+testo = "Recupera la password"
+
+[[testi]]
+chiave = "recupero.conferma"
+testo = "Se l'indirizzo è registrato, riceverai un'email con il link. Vale 60 minuti."
+
+[[testi]]
+chiave = "informativa.titolo"
+testo = "Informativa sulla privacy"
+
+[[testi]]
+chiave = "interventi.titolo"
+testo = "Interventi aperti"
+
+[[testi]]
+chiave = "interventi.vuoto"
+testo = "Nessun intervento aperto. Apri un intervento dalla scheda di un cliente."
+
+[[testi]]
+chiave = "intervento.titolo"
+testo = "Intervento"
+
+[[testi]]
+chiave = "intervento.preventivo-vuoto"
+testo = "Il preventivo non ha ancora righe."
+
+[[testi]]
+chiave = "clienti.titolo"
+testo = "Clienti"
+
+[[testi]]
+chiave = "clienti.vuoto"
+testo = "Nessun cliente registrato."
+
+[[testi]]
+chiave = "cliente.titolo"
+testo = "Scheda cliente"
+
+[[testi]]
+chiave = "cliente.nessun-veicolo"
+testo = "Nessun veicolo associato."
+
+[[testi]]
+chiave = "fattura.titolo"
+testo = "Fattura"
+
+[[testi]]
+chiave = "esportazione.titolo"
+testo = "Esporta le fatture del mese"
+
+[[testi]]
+chiave = "account.titolo"
+testo = "Account"
+
+[[testi]]
+chiave = "listino.titolo"
+testo = "Listino"
+
+[[testi]]
+chiave = "area-cliente.titolo"
+testo = "Il tuo intervento"

@@ -1,0 +1,178 @@
+# Prodotto — fase 1. Il ragionamento sta in visione.md; qui ciò che altri citano per id.
+
+[[obiettivi]]
+id = "OB-1"
+testo = "L'officina gestisce preventivi, interventi e fatture solo con Officina, senza fogli di calcolo."
+metrica = "Quota degli interventi del mese gestiti in Officina"
+valore = "100% dal secondo mese d'uso"
+misura = "Confronto mensile tra gli interventi in Officina e il registro cartaceo, finché esiste"
+
+[[obiettivi]]
+id = "OB-2"
+testo = "Emettere una fattura costa meno tempo e nessuna trascrizione."
+metrica = "Minuti tra la chiusura dell'intervento e l'emissione della fattura"
+valore = "Meno di 2 minuti al 90° percentile"
+misura = "Differenza tra chiuso_il dell'intervento ed emessa_il della fattura"
+
+[[obiettivi]]
+id = "OB-3"
+testo = "I clienti seguono lo stato dei propri interventi senza telefonare."
+metrica = "Telefonate per chiedere lo stato, a settimana"
+valore = "-50% entro tre mesi"
+misura = "Registro delle telefonate tenuto dall'operatore per tre mesi"
+
+[[stakeholder]]
+id = "operatore"
+descrizione = "Accetta i veicoli, apre e chiude gli interventi, compila i preventivi, registra clienti e veicoli."
+categorie = ["utente"]
+interesse = "alto"
+influenza = "media"
+usa = true
+
+[[stakeholder]]
+id = "responsabile"
+descrizione = "Titolare dell'officina: approva i preventivi, emette le fatture, gestisce gli account."
+categorie = ["utente", "committente"]
+interesse = "alto"
+influenza = "alta"
+usa = true
+
+[[stakeholder]]
+id = "cliente"
+descrizione = "Segue lo stato dei propri interventi."
+categorie = ["utente"]
+interesse = "medio"
+influenza = "bassa"
+usa = true
+
+[[stakeholder]]
+id = "commercialista"
+descrizione = "Riceve le fatture in PDF dal responsabile. Non usa Officina, ma il suo lavoro dipende da come le fatture sono numerate."
+categorie = ["esterno"]
+interesse = "medio"
+influenza = "media"
+usa = false
+
+[[stakeholder]]
+id = "sviluppatore"
+descrizione = "Sviluppatore PHP a tempo parziale: manterrà l'app, ne gestisce il VPS e la sicurezza."
+categorie = ["sviluppo", "esercizio", "sicurezza"]
+interesse = "alto"
+influenza = "alta"
+usa = false
+
+[[stakeholder]]
+id = "consulente-privacy"
+descrizione = "Professionista che rivede informativa e registro dei trattamenti prima del lancio."
+categorie = ["legale"]
+interesse = "basso"
+influenza = "media"
+usa = false
+
+[[sistemi]]
+id = "smtp"
+descrizione = "Servizio di posta dell'officina, via SMTP: inviti e recupero della password."
+integrazione = true
+ambiente_prova = true
+
+[[sistemi]]
+id = "sito"
+descrizione = "Sito dell'officina sullo stesso VPS: non si integra, ma ne condivide le risorse."
+integrazione = false
+
+[[non_obiettivi]]
+id = "NO-1"
+testo = "Registrazione autonoma: gli account li crea il responsabile, o nascono con il cliente."
+
+[[non_obiettivi]]
+id = "NO-2"
+testo = "Cambio della password dall'interno: si usa il recupero (ACC-3)."
+
+[[non_obiettivi]]
+id = "NO-3"
+testo = "Profilo modificabile dall'utente: nome ed email li corregge il responsabile."
+
+[[non_obiettivi]]
+id = "NO-4"
+testo = "Audit consultabile dall'interfaccia: le azioni su preventivi e fatture si registrano e si consultano dal database."
+
+[[non_obiettivi]]
+id = "NO-5"
+testo = "Notifiche oltre a invito, recupero della password e, nel secondo incremento, promemoria di revisione; nessuna preferenza di notifica."
+
+[[non_obiettivi]]
+id = "NO-6"
+testo = "Import da altri gestionali: clienti e veicoli si inseriscono a mano."
+
+[[non_obiettivi]]
+id = "NO-7"
+testo = "Richieste privacy self-service: le evade il responsabile con la procedura del runbook (ADR-0005)."
+
+[[non_obiettivi]]
+id = "NO-8"
+testo = "Onboarding guidato e aiuto in linea: gli utenti sono pochi e imparano di persona."
+
+[[non_obiettivi]]
+id = "NO-9"
+testo = "Invio delle fatture ai sistemi fiscali: lo fa il commercialista, che le riceve in PDF."
+
+[[non_obiettivi]]
+id = "NO-10"
+testo = "App mobile nativa: l'interfaccia web è responsiva."
+
+[[vincoli]]
+id = "V-1"
+tipo = "tecnico"
+testo = "Esercizio su un solo VPS, già in uso per il sito dell'officina."
+fonte = "responsabile"
+
+[[vincoli]]
+id = "V-2"
+tipo = "budget"
+testo = "Budget d'esercizio: il VPS esistente, nessun servizio a pagamento in più."
+fonte = "responsabile"
+
+[[vincoli]]
+id = "V-3"
+tipo = "competenze"
+testo = "Manutenzione affidata a uno sviluppatore PHP a tempo parziale."
+fonte = "responsabile"
+
+[[vincoli]]
+id = "V-4"
+tipo = "organizzativo"
+testo = "Interfaccia solo in italiano."
+fonte = "responsabile"
+
+[[vincoli]]
+id = "V-5"
+tipo = "conformita"
+norma = "GDPR"
+testo = "Dati personali dei clienti (nome, codice fiscale, email, targhe): minimizzazione, informativa, registro dei trattamenti e diritti degli interessati, secondo il GDPR."
+fonte = "consulente-privacy"
+
+[[vincoli]]
+id = "V-6"
+tipo = "conformita"
+norma = "obblighi fiscali italiani sulle fatture"
+testo = "Numerazione progressiva per anno senza buchi e conservazione delle fatture per il periodo di legge: i dettagli si verificano con il commercialista."
+fonte = "commercialista"
+
+[[vincoli]]
+id = "V-7"
+tipo = "conformita"
+norma = "WCAG 2.2"
+testo = "Nessun obbligo di legge sull'accessibilità per un gestionale interno; il livello AA è un requisito di qualità (RNF-3). Non rientra nel Cyber Resilience Act né nell'AI Act: nessuna messa sul mercato, nessuna funzione di IA."
+fonte = "consulente-privacy"
+
+[fattibilita]
+tecnica = "Fattibile: un'app web su un VPS regge i volumi stimati (architettura/analisi.md)."
+economica = "Fattibile: nessun costo oltre il VPS (V-2); sviluppo con agenti."
+operativa = "Fattibile: tre ruoli, formazione di persona."
+legale = "Fattibile con l'informativa e il registro dei trattamenti (V-5) e la numerazione corretta (V-6)."
+temporale = "Nessuna scadenza imposta."
+
+[stima]
+ordine = "6 moduli, 17 storie nel primo incremento e 4 nel secondo; 2 incrementi."
+incertezza = "±30% sulle storie del secondo incremento, che hanno solo il titolo."
+base = "Inventario delle funzionalità della fase 2 e conteggio dei task del piano."

@@ -1,0 +1,49 @@
+# Progetto di dettaglio del modulo fatture (archetipo crud, rischio alto).
+modulo = "fatture"
+
+[[componenti]]
+nome = "NumeratoreFatture"
+responsabilita = "Assegna il numero successivo dell'anno di emissione (R-3, R-5) bloccando la riga dell'anno in numeratori_fatture."
+traccia = ["R-3", "R-5", "FAT-1"]
+
+[[componenti]]
+nome = "EmettitoreFattura"
+responsabilita = "Copia le righe del preventivo approvato dalla facciata di interventi, chiede gli importi al motore e congela tutto nella fattura."
+traccia = ["FAT-1", "R-2", "R-3"]
+
+[[componenti]]
+nome = "GeneratorePdf"
+responsabilita = "Produce il PDF della fattura dai soli dati salvati, con la libreria scelta in ADR-0002 dopo lo spike."
+traccia = ["FAT-3", "RK-2"]
+
+[[algoritmi]]
+nome = "Numerazione senza buchi"
+problema = "Due emissioni concorrenti non devono prendere lo stesso numero né lasciarne uno vuoto."
+soluzione = "Nella transazione d'emissione: select for update sulla riga dell'anno, incremento, inserimento della fattura; un fallimento annulla anche l'incremento."
+complessita = "O(1) per emissione; serializzazione sulle emissioni dello stesso anno, 30 al giorno (AC-3)"
+traccia = ["R-3", "AC-3"]
+
+[[transazioni]]
+operazione = "api:emettiFattura"
+confine = "Numeratore, fattura, righe e audit nella stessa transazione."
+isolamento = "read committed con blocco della riga del numeratore"
+concorrenza = "Il vincolo unico su intervento_id fa fallire la seconda emissione con fattura-esistente senza consumare un numero."
+idempotenza = "Una seconda richiesta per lo stesso intervento riceve fattura-esistente."
+
+[[porte]]
+nome = "interventi"
+verso = "modulo:interventi"
+finto = "Lo stub della facciata generato dallo scheletro."
+
+[[porte]]
+nome = "prezzi"
+verso = "modulo:prezzi"
+finto = "Il motore vero, costruito nell'ondata motore."
+
+[sicurezza]
+asvs = 2
+requisiti = [
+  "Autorizzazione: emissione, lettura ed esportazione solo per il responsabile.",
+  "Validazione e logica di business: fatture immutabili dopo l'emissione; nessuna operazione di modifica esposta.",
+  "Log: emissione registrata nell'audit (MI-5).",
+]

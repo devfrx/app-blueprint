@@ -1,0 +1,63 @@
+# Progetto di dettaglio del modulo interventi (archetipo workflow, rischio
+# standard): l'esemplare dell'archetipo workflow.
+modulo = "interventi"
+
+[[facciata]]
+operazione = "interventoChiuso"
+firma = "interventoChiuso(intervento: InterventoId): InterventoChiuso"
+semantica = "Le righe del preventivo approvato di un intervento chiuso, per la fattura; intervento-non-chiuso se non è chiuso, non-trovato se non esiste."
+errori = ["intervento-non-chiuso", "non-trovato"]
+traccia = ["FAT-1"]
+
+[[componenti]]
+nome = "CodificatoreInterventi"
+responsabilita = "Assegna il codice INT-AAAA-NNNN, progressivo per anno."
+traccia = ["INT-1"]
+
+[[componenti]]
+nome = "PoliticaUnicoAperto"
+responsabilita = "Rifiuta un secondo intervento non chiuso sullo stesso veicolo (R-4); l'indice unico parziale lo garantisce anche sotto concorrenza."
+traccia = ["R-4", "INT-1"]
+
+[[componenti]]
+nome = "PoliticaChiusura"
+responsabilita = "Consente la chiusura solo con il preventivo approvato (R-1)."
+traccia = ["R-1", "INT-4"]
+
+[[componenti]]
+nome = "CompositorePreventivo"
+responsabilita = "Aggiunge righe copiando la voce di listino dalla facciata di prezzi e chiede al motore i totali da mostrare."
+traccia = ["INT-5", "R-2", "R-9"]
+
+[[transazioni]]
+operazione = "api:approvaPreventivo"
+confine = "Stato del preventivo, stato dell'intervento e riga di audit nella stessa transazione."
+isolamento = "read committed"
+concorrenza = "Blocco ottimistico con la versione: una richiesta con versione vecchia riceve conflitto-di-versione."
+idempotenza = "Approvare un preventivo già approvato restituisce lo stato attuale senza effetti."
+
+[[transazioni]]
+operazione = "api:aggiungiRigaPreventivo"
+confine = "Riga nuova e incremento della versione del preventivo."
+isolamento = "read committed"
+concorrenza = "Blocco ottimistico con la versione."
+
+[[transazioni]]
+operazione = "api:apriIntervento"
+confine = "Intervento e preventivo vuoto insieme."
+isolamento = "read committed"
+concorrenza = "L'indice unico parziale su veicolo e stato non chiuso fa fallire la seconda apertura con intervento-gia-aperto."
+
+[[porte]]
+nome = "veicoli"
+verso = "modulo:veicoli"
+finto = "Lo stub della facciata generato dallo scheletro."
+
+[[porte]]
+nome = "prezzi"
+verso = "modulo:prezzi"
+finto = "Il motore vero: è costruito prima degli esemplari, nell'ondata motore."
+
+[sicurezza]
+asvs = 1
+requisiti = ["Autorizzazione: condizione di proprietà per il cliente su ogni lettura di un intervento, con non-trovato al posto di non-autorizzato (MI-1)."]

@@ -1,0 +1,44 @@
+# Progetto di dettaglio del modulo prezzi: il motore (ADR-0004), rischio alto.
+# La sua API è la facciata qui sotto; la suite di conformità discende da questa e
+# dai 40 casi di RNF-7.
+modulo = "prezzi"
+
+[[facciata]]
+operazione = "totali"
+firma = "totali(righe: list[RigaDaCalcolare]): Totali"
+semantica = "Per ogni riga l'importo (quantità × prezzo + IVA, arrotondato al centesimo, metà per eccesso), poi imponibile, IVA per aliquota e totale come somme degli importi. Funzione pura: stesse righe, stessi totali."
+errori = ["quantita-non-valida"]
+traccia = ["R-2", "RNF-7", "INT-5", "INT-2", "FAT-1"]
+
+[[facciata]]
+operazione = "voce"
+firma = "voce(codice: string): VoceListino"
+semantica = "La voce di listino corrente, da copiare in una riga; non-trovato se il codice non esiste."
+errori = ["non-trovato"]
+traccia = ["INT-5"]
+
+[[componenti]]
+nome = "CalcolatoreTotali"
+responsabilita = "L'unico posto dove si calcolano importi e totali (R-2)."
+traccia = ["R-2", "RNF-7"]
+
+[[componenti]]
+nome = "Denaro"
+responsabilita = "Valore immutabile in centesimi con la valuta; nessuna operazione in virgola mobile."
+traccia = ["ST-denaro"]
+
+[[pattern]]
+nome = "Value object Denaro"
+problema = "Somme e arrotondamenti di importi in virgola mobile producono centesimi sbagliati (RNF-7)."
+dove = "Tutti gli importi del motore e delle sue firme."
+
+[[algoritmi]]
+nome = "Arrotondamento per riga"
+problema = "Il totale deve coincidere al centesimo con il calcolo del commercialista."
+soluzione = "Importo di riga = arrotonda(quantità × prezzo × (1 + aliquota)) al centesimo, metà per eccesso, in aritmetica intera sui centesimi; i totali sono somme di importi già arrotondati."
+complessita = "O(n) nelle righe; n ≤ 30 per preventivo"
+traccia = ["R-2", "RNF-7"]
+
+[sicurezza]
+asvs = 2
+requisiti = ["Validazione e logica di business: quantità e prezzi validati, invarianti provati con test basati su proprietà (totale = somma delle righe, nessun importo negativo)."]

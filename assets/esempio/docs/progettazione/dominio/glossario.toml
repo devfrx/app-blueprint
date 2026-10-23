@@ -1,0 +1,54 @@
+# Glossario — un termine per concetto, lo stesso in dati, API, codice e interfaccia.
+# "evitare" elenca i sinonimi da non usare: lo script li segnala nei titoli delle storie.
+
+[[termini]]
+termine = "account"
+definizione = "L'accesso di una persona a Officina, con un ruolo; nasce invitato e diventa attivo con l'attivazione."
+evitare = ["utenza", "login"]
+
+[[termini]]
+termine = "cliente"
+definizione = "La persona che porta i veicoli in officina e riceve le fatture."
+
+[[termini]]
+termine = "veicolo"
+definizione = "Un mezzo di un cliente, identificato dalla targa."
+evitare = ["auto", "macchina"]
+
+[[termini]]
+termine = "intervento"
+definizione = "Il lavoro su un veicolo, dall'accettazione alla chiusura. Ha un preventivo e, chiuso, può avere una fattura."
+evitare = ["lavoro", "commessa", "pratica"]
+
+[[termini]]
+termine = "preventivo"
+definizione = "Le righe di manodopera e ricambi di un intervento; il totale lo calcola il motore dei prezzi."
+
+[[termini]]
+termine = "riga di preventivo"
+definizione = "Una voce del listino con quantità, prezzo e aliquota al momento dell'inserimento."
+
+[[termini]]
+termine = "fattura"
+definizione = "Il documento emesso per un intervento chiuso, con numero progressivo per anno; una volta emessa non cambia."
+evitare = ["ricevuta"]
+
+[[termini]]
+termine = "riga di fattura"
+definizione = "Copia di una riga del preventivo approvato al momento dell'emissione."
+
+[[termini]]
+termine = "voce di listino"
+definizione = "Una prestazione o un ricambio con il suo prezzo e la sua aliquota IVA."
+
+[[termini]]
+termine = "manodopera"
+definizione = "Voce di listino prezzata a ore."
+
+[[termini]]
+termine = "ricambio"
+definizione = "Voce di listino prezzata a pezzo."
+
+[[termini]]
+termine = "motore dei prezzi"
+definizione = "La logica unica che calcola imponibile, IVA e totale di preventivi e fatture."

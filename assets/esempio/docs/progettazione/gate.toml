@@ -1,0 +1,640 @@
+# Chiusure delle voci dei gate. Si scrivono solo le voci chiuse: quelle che il
+# profilo esclude o rinvia le calcola lo script. Una voce si chiude con l'evidenza
+# (percorsi o id, controllati dallo script) o come non applicabile con il motivo;
+# da criticità alta un'esclusione porta anche chi l'ha approvata.
+
+[[chiusure]]
+voce = "0.01"
+esito = "fatto"
+evidenza = ["tag:progettazione/fase-0"]
+data = 2026-10-05
+
+[[chiusure]]
+voce = "0.02"
+esito = "fatto"
+evidenza = ["tag:progettazione/fase-0"]
+data = 2026-10-05
+
+[[chiusure]]
+voce = "0.03"
+esito = "fatto"
+evidenza = ["tag:progettazione/fase-0"]
+data = 2026-10-05
+
+[[chiusure]]
+voce = "0.04"
+esito = "fatto"
+evidenza = ["tag:progettazione/fase-0"]
+data = 2026-10-05
+
+[[chiusure]]
+voce = "0.05"
+esito = "fatto"
+evidenza = ["stato.toml", "gate.toml", "registri.toml"]
+data = 2026-10-05
+
+[[chiusure]]
+voce = "1.01"
+esito = "fatto"
+evidenza = ["prodotto/visione.md#problema"]
+data = 2026-10-07
+
+[[chiusure]]
+voce = "1.02"
+esito = "fatto"
+evidenza = ["OB-1", "OB-2", "OB-3"]
+data = 2026-10-07
+
+[[chiusure]]
+voce = "1.03"
+esito = "fatto"
+evidenza = ["prodotto/prodotto.toml#stakeholder"]
+data = 2026-10-07
+
+[[chiusure]]
+voce = "1.04"
+esito = "fatto"
+evidenza = ["prodotto/visione.md#contesto", "sistema:smtp", "sistema:sito"]
+data = 2026-10-07
+
+[[chiusure]]
+voce = "1.05"
+esito = "fatto"
+evidenza = ["prodotto/prodotto.toml#fattibilita", "prodotto/visione.md#fattibilita"]
+data = 2026-10-07
+
+[[chiusure]]
+voce = "1.06"
+esito = "fatto"
+evidenza = ["ADR-0001"]
+data = 2026-10-07
+
+[[chiusure]]
+voce = "1.08"
+esito = "fatto"
+evidenza = ["prodotto/visione.md#perimetro", "NO-1"]
+data = 2026-10-07
+
+[[chiusure]]
+voce = "1.09"
+esito = "fatto"
+evidenza = ["V-1", "V-2", "V-3", "V-4"]
+data = 2026-10-07
+
+[[chiusure]]
+voce = "1.10"
+esito = "fatto"
+evidenza = ["RK-1", "RK-2", "RK-3"]
+data = 2026-10-07
+
+[[chiusure]]
+voce = "1.11"
+esito = "fatto"
+evidenza = ["prodotto/prodotto.toml#stima"]
+data = 2026-10-07
+
+[[chiusure]]
+voce = "1.12"
+esito = "fatto"
+evidenza = ["stato.toml#registro"]
+data = 2026-10-07
+
+[[chiusure]]
+voce = "1.13"
+esito = "fatto"
+evidenza = ["stato.toml#scheda"]
+data = 2026-10-07
+
+[[chiusure]]
+voce = "1.14"
+esito = "fatto"
+evidenza = ["stato.toml#scheda"]
+data = 2026-10-07
+
+[[chiusure]]
+voce = "2.01"
+esito = "fatto"
+evidenza = ["requisiti/storie.toml", "REV-1"]
+data = 2026-10-10
+
+[[chiusure]]
+voce = "2.02"
+esito = "fatto"
+evidenza = ["requisiti/storie.toml"]
+data = 2026-10-10
+
+[[chiusure]]
+voce = "2.03"
+esito = "fatto"
+evidenza = ["requisiti/requisiti.toml#qualita"]
+data = 2026-10-10
+
+[[chiusure]]
+voce = "2.04"
+esito = "fatto"
+evidenza = ["RNF-1", "RNF-2", "RNF-3", "RNF-4", "RNF-5", "RNF-6", "RNF-7"]
+data = 2026-10-10
+
+[[chiusure]]
+voce = "2.05"
+esito = "fatto"
+evidenza = ["RD-1", "RD-2", "RD-3", "RD-4", "V-1", "sistema:smtp"]
+data = 2026-10-10
+
+[[chiusure]]
+voce = "2.06"
+esito = "fatto"
+evidenza = ["V-5", "V-6", "V-7"]
+data = 2026-10-10
+
+[[chiusure]]
+voce = "2.07"
+esito = "fatto"
+evidenza = ["REV-1"]
+data = 2026-10-10
+
+[[chiusure]]
+voce = "2.08"
+esito = "fatto"
+evidenza = ["CO-1"]
+data = 2026-10-10
+
+[[chiusure]]
+voce = "2.09"
+esito = "fatto"
+evidenza = ["requisiti/requisiti.toml#metodo_priorita"]
+data = 2026-10-10
+
+[[chiusure]]
+voce = "2.10"
+esito = "fatto"
+evidenza = ["REV-2"]
+data = 2026-10-10
+
+[[chiusure]]
+voce = "2.11"
+esito = "fatto"
+evidenza = ["tag:progettazione/fase-2"]
+data = 2026-10-10
+
+[[chiusure]]
+voce = "2.12"
+esito = "fatto"
+evidenza = ["viste/tracciabilita.md"]
+data = 2026-10-10
+
+[[chiusure]]
+voce = "2.13"
+esito = "fatto"
+evidenza = ["dominio/glossario.toml"]
+data = 2026-10-10
+
+[[chiusure]]
+voce = "2.14"
+esito = "fatto"
+evidenza = ["requisiti/requisiti.toml#trasversali"]
+data = 2026-10-10
+
+[[chiusure]]
+voce = "2.15"
+esito = "fatto"
+evidenza = ["PC-1", "PC-2"]
+data = 2026-10-10
+
+[[chiusure]]
+voce = "3.01"
+esito = "fatto"
+evidenza = ["dominio/entita.toml", "dominio/regole.toml"]
+data = 2026-10-13
+
+[[chiusure]]
+voce = "3.02"
+esito = "fatto"
+evidenza = ["dominio/glossario.toml"]
+data = 2026-10-13
+
+[[chiusure]]
+voce = "3.03"
+esito = "fatto"
+evidenza = ["dominio/moduli.toml"]
+data = 2026-10-13
+
+[[chiusure]]
+voce = "3.04"
+esito = "fatto"
+evidenza = ["viste/moduli.md"]
+data = 2026-10-13
+
+[[chiusure]]
+voce = "3.05"
+esito = "fatto"
+evidenza = ["processo:ciclo-intervento", "processo:accesso-e-attivazione"]
+data = 2026-10-13
+
+[[chiusure]]
+voce = "3.06"
+esito = "fatto"
+evidenza = ["dominio/stati.toml", "viste/stati.md"]
+data = 2026-10-13
+
+[[chiusure]]
+voce = "3.07"
+esito = "fatto"
+evidenza = ["dominio/entita.toml", "viste/er-concettuale.md"]
+data = 2026-10-13
+
+[[chiusure]]
+voce = "3.08"
+esito = "fatto"
+evidenza = ["R-5", "R-6", "R-9"]
+data = 2026-10-13
+
+[[chiusure]]
+voce = "3.09"
+esito = "fatto"
+evidenza = ["REV-3"]
+data = 2026-10-13
+
+[[chiusure]]
+voce = "3.10"
+esito = "fatto"
+evidenza = ["REV-4"]
+data = 2026-10-13
+
+[[chiusure]]
+voce = "4.01"
+esito = "fatto"
+evidenza = ["DR-1", "DR-2", "DR-3", "DR-4"]
+data = 2026-10-15
+
+[[chiusure]]
+voce = "4.02"
+esito = "fatto"
+evidenza = ["ADR-0003"]
+data = 2026-10-15
+
+[[chiusure]]
+voce = "4.03"
+esito = "fatto"
+evidenza = ["dominio/moduli.toml"]
+data = 2026-10-15
+
+[[chiusure]]
+voce = "4.04"
+esito = "fatto"
+evidenza = ["dominio/moduli.toml", "ST-versionamento"]
+data = 2026-10-15
+
+[[chiusure]]
+voce = "4.05"
+esito = "fatto"
+evidenza = ["ST-dati"]
+data = 2026-10-15
+
+[[chiusure]]
+voce = "4.06"
+esito = "fatto"
+evidenza = ["RNF-2", "ST-backup"]
+data = 2026-10-15
+
+[[chiusure]]
+voce = "4.07"
+esito = "fatto"
+evidenza = ["integrazione:smtp"]
+data = 2026-10-15
+
+[[chiusure]]
+voce = "4.08"
+esito = "fatto"
+evidenza = ["architettura/architettura.toml#strategie"]
+data = 2026-10-15
+
+[[chiusure]]
+voce = "4.09"
+esito = "fatto"
+evidenza = ["ST-resilienza"]
+data = 2026-10-15
+
+[[chiusure]]
+voce = "4.10"
+esito = "fatto"
+evidenza = ["architettura/architettura.md", "ambiente:produzione"]
+data = 2026-10-15
+
+[[chiusure]]
+voce = "4.11"
+esito = "fatto"
+evidenza = ["architettura/minacce.toml"]
+data = 2026-10-15
+
+[[chiusure]]
+voce = "4.12"
+esito = "fatto"
+evidenza = ["architettura/analisi.md"]
+data = 2026-10-15
+
+[[chiusure]]
+voce = "4.13"
+esito = "fatto"
+evidenza = ["ADR-0002", "DEP-1", "DEP-2", "DEP-3"]
+data = 2026-10-15
+
+[[chiusure]]
+voce = "4.14"
+esito = "fatto"
+evidenza = ["RK-2", "ADR-0002"]
+data = 2026-10-15
+
+[[chiusure]]
+voce = "4.15"
+esito = "fatto"
+evidenza = ["architettura/valutazione.md", "REV-5"]
+data = 2026-10-15
+
+[[chiusure]]
+voce = "4.16"
+esito = "fatto"
+evidenza = ["viste/tracciabilita.md"]
+data = 2026-10-15
+
+[[chiusure]]
+voce = "4.17"
+esito = "fatto"
+evidenza = ["ADR-0001", "ADR-0002", "ADR-0003", "ADR-0004", "ADR-0005", "ADR-0006"]
+data = 2026-10-15
+
+[[chiusure]]
+voce = "4.18"
+esito = "fatto"
+evidenza = ["architettura/architettura.md", "viste/contesto.md", "viste/moduli.md"]
+data = 2026-10-15
+
+[[chiusure]]
+voce = "4.19"
+esito = "fatto"
+evidenza = ["RK-2", "RK-4", "RK-5"]
+data = 2026-10-15
+
+[[chiusure]]
+voce = "5.01"
+esito = "fatto"
+evidenza = ["requisiti/storie.toml"]
+data = 2026-10-19
+
+[[chiusure]]
+voce = "5.02"
+esito = "fatto"
+evidenza = ["moduli/accessi.toml", "moduli/clienti.toml", "moduli/veicoli.toml", "moduli/interventi.toml", "moduli/prezzi.toml", "moduli/fatture.toml"]
+data = 2026-10-19
+
+[[chiusure]]
+voce = "5.03"
+esito = "fatto"
+evidenza = ["moduli/prezzi.toml", "moduli/accessi.toml"]
+data = 2026-10-19
+
+[[chiusure]]
+voce = "5.04"
+esito = "fatto"
+evidenza = ["moduli/prezzi.toml", "moduli/fatture.toml", "moduli/veicoli.toml"]
+data = 2026-10-19
+
+[[chiusure]]
+voce = "5.05.1"
+esito = "fatto"
+evidenza = ["dati/dati.toml#volumi"]
+data = 2026-10-19
+
+[[chiusure]]
+voce = "5.05.2"
+esito = "fatto"
+evidenza = ["AC-1", "AC-2", "AC-3", "AC-4", "AC-5", "AC-6", "AC-7", "AC-8", "AC-9", "AC-10"]
+data = 2026-10-19
+
+[[chiusure]]
+voce = "5.05.3"
+esito = "fatto"
+evidenza = ["dati/dati.toml#ristrutturazione"]
+data = 2026-10-19
+
+[[chiusure]]
+voce = "5.05.4"
+esito = "fatto"
+evidenza = ["contracts/schema.toml", "viste/er-logico.md"]
+data = 2026-10-19
+
+[[chiusure]]
+voce = "5.05"
+esito = "fatto"
+evidenza = ["contracts/schema.toml"]
+data = 2026-10-19
+
+[[chiusure]]
+voce = "5.06"
+esito = "fatto"
+evidenza = ["ST-migrazioni"]
+data = 2026-10-19
+
+[[chiusure]]
+voce = "5.07"
+esito = "fatto"
+evidenza = ["contracts/openapi.json", "viste/api.md"]
+data = 2026-10-19
+
+[[chiusure]]
+voce = "5.08"
+esito = "fatto"
+evidenza = ["sequenza:PC-1", "sequenza:PC-2"]
+data = 2026-10-19
+
+[[chiusure]]
+voce = "5.09"
+esito = "fatto"
+evidenza = ["contracts/errori.toml", "ST-errori"]
+data = 2026-10-19
+
+[[chiusure]]
+voce = "5.10"
+esito = "fatto"
+evidenza = ["moduli/interventi.toml", "moduli/fatture.toml", "ST-concorrenza"]
+data = 2026-10-19
+
+[[chiusure]]
+voce = "5.11"
+esito = "fatto"
+evidenza = ["moduli/accessi.toml", "moduli/clienti.toml", "moduli/veicoli.toml", "moduli/interventi.toml", "moduli/prezzi.toml", "moduli/fatture.toml"]
+data = 2026-10-19
+
+[[chiusure]]
+voce = "5.12"
+esito = "fatto"
+evidenza = ["moduli/accessi.toml", "moduli/clienti.toml", "moduli/veicoli.toml", "moduli/interventi.toml", "moduli/prezzi.toml", "moduli/fatture.toml", "DEP-4"]
+data = 2026-10-19
+
+[[chiusure]]
+voce = "5.13"
+esito = "fatto"
+evidenza = ["contracts/schema.toml", "contracts/openapi.json", "contracts/autorizzazioni.toml", "contracts/errori.toml"]
+data = 2026-10-19
+
+[[chiusure]]
+voce = "5.14"
+esito = "fatto"
+evidenza = ["REV-6"]
+data = 2026-10-19
+
+[[chiusure]]
+voce = "5.15"
+esito = "fatto"
+evidenza = ["contracts/autorizzazioni.toml"]
+data = 2026-10-19
+
+[[chiusure]]
+voce = "5.16"
+esito = "fatto"
+evidenza = ["contracts/configurazione.toml"]
+data = 2026-10-19
+
+[[chiusure]]
+voce = "6.01"
+esito = "fatto"
+evidenza = ["ux/utenti.md", "persona:giulia", "persona:marco", "persona:anna"]
+data = 2026-10-19
+
+[[chiusure]]
+voce = "6.02"
+esito = "fatto"
+evidenza = ["ux/ux.toml#sezioni"]
+data = 2026-10-19
+
+[[chiusure]]
+voce = "6.03"
+esito = "fatto"
+evidenza = ["docs/design/mockups/accesso.html", "docs/design/mockups/interventi.html", "docs/design/mockups/intervento.html", "docs/design/mockups/area-cliente.html", "docs/design/mockups/fattura.html"]
+data = 2026-10-19
+
+[[chiusure]]
+voce = "6.04"
+esito = "fatto"
+evidenza = ["ux/design-system.toml"]
+data = 2026-10-19
+
+[[chiusure]]
+voce = "6.05"
+esito = "fatto"
+evidenza = ["ux/ux.toml#schermate"]
+data = 2026-10-19
+
+[[chiusure]]
+voce = "6.06"
+esito = "fatto"
+evidenza = ["REV-8"]
+data = 2026-10-19
+
+[[chiusure]]
+voce = "6.07"
+esito = "fatto"
+evidenza = ["ux/testi.toml"]
+data = 2026-10-19
+
+[[chiusure]]
+voce = "6.09"
+esito = "fatto"
+evidenza = ["ST-i18n"]
+data = 2026-10-19
+
+[[chiusure]]
+voce = "6.10"
+esito = "fatto"
+evidenza = ["REV-7"]
+data = 2026-10-19
+
+[[chiusure]]
+voce = "7.01"
+esito = "fatto"
+evidenza = ["piano/piano.toml"]
+data = 2026-10-22
+
+[[chiusure]]
+voce = "7.02"
+esito = "fatto"
+evidenza = ["piano/piano.toml#stima"]
+data = 2026-10-22
+
+[[chiusure]]
+voce = "7.03"
+esito = "fatto"
+evidenza = ["piano/piano.toml#incrementi"]
+data = 2026-10-22
+
+[[chiusure]]
+voce = "7.04"
+esito = "fatto"
+evidenza = ["piano/piano.toml#task"]
+data = 2026-10-22
+
+[[chiusure]]
+voce = "7.05"
+esito = "fatto"
+evidenza = ["piano/test.toml"]
+data = 2026-10-22
+
+[[chiusure]]
+voce = "7.06"
+esito = "fatto"
+evidenza = ["viste/checklist.md#dod"]
+data = 2026-10-22
+
+[[chiusure]]
+voce = "7.07"
+esito = "fatto"
+evidenza = ["ST-qualita-codice", "ADR-0002"]
+data = 2026-10-22
+
+[[chiusure]]
+voce = "7.08"
+esito = "fatto"
+evidenza = ["ST-ci-cd"]
+data = 2026-10-22
+
+[[chiusure]]
+voce = "7.11"
+esito = "fatto"
+evidenza = ["registri.toml#rischi"]
+data = 2026-10-22
+
+[[chiusure]]
+voce = "7.12"
+esito = "fatto"
+evidenza = ["stato.toml#scheda"]
+data = 2026-10-22
+
+[[chiusure]]
+voce = "7.13"
+esito = "fatto"
+evidenza = ["REV-9"]
+data = 2026-10-22
+
+[[chiusure]]
+voce = "7.14"
+esito = "fatto"
+evidenza = ["REV-10"]
+data = 2026-10-22
+
+[[chiusure]]
+voce = "7.15"
+esito = "fatto"
+evidenza = ["DEP-1", "DEP-2", "DEP-3", "DEP-4", "DEP-5", "DEP-6"]
+data = 2026-10-22
+
+[[chiusure]]
+voce = "7.16"
+esito = "fatto"
+evidenza = ["REV-11"]
+data = 2026-10-22
+
+[[chiusure]]
+voce = "7.17"
+esito = "fatto"
+evidenza = ["stato.toml#congelamento"]
+data = 2026-10-22

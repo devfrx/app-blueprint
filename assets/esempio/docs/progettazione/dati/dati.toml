@@ -1,0 +1,307 @@
+# Progettazione logica dei dati — fase 5: tavola dei volumi, tavola degli accessi,
+# ristrutturazione. Lo schema che ne risulta è contracts/schema.toml.
+# Orizzonte dei volumi: cinque anni (A-1).
+
+# --- tavola dei volumi -----------------------------------------------------------
+
+[[volumi]]
+concetto = "entita:account"
+volume = 9010
+crescita = "circa 800 all'anno, uno per cliente con area riservata più gli operatori"
+calcolo = "clienti con account + 10 account interni"
+
+[[volumi]]
+concetto = "entita:cliente"
+volume = 9000
+crescita = "circa 800 all'anno"
+fonte = ["RD-2"]
+
+[[volumi]]
+concetto = "entita:veicolo"
+volume = 10500
+crescita = "circa 900 all'anno"
+fonte = ["RD-4"]
+
+[[volumi]]
+concetto = "entita:intervento"
+volume = 50000
+crescita = "circa 10.000 all'anno"
+fonte = ["RD-1"]
+
+[[volumi]]
+concetto = "entita:preventivo"
+volume = 50000
+crescita = "uno per intervento"
+calcolo = "uguale agli interventi (relazione 1:1)"
+
+[[volumi]]
+concetto = "entita:riga_preventivo"
+volume = 250000
+crescita = "circa 5 per preventivo"
+calcolo = "preventivi × 5, media dei preventivi cartacei dell'ultimo anno"
+
+[[volumi]]
+concetto = "entita:fattura"
+volume = 50000
+crescita = "circa 10.000 all'anno"
+fonte = ["RD-3"]
+
+[[volumi]]
+concetto = "entita:riga_fattura"
+volume = 250000
+crescita = "circa 5 per fattura"
+calcolo = "fatture × 5"
+
+[[volumi]]
+concetto = "entita:voce_listino"
+volume = 800
+crescita = "poche decine all'anno"
+calcolo = "listino attuale dell'officina"
+
+[[volumi]]
+concetto = "entita:manodopera"
+volume = 150
+crescita = "stabile"
+calcolo = "voci di manodopera del listino attuale"
+
+[[volumi]]
+concetto = "entita:ricambio"
+volume = 650
+crescita = "poche decine all'anno"
+calcolo = "voci di ricambio del listino attuale"
+
+[[volumi]]
+concetto = "relazione:account-cliente"
+volume = 9000
+crescita = "come i clienti"
+calcolo = "un account per cliente"
+
+[[volumi]]
+concetto = "relazione:cliente-veicolo"
+volume = 10500
+crescita = "come i veicoli"
+calcolo = "un proprietario per veicolo"
+
+[[volumi]]
+concetto = "relazione:veicolo-intervento"
+volume = 50000
+crescita = "come gli interventi"
+calcolo = "un veicolo per intervento"
+
+[[volumi]]
+concetto = "relazione:intervento-preventivo"
+volume = 50000
+crescita = "come gli interventi"
+calcolo = "1:1"
+
+[[volumi]]
+concetto = "relazione:preventivo-righe"
+volume = 250000
+crescita = "come le righe"
+calcolo = "una per riga"
+
+[[volumi]]
+concetto = "relazione:voce-riga"
+volume = 250000
+crescita = "come le righe"
+calcolo = "una per riga"
+
+[[volumi]]
+concetto = "relazione:intervento-fattura"
+volume = 50000
+crescita = "come le fatture"
+calcolo = "una per fattura"
+
+[[volumi]]
+concetto = "relazione:fattura-righe"
+volume = 250000
+crescita = "come le righe di fattura"
+calcolo = "una per riga"
+
+# --- tavola degli accessi ----------------------------------------------------------
+# cammino: i concetti attraversati, con il numero di accessi e il tipo (L lettura,
+# S scrittura). filtri: le colonne su cui l'operazione seleziona, che devono avere
+# un indice che le abbia come prima colonna.
+
+[[accessi]]
+id = "AC-1"
+operazione = "Elenco degli interventi aperti, prima pagina"
+tipo = "interattiva"
+frequenza = 200
+per = "giorno"
+traccia = ["INT-6", "RNF-1"]
+filtri = ["interventi.stato"]
+cammino = [
+  { concetto = "entita:intervento", accessi = 25, tipo = "L" },
+  { concetto = "relazione:veicolo-intervento", accessi = 25, tipo = "L" },
+  { concetto = "entita:veicolo", accessi = 25, tipo = "L" },
+  { concetto = "relazione:cliente-veicolo", accessi = 25, tipo = "L" },
+  { concetto = "entita:cliente", accessi = 25, tipo = "L" },
+]
+
+[[accessi]]
+id = "AC-2"
+operazione = "Il cliente apre il proprio intervento"
+tipo = "interattiva"
+frequenza = 50
+per = "giorno"
+traccia = ["INT-3"]
+filtri = ["interventi.id"]
+cammino = [
+  { concetto = "entita:intervento", accessi = 1, tipo = "L" },
+  { concetto = "entita:veicolo", accessi = 1, tipo = "L" },
+  { concetto = "relazione:account-cliente", accessi = 1, tipo = "L" },
+  { concetto = "entita:preventivo", accessi = 1, tipo = "L" },
+  { concetto = "entita:riga_preventivo", accessi = 5, tipo = "L" },
+]
+
+[[accessi]]
+id = "AC-3"
+operazione = "Emissione di una fattura"
+tipo = "interattiva"
+frequenza = 30
+per = "giorno"
+traccia = ["FAT-1"]
+filtri = ["numeratori_fatture.anno", "fatture.intervento_id"]
+cammino = [
+  { concetto = "entita:intervento", accessi = 1, tipo = "L" },
+  { concetto = "entita:preventivo", accessi = 1, tipo = "L" },
+  { concetto = "entita:riga_preventivo", accessi = 5, tipo = "L" },
+  { concetto = "entita:fattura", accessi = 1, tipo = "S" },
+  { concetto = "entita:riga_fattura", accessi = 5, tipo = "S" },
+  { concetto = "relazione:intervento-fattura", accessi = 1, tipo = "S" },
+]
+
+[[accessi]]
+id = "AC-4"
+operazione = "Accesso con email e password"
+tipo = "interattiva"
+frequenza = 60
+per = "giorno"
+traccia = ["ACC-1"]
+filtri = ["account.email"]
+cammino = [
+  { concetto = "entita:account", accessi = 1, tipo = "L" },
+  { concetto = "entita:account", accessi = 1, tipo = "S" },
+]
+
+[[accessi]]
+id = "AC-5"
+operazione = "Totale del preventivo mostrato a ogni riga aggiunta"
+tipo = "interattiva"
+frequenza = 300
+per = "giorno"
+traccia = ["INT-5", "INT-2"]
+filtri = ["righe_preventivo.preventivo_id"]
+cammino = [
+  { concetto = "entita:preventivo", accessi = 1, tipo = "L" },
+  { concetto = "entita:riga_preventivo", accessi = 5, tipo = "L" },
+]
+
+[[accessi]]
+id = "AC-6"
+operazione = "Lettura di una fattura, a schermo o in PDF"
+tipo = "interattiva"
+frequenza = 60
+per = "giorno"
+traccia = ["FAT-3"]
+filtri = ["fatture.id", "righe_fattura.fattura_id"]
+cammino = [
+  { concetto = "entita:fattura", accessi = 1, tipo = "L" },
+  { concetto = "entita:riga_fattura", accessi = 5, tipo = "L" },
+]
+
+[[accessi]]
+id = "AC-7"
+operazione = "Ricerca dei clienti per cognome"
+tipo = "interattiva"
+frequenza = 100
+per = "giorno"
+traccia = ["CLI-2"]
+filtri = ["clienti.cognome"]
+cammino = [
+  { concetto = "entita:cliente", accessi = 25, tipo = "L" },
+]
+
+[[accessi]]
+id = "AC-8"
+operazione = "Promemoria delle revisioni in scadenza"
+tipo = "batch"
+frequenza = 1
+per = "giorno"
+traccia = ["VEI-2"]
+filtri = ["veicoli.scadenza_revisione"]
+cammino = [
+  { concetto = "entita:veicolo", accessi = 100, tipo = "L" },
+  { concetto = "entita:cliente", accessi = 100, tipo = "L" },
+  { concetto = "entita:veicolo", accessi = 100, tipo = "S" },
+]
+
+# --- ristrutturazione -----------------------------------------------------------------
+
+[[ristrutturazione]]
+id = "generalizzazione-listino"
+tipo = "generalizzazione"
+oggetto = "generalizzazione:voce-listino-tipo"
+decisione = "Accorpamento dei figli nel padre: una tabella voci_listino con il tipo e le colonne facoltative di manodopera e ricambio."
+motivo = "AC-5 e INT-5 leggono le voci senza distinguere il tipo; ogni figlio aggiunge un solo attributo facoltativo."
+accessi = ["AC-5"]
+
+[[ristrutturazione]]
+id = "totale-preventivo"
+tipo = "ridondanza"
+oggetto = "attributo:preventivo.totale"
+decisione = "Non memorizzato: lo calcola il motore dei prezzi a ogni lettura."
+motivo = "AC-5: 300 letture al giorno da 5 righe costano poco; memorizzarlo vorrebbe dire aggiornarlo a ogni riga finché il preventivo è in bozza, con il rischio di divergere da R-2."
+accessi = ["AC-5", "AC-2"]
+
+[[ristrutturazione]]
+id = "totale-fattura"
+tipo = "ridondanza"
+oggetto = "attributo:fattura.totale"
+decisione = "Memorizzato all'emissione e mai aggiornato."
+motivo = "La fattura è immutabile (R-3): nessun costo d'aggiornamento; AC-6 legge il totale senza ricalcolare le righe."
+accessi = ["AC-6"]
+
+[[ristrutturazione]]
+id = "identificatori-surrogati"
+tipo = "identificatore"
+oggetto = "entita:intervento"
+decisione = "Chiave primaria surrogata ULID per tutte le tabelle; codice, targa, codice fiscale, email e (anno, numero) restano unici."
+motivo = "ST-identificatori: id non indovinabili negli URL (MI-1)."
+
+[[ristrutturazione]]
+id = "voce-riga-copiata"
+tipo = "accorpamento"
+oggetto = "relazione:voce-riga"
+decisione = "Nessuna chiave esterna verso il listino: la riga copia codice, descrizione, tipo, prezzo e aliquota della voce."
+motivo = "Il prezzo storico non cambia con il listino (R-2), e così nessuna chiave esterna attraversa i moduli interventi e prezzi."
+
+[[accessi]]
+id = "AC-9"
+operazione = "Veicoli di un cliente, nella sua scheda"
+tipo = "interattiva"
+frequenza = 100
+per = "giorno"
+traccia = ["VEI-1"]
+filtri = ["veicoli.cliente_id"]
+cammino = [
+  { concetto = "entita:cliente", accessi = 1, tipo = "L" },
+  { concetto = "relazione:cliente-veicolo", accessi = 3, tipo = "L" },
+  { concetto = "entita:veicolo", accessi = 3, tipo = "L" },
+]
+
+[[accessi]]
+id = "AC-10"
+operazione = "Apertura di un intervento con il controllo dell'intervento già aperto (R-4)"
+tipo = "interattiva"
+frequenza = 40
+per = "giorno"
+traccia = ["INT-1", "R-4"]
+filtri = ["interventi.veicolo_id"]
+cammino = [
+  { concetto = "entita:veicolo", accessi = 1, tipo = "L" },
+  { concetto = "entita:intervento", accessi = 1, tipo = "L" },
+  { concetto = "entita:intervento", accessi = 1, tipo = "S" },
+  { concetto = "entita:preventivo", accessi = 1, tipo = "S" },
+]

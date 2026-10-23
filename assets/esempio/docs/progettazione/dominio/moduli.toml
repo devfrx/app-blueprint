@@ -1,0 +1,102 @@
+# Sottodomini, moduli e context map. Ogni bounded context è un modulo: un solo
+# confine da progettare, possedere e verificare. archetipo, rischio e comunicazione
+# si aggiungono in fase 4.
+
+[[sottodomini]]
+id = "officina"
+tipo = "core"
+descrizione = "Interventi, preventivi e prezzi: il lavoro che distingue l'officina."
+
+[[sottodomini]]
+id = "anagrafiche"
+tipo = "supporto"
+descrizione = "Clienti e veicoli."
+
+[[sottodomini]]
+id = "fatturazione"
+tipo = "supporto"
+descrizione = "Fatture numerate, immutabili e in PDF."
+
+[[sottodomini]]
+id = "identita"
+tipo = "generico"
+descrizione = "Account, accesso, ruoli."
+
+[[moduli]]
+id = "accessi"
+sottodominio = "identita"
+responsabilita = "Ciclo di vita degli account, accesso, secondo fattore, inviti e recupero; nessuna regola di dominio dell'officina."
+archetipo = "workflow"
+rischio = "alto"
+
+[[moduli]]
+id = "clienti"
+sottodominio = "anagrafiche"
+responsabilita = "Anagrafica dei clienti e collegamento al loro account."
+archetipo = "crud"
+rischio = "standard"
+
+[[moduli]]
+id = "veicoli"
+sottodominio = "anagrafiche"
+responsabilita = "Veicoli dei clienti e loro proprietario."
+archetipo = "crud"
+rischio = "standard"
+
+[[moduli]]
+id = "interventi"
+sottodominio = "officina"
+responsabilita = "Interventi e preventivi, con le loro macchine a stati."
+archetipo = "workflow"
+rischio = "standard"
+
+[[moduli]]
+id = "prezzi"
+sottodominio = "officina"
+responsabilita = "Listino e motore dei prezzi: l'unico posto dove si calcolano i totali (R-2)."
+motore = true
+rischio = "alto"
+
+[[moduli]]
+id = "fatture"
+sottodominio = "fatturazione"
+responsabilita = "Emissione, numerazione e PDF delle fatture."
+archetipo = "crud"
+rischio = "alto"
+
+# Una dipendenza va dal modulo a valle a quello di cui usa la facciata.
+[[dipendenze]]
+a_valle = "clienti"
+a_monte = "accessi"
+tipo = "cliente-fornitore"
+comunicazione = "sincrona"
+
+[[dipendenze]]
+a_valle = "veicoli"
+a_monte = "clienti"
+tipo = "cliente-fornitore"
+comunicazione = "sincrona"
+
+[[dipendenze]]
+a_valle = "interventi"
+a_monte = "veicoli"
+tipo = "cliente-fornitore"
+comunicazione = "sincrona"
+
+[[dipendenze]]
+a_valle = "interventi"
+a_monte = "prezzi"
+tipo = "conformista"
+comunicazione = "sincrona"
+
+[[dipendenze]]
+a_valle = "fatture"
+a_monte = "interventi"
+tipo = "cliente-fornitore"
+comunicazione = "sincrona"
+
+[[dipendenze]]
+a_valle = "fatture"
+a_monte = "prezzi"
+tipo = "conformista"
+comunicazione = "sincrona"

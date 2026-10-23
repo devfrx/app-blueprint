@@ -1,0 +1,118 @@
+# Threat model: confini di fiducia, flussi che li attraversano, minacce STRIDE.
+# Ogni contromisura è un requisito testabile: una regola della matrice, un errore
+# del catalogo, un RNF, una strategia o una regola di business.
+
+[[confini]]
+id = "browser-app"
+descrizione = "Da internet all'applicazione."
+da = "browser"
+a = "applicazione"
+
+[[confini]]
+id = "app-database"
+descrizione = "Dall'applicazione al database."
+da = "applicazione"
+a = "database"
+
+[[confini]]
+id = "app-email"
+descrizione = "Dall'applicazione al servizio email."
+da = "applicazione"
+a = "servizio email"
+
+[[flussi]]
+id = "FL-1"
+descrizione = "Accesso con credenziali e secondo fattore."
+confini = ["browser-app"]
+dati = ["email", "password", "codice TOTP"]
+percorsi = ["PC-1"]
+
+[[flussi]]
+id = "FL-2"
+descrizione = "Il cliente legge il proprio intervento."
+confini = ["browser-app", "app-database"]
+dati = ["dati del veicolo", "preventivo"]
+percorsi = ["PC-2"]
+
+[[flussi]]
+id = "FL-3"
+descrizione = "Approvazione dei preventivi ed emissione delle fatture."
+confini = ["browser-app", "app-database"]
+dati = ["importi", "numerazione"]
+percorsi = ["PC-1"]
+
+[[flussi]]
+id = "FL-4"
+descrizione = "Invio degli inviti e dei link di recupero."
+confini = ["app-email"]
+dati = ["email", "token monouso"]
+
+[[minacce]]
+id = "MI-1"
+flusso = "FL-2"
+stride = "I"
+descrizione = "Un cliente legge l'intervento di un altro cambiando l'id nell'URL."
+probabilita = "alta"
+impatto = "alto"
+contromisure = ["matrice:intervento.leggi", "errore:non-trovato", "ST-identificatori"]
+residuo = "Basso: condizione di proprietà testata in entrambe le direzioni."
+
+[[minacce]]
+id = "MI-2"
+flusso = "FL-1"
+stride = "S"
+descrizione = "Credenziali indovinate o riusate da altri siti."
+probabilita = "media"
+impatto = "alto"
+contromisure = ["R-6", "ST-autenticazione", "errore:account-bloccato"]
+residuo = "Medio per gli operatori senza secondo fattore: accettato (RK-4)."
+
+[[minacce]]
+id = "MI-3"
+flusso = "FL-3"
+stride = "E"
+descrizione = "Un operatore approva un preventivo o emette una fattura."
+probabilita = "media"
+impatto = "alto"
+contromisure = ["matrice:preventivo.approva", "matrice:fattura.emetti", "errore:non-autorizzato"]
+residuo = "Basso."
+
+[[minacce]]
+id = "MI-4"
+flusso = "FL-4"
+stride = "I"
+descrizione = "Un link d'invito o di recupero intercettato viene riusato."
+probabilita = "bassa"
+impatto = "alto"
+contromisure = ["errore:link-non-valido", "ST-segreti"]
+residuo = "Basso: monouso e a scadenza."
+
+[[minacce]]
+id = "MI-5"
+flusso = "FL-3"
+stride = "R"
+descrizione = "Chi ha emesso o approvato nega di averlo fatto."
+probabilita = "bassa"
+impatto = "medio"
+contromisure = ["ST-audit"]
+residuo = "Basso."
+
+[[minacce]]
+id = "MI-6"
+flusso = "FL-1"
+stride = "D"
+descrizione = "Raffiche di tentativi d'accesso saturano il VPS condiviso."
+probabilita = "media"
+impatto = "medio"
+contromisure = ["ST-resilienza", "errore:troppe-richieste"]
+residuo = "Medio: il VPS non ha protezioni di rete dedicate; accettato."
+
+[[minacce]]
+id = "MI-7"
+flusso = "FL-3"
+stride = "T"
+descrizione = "Un importo viene alterato tra preventivo e fattura."
+probabilita = "bassa"
+impatto = "alto"
+contromisure = ["R-2", "R-3", "RNF-7"]
+residuo = "Basso: un solo calcolatore, righe congelate all'emissione."

@@ -1,0 +1,196 @@
+# Architettura — fase 4: driver, strategie trasversali, ambienti, integrazioni.
+# Le scelte difficili da invertire hanno il loro ADR; qui la riga che dice cosa si fa.
+
+[[driver]]
+id = "DR-1"
+tipo = "vincolo"
+ref = ["V-1", "V-2", "RNF-5"]
+motivo = "Un solo VPS condiviso, nessun servizio in più: niente deploy multipli né componenti gestiti."
+
+[[driver]]
+id = "DR-2"
+tipo = "vincolo"
+ref = ["V-3", "RNF-6"]
+motivo = "La manterrà uno sviluppatore PHP a tempo parziale: stack e struttura che conosce."
+
+[[driver]]
+id = "DR-3"
+tipo = "qualita"
+ref = ["RNF-4", "RNF-7"]
+motivo = "Dati personali e denaro: autorizzazioni e calcolo dei totali sono i punti dove un errore costa di più."
+
+[[driver]]
+id = "DR-4"
+tipo = "funzionale"
+ref = ["PC-1", "PC-2"]
+motivo = "I due percorsi critici attraversano quasi tutti i moduli: le facciate devono reggerli."
+
+[[strategie]]
+id = "ST-dati"
+tema = "dati"
+decisione = "Un solo database relazionale (PostgreSQL); consistenza forte con transazioni locali; nessun partizionamento né replica: i volumi di RD-1…RD-4 non li chiedono. Ogni tabella ha un solo modulo proprietario."
+motivo = "RNF-5 e V-2: un processo e un database sullo stesso VPS."
+adr = "ADR-0003"
+
+[[strategie]]
+id = "ST-backup"
+tema = "backup"
+decisione = "Dump notturno cifrato con 30 giorni di storico presso il fornitore del VPS; ripristino provato a ogni rilascio su staging."
+motivo = "RNF-2: RPO 24 h, RTO 4 h. Il backup presso lo stesso fornitore è debito accettato (DEB-1)."
+adr = "ADR-0006"
+
+[[strategie]]
+id = "ST-autenticazione"
+tema = "autenticazione"
+decisione = "Sessione lato server con i flussi del framework: attivazione dall'invito, accesso, uscita, recupero, blocco dopo cinque tentativi, secondo fattore TOTP per il responsabile; password di almeno 12 caratteri, hash del framework."
+motivo = "Tre ruoli e poche decine di account: un fornitore d'identità esterno non ripaga il servizio in più (ADR-0005)."
+adr = "ADR-0005"
+
+[[strategie]]
+id = "ST-autorizzazione"
+tema = "autorizzazione"
+decisione = "Il kernel applica contracts/autorizzazioni.toml a ogni operazione, con negazione per default e condizioni di proprietà; l'interfaccia nasconde ciò che non è consentito, ma decide il backend."
+motivo = "RNF-4, MI-1, MI-3."
+adr = "ADR-0005"
+
+[[strategie]]
+id = "ST-errori"
+tema = "errori"
+decisione = "Problem Details (RFC 9457) con il codice del catalogo nel campo type; un solo gestore al confine HTTP; errori di dominio come eccezioni tipizzate per modulo."
+motivo = "Un formato standard invece di uno inventato; il catalogo è la fonte unica per backend e frontend."
+traccia = ["DEP-6"]
+
+[[strategie]]
+id = "ST-osservabilita"
+tema = "osservabilita"
+decisione = "Log JSON strutturati con id di richiesta, senza dati personali (solo id); endpoint di salute; metriche di latenza per operazione esposte al monitor del VPS."
+motivo = "Diagnosi senza esporre dati personali (V-5)."
+
+[[strategie]]
+id = "ST-configurazione"
+tema = "configurazione"
+decisione = "Variabili d'ambiente elencate in contracts/configurazione.toml; un file per ambiente fuori dal repo; nessun valore di sviluppo in esercizio."
+motivo = "Tre ambienti con differenze esplicite (voce 9.05)."
+
+[[strategie]]
+id = "ST-cache"
+tema = "cache"
+decisione = "Nessuna cache applicativa: gli indici di AC-1 bastano a RNF-1. Cache HTTP solo sugli asset statici."
+motivo = "Una cache in più è stato da invalidare; i numeri di dati/dati.toml non la chiedono."
+
+[[strategie]]
+id = "ST-concorrenza"
+tema = "concorrenza"
+decisione = "Blocco ottimistico con colonna versione su preventivi e interventi; blocco pessimistico sulla riga del numeratore delle fatture dell'anno (R-3)."
+motivo = "Due persone possono lavorare sullo stesso preventivo; la numerazione senza buchi richiede la serializzazione."
+
+[[strategie]]
+id = "ST-segreti"
+tema = "segreti"
+decisione = "Segreti solo nelle variabili d'ambiente del VPS, nomi in contracts/configurazione.toml; token d'invito e recupero monouso, confrontati a tempo costante; scansione dei segreti in CI."
+motivo = "MI-4; voce 8.06."
+
+[[strategie]]
+id = "ST-audit"
+tema = "audit"
+decisione = "Tabella di audit append-only per approvazioni, emissioni e sblocchi: chi, cosa, quando, id della risorsa. Si consulta dal database (NO-4)."
+motivo = "MI-5: il responsabile non può negare un'emissione."
+
+[[strategie]]
+id = "ST-i18n"
+tema = "i18n"
+decisione = "Solo italiano (V-4), ma ogni testo dell'interfaccia passa da una chiave di ux/testi.toml; formati di data e valuta di it-IT."
+motivo = "Aggiungere una lingua dopo tocca ogni stringa: le chiavi costano poco ora."
+
+[[strategie]]
+id = "ST-tempo"
+tema = "tempo"
+decisione = "Istanti in UTC nel database, Europe/Rome nell'interfaccia e per l'anno delle fatture (R-5); le date senza ora restano date."
+motivo = "R-5: l'anno della fattura dipende dal fuso."
+
+[[strategie]]
+id = "ST-resilienza"
+tema = "resilienza"
+decisione = "Email inviate da una coda con 3 tentativi, backoff esponenziale e jitter; timeout di 10 s verso SMTP; nessun circuit breaker: un solo sistema esterno e non bloccante. Limite di 10 tentativi d'accesso al minuto per indirizzo IP."
+motivo = "MI-6; il guasto del servizio email non deve bloccare l'officina."
+
+[[strategie]]
+id = "ST-versionamento"
+tema = "versionamento"
+decisione = "API interna al frontend, versione nel percorso (/api/v1); nessuna API pubblica; un cambio incompatibile è un nuovo percorso."
+motivo = "Il frontend è l'unico consumatore."
+
+[[strategie]]
+id = "ST-migrazioni"
+tema = "migrazioni"
+decisione = "Migrazioni in avanti, solo additive in un rilascio (expand); le rimozioni in un rilascio successivo (contract), dopo che il codice non usa più la colonna."
+motivo = "Rollback del codice senza rollback dello schema."
+
+[[strategie]]
+id = "ST-qualita-codice"
+tema = "qualita-codice"
+decisione = "Trunk-based su main con rami brevi; Pint e PHPStan per il backend, ESLint, Prettier e vue-tsc per il frontend; Deptrac per i confini tra moduli."
+motivo = "RNF-6: un solo stile, confini verificati dalla build."
+adr = "ADR-0002"
+
+[[strategie]]
+id = "ST-ci-cd"
+tema = "ci-cd"
+decisione = "CI su GitHub Actions con i comandi del piano e i gate di supply chain; rilascio manuale su staging e poi produzione con lo stesso artefatto."
+motivo = "Un rilascio a settimana al massimo: l'automazione completa del deploy è rinviata con il debito di pubblicazione."
+
+[[strategie]]
+id = "ST-denaro"
+tema = "denaro"
+decisione = "Importi in interi di centesimi con la valuta; arrotondamento al centesimo per riga, metà per eccesso, solo nel motore dei prezzi (R-2)."
+motivo = "RNF-7: nessun numero in virgola mobile tocca il denaro."
+adr = "ADR-0004"
+
+[[strategie]]
+id = "ST-accessibilita"
+tema = "accessibilita"
+decisione = "WCAG 2.2 AA con frontend-craft: componenti del design system accessibili, nomi accessibili nel contratto UI, controllo automatico nei test d'interfaccia."
+motivo = "RNF-3."
+
+[[strategie]]
+id = "ST-identificatori"
+tema = "identificatori"
+decisione = "Chiavi primarie surrogate ULID per tutte le tabelle; i codici leggibili (codice dell'intervento, numero della fattura) sono colonne uniche a parte."
+motivo = "Id non indovinabili negli URL (MI-1) e ordinabili per tempo."
+
+[[strategie]]
+id = "ST-paginazione"
+tema = "paginazione"
+decisione = "Paginazione a cursore con i parametri cursore e limite, 25 elementi per default, 100 al massimo."
+motivo = "Nessuna lista illimitata; cursore stabile anche con inserimenti concorrenti."
+
+[[ambienti]]
+id = "locale"
+scopo = "Sviluppo e test, compresi gli agenti di parallel-build."
+ospitato = "Container locali: PostgreSQL e Mailpit."
+dati = "sintetici"
+accesso = "Solo lo sviluppatore."
+
+[[ambienti]]
+id = "staging"
+scopo = "Prova di rilascio, di ripristino e di carico."
+ospitato = "Lo stesso VPS, utente e database separati."
+dati = "sintetici"
+accesso = "Sviluppatore e responsabile."
+
+[[ambienti]]
+id = "produzione"
+scopo = "Esercizio."
+ospitato = "Il VPS dell'officina, dietro il proxy inverso del sito."
+dati = "reali"
+accesso = "Gli utenti di Officina; amministrazione solo allo sviluppatore."
+
+[[integrazioni]]
+sistema = "smtp"
+modulo = "accessi"
+protocollo = "SMTP con STARTTLS"
+timeout = "10 s"
+tentativi = "3, backoff esponenziale con jitter, dalla coda"
+idempotenza = "Un invito o un recupero ha un token: il reinvio dello stesso messaggio non crea un secondo token."
+guasto = "L'account resta invitato e il responsabile può reinviare l'invito; l'errore va nei log senza l'indirizzo email."
+ambiente_prova = "Mailpit in locale e in staging."

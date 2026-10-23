@@ -1,0 +1,35 @@
+# Macchine a stati: le transizioni elencate sono le sole ammesse; tutte le altre
+# sono vietate, e gli oracoli lo provano.
+
+[[macchine]]
+entita = "account"
+attributo = "stato"
+stati = ["invitato", "attivo", "bloccato"]
+iniziale = "invitato"
+transizioni = [
+  { da = "invitato", a = "attivo", evento = "attivazione dall'invito con una password valida", traccia = ["ACC-5"] },
+  { da = "attivo", a = "bloccato", evento = "quinto tentativo d'accesso fallito", traccia = ["ACC-1", "R-6"] },
+  { da = "bloccato", a = "attivo", evento = "sblocco", ruoli = ["responsabile"], traccia = ["ACC-7"] },
+]
+
+[[macchine]]
+entita = "intervento"
+attributo = "stato"
+stati = ["accettazione", "lavorazione", "chiuso"]
+iniziale = "accettazione"
+finali = ["chiuso"]
+transizioni = [
+  { da = "accettazione", a = "lavorazione", evento = "approvazione del preventivo", ruoli = ["responsabile"], traccia = ["INT-2"] },
+  { da = "lavorazione", a = "chiuso", evento = "chiusura a lavori finiti", ruoli = ["operatore", "responsabile"], guardia = "preventivo approvato (R-1)", traccia = ["INT-4"] },
+]
+
+[[macchine]]
+entita = "preventivo"
+attributo = "stato"
+stati = ["bozza", "approvato"]
+iniziale = "bozza"
+finali = ["approvato"]
+transizioni = [
+  { da = "bozza", a = "bozza", evento = "aggiunta di una riga", ruoli = ["operatore", "responsabile"], traccia = ["INT-5"] },
+  { da = "bozza", a = "approvato", evento = "approvazione", ruoli = ["responsabile"], guardia = "almeno una riga", traccia = ["INT-2"] },
+]

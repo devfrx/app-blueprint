@@ -1,0 +1,69 @@
+# Design system — direzione visiva con frontend-craft: sobria, da strumento di
+# lavoro, leggibile al banco e dal telefono. Token e componenti condivisi; lo
+# scheletro li porta nella shell dell'interfaccia.
+
+[token.colore]
+primario = "#1F4E79"
+primario-testo = "#FFFFFF"
+superficie = "#FFFFFF"
+sfondo = "#F4F6F8"
+testo = "#1B1F23"
+testo-secondario = "#4A5560"
+errore = "#B42318"
+successo = "#1E7B34"
+avviso = "#8A5A00"
+bordo = "#C9D1D9"
+
+[token.tipografia]
+famiglia = "system-ui, sans-serif"
+scala = ["0.875rem", "1rem", "1.25rem", "1.5rem", "2rem"]
+interlinea = "1.5"
+
+[token.spaziatura]
+scala = ["0.25rem", "0.5rem", "1rem", "1.5rem", "2rem", "3rem"]
+
+[token.forma]
+raggio = "6px"
+fuoco = "3px solid #1F4E79, con 2px di distanza"
+
+[[componenti]]
+nome = "Bottone"
+varianti = ["primario", "secondario", "pericolo"]
+stati = ["normale", "focus", "disabilitato", "in-attesa"]
+accessibilita = "Nome dal testo visibile; in attesa resta annunciato e non riattivabile; area minima 44 × 44 px."
+
+[[componenti]]
+nome = "CampoTesto"
+varianti = ["testo", "email", "password", "numero"]
+stati = ["normale", "focus", "errore", "disabilitato"]
+accessibilita = "Etichetta sempre visibile; l'errore collegato con aria-describedby e annunciato."
+
+[[componenti]]
+nome = "Tabella"
+varianti = ["elenco", "righe di documento"]
+stati = ["caricamento", "vuota", "errore", "piena"]
+accessibilita = "Intestazioni vere; su mobile diventa elenco di schede senza perdere l'ordine."
+
+[[componenti]]
+nome = "Avviso"
+varianti = ["errore", "successo", "avviso", "informazione"]
+stati = ["visibile"]
+accessibilita = "role=alert per gli errori, role=status per le conferme."
+
+[[componenti]]
+nome = "StatoVuoto"
+varianti = ["con azione", "senza azione"]
+stati = ["visibile"]
+accessibilita = "Testo e azione raggiungibili da tastiera."
+
+[[componenti]]
+nome = "BadgeStato"
+varianti = ["accettazione", "lavorazione", "chiuso", "bozza", "approvato"]
+stati = ["visibile"]
+accessibilita = "Lo stato è nel testo, non solo nel colore."
+
+[[componenti]]
+nome = "Paginazione"
+varianti = ["a cursore"]
+stati = ["normale", "in-attesa", "fine"]
+accessibilita = "Pagina successiva come bottone con nome esplicito."

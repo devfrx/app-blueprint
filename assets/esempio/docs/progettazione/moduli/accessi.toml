@@ -1,0 +1,60 @@
+# Progetto di dettaglio del modulo accessi (archetipo workflow, rischio alto).
+# Si specifica ciò che l'archetipo non decide: la struttura ripetuta (controller,
+# servizi, repository, test) la fissa l'esemplare in costruzione.
+modulo = "accessi"
+
+[[facciata]]
+operazione = "creaAccountInvitato"
+firma = "creaAccountInvitato(email: Email, ruolo: Ruolo): AccountId"
+semantica = "Crea l'account invitato e accoda l'email d'invito; con un account già esistente per l'email solleva account-esistente senza inviare nulla."
+errori = ["account-esistente", "validazione"]
+effetti = ["accoda l'invito per il servizio email"]
+traccia = ["ACC-2", "CLI-1"]
+
+[[componenti]]
+nome = "LimitatoreTentativi"
+responsabilita = "Conta i tentativi falliti per account e blocca al quinto; si azzera all'accesso riuscito o allo sblocco."
+traccia = ["R-6", "ACC-1", "ACC-7"]
+
+[[componenti]]
+nome = "GestoreToken"
+responsabilita = "Emette e consuma i token monouso d'invito (72 h) e di recupero (60 min); ne conserva solo l'impronta."
+traccia = ["ACC-3", "ACC-5", "MI-4"]
+
+[[componenti]]
+nome = "VerificaSecondoFattore"
+responsabilita = "Verifica i codici TOTP del responsabile e rifiuta quelli già usati nella stessa finestra."
+traccia = ["ACC-4"]
+
+[[pattern]]
+nome = "Coda per le email"
+problema = "Il servizio email può non rispondere, e l'officina non deve aspettarlo (ST-resilienza)."
+dove = "Invio di inviti e link di recupero: il modulo accoda, il worker invia con tentativi e backoff."
+
+[[algoritmi]]
+nome = "Confronto dei token"
+problema = "Un confronto che si ferma al primo carattere diverso rivela il token per tempi."
+soluzione = "Si confrontano le impronte SHA-256 dei token con un confronto a tempo costante."
+complessita = "O(1) per verifica: lunghezza fissa dell'impronta"
+traccia = ["MI-4"]
+
+[[transazioni]]
+operazione = "api:attivaAccount"
+confine = "Consumo del token, impostazione della password e cambio di stato in una sola transazione."
+isolamento = "read committed con blocco della riga del token"
+concorrenza = "Due attivazioni con lo stesso token: la seconda trova il token consumato e riceve link-non-valido."
+idempotenza = "Il token è monouso."
+
+[[porte]]
+nome = "invio-email"
+verso = "sistema:smtp"
+finto = "Un mittente finto in memoria nei test; Mailpit in locale e in staging."
+
+[sicurezza]
+asvs = 2
+requisiti = [
+  "Autenticazione: password di almeno 12 caratteri, nessuna rivelazione dell'esistenza dell'account (ACC-3), blocco dopo cinque tentativi (R-6).",
+  "Gestione delle sessioni: sessione lato server, rigenerata all'accesso, scadenza per inattività di 2 h.",
+  "Crittografia: segreti TOTP cifrati con APP_KEY; token conservati solo come impronta.",
+  "Log: nessuna email o token nei log, solo l'id dell'account.",
+]

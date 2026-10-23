@@ -1,0 +1,2314 @@
+# Catalogo delle voci dei gate — app-blueprint, metodo 3
+#
+# La fonte unica della checklist di fase. Il progetto non la copia: lo script
+# calcola dalla scheda (esposizione, criticità, inneschi) quali voci valgono,
+# quali sono rinviate nel debito di pubblicazione e quali non si applicano, e
+# legge in docs/progettazione/gate.toml solo le chiusure.
+#
+# Campi di una voce:
+#   id, fase, testo
+#   quando     condizione d'applicabilità (sintassi in references/profili.md)
+#   natura     "progetto" (difficile da invertire) | "esercizio" (operativa):
+#              con esposizione "pubblicabile" le voci di progetto valgono come
+#              per un'app pubblica, quelle di esercizio vanno nel debito di
+#              pubblicazione
+#   origine    "checklist" (testo della checklist di riferimento) |
+#              "adattata" (adattata al lavoro con agenti; il perché in "nota") |
+#              "metodo" (aggiunta dal metodo)
+#   dove       dove vive di solito l'evidenza
+#   legge      tipi di sorgente che servono per lavorarla (progetto.py fascio)
+#   dipende    voci che devono essere chiuse prima (frontiera)
+#   controllo  controlli dello script che devono passare per chiuderla
+#   skill      chi la esegue, se diverso dalla skill della fase
+
+versione = "3.0.0"
+
+# Gli inneschi: fatti che attivano voci a prescindere dal profilo. La
+# valutazione giuridica non sta qui: con dati personali o mercato UE entra
+# compliance-docs, e gli obblighi correnti si verificano al momento.
+[inneschi]
+ui = "L'app ha un'interfaccia utente."
+api-pubblica = "Espone API usate da terzi, oltre al proprio frontend."
+dati-personali = "Tratta dati personali di persone diverse dall'autore."
+dati-particolari = "Tratta categorie particolari di dati personali (salute, biometria, opinioni…) o dati di minori."
+denaro = "Muove o calcola denaro: pagamenti, saldi, fatture, prezzi con conseguenze economiche."
+integrazioni = "Dialoga con sistemi esterni (servizi, API di terzi, posta, pagamenti)."
+migrazione-dati = "Importa dati da un sistema o da archivi esistenti."
+ia = "Contiene funzionalità basate su modelli di intelligenza artificiale."
+mercato-ue = "È messa a disposizione sul mercato UE nell'ambito di un'attività commerciale, anche gratuita: rientra nel Cyber Resilience Act."
+commissionato = "È sviluppata per un committente, o acquistata: contratto, proprietà intellettuale, accettazione, livelli di servizio."
+multitenant = "Serve più organizzazioni isolate nello stesso sistema."
+
+[[fasi]]
+numero = 0
+nome = "Precondizioni"
+skill = "app-blueprint"
+gate = "Il repo conserva il lavoro, i sotto-agenti vedono ciò che è committato e hanno le skill giuste."
+
+[[fasi]]
+numero = 1
+nome = "Avvio, analisi del problema e fattibilità"
+skill = "app-blueprint"
+gate = "C'è una decisione formale di procedere, fondata su obiettivi misurabili e su un perimetro scritto."
+
+[[fasi]]
+numero = 2
+nome = "Ingegneria dei requisiti"
+skill = "app-blueprint"
+gate = "I requisiti di tutte le funzionalità sono inventariati, quelli dell'incremento corrente prioritizzati, verificabili e approvati."
+
+[[fasi]]
+numero = 3
+nome = "Analisi e modellazione del dominio"
+skill = "app-blueprint"
+gate = "Il modello spiega tutte le funzionalità senza contraddizioni e l'utente lo riconosce come proprio."
+
+[[fasi]]
+numero = 4
+nome = "Progettazione architetturale"
+skill = "app-blueprint"
+gate = "Ogni attributo di qualità prioritario ha una decisione che lo indirizza e un modo per verificarlo; i rischi tecnici maggiori sono ridotti o accettati."
+
+[[fasi]]
+numero = 5
+nome = "Progettazione di dettaglio"
+skill = "app-blueprint"
+gate = "Ogni requisito in scope è assegnato a un modulo e i contratti sono abbastanza stabili per sviluppare in parallelo."
+
+[[fasi]]
+numero = 6
+nome = "Progettazione UX/UI"
+skill = "app-blueprint"
+gate = "I flussi prioritari reggono la revisione di usabilità del profilo e rispettano i criteri di accessibilità. Corre intrecciata alle fasi 2–5."
+
+[[fasi]]
+numero = 7
+nome = "Pianificazione della realizzazione"
+skill = "app-blueprint"
+gate = "Il progetto è congelato con il piano validato, e un walking skeleton gira end-to-end in un ambiente simile alla produzione."
+
+[[fasi]]
+numero = 8
+nome = "Implementazione"
+skill = "parallel-build"
+gate = "Ogni task del perimetro ha superato la DoD di incremento e i controlli sull'intera base di codice sono verdi."
+
+[[fasi]]
+numero = 9
+nome = "Integrazione"
+skill = "parallel-build"
+gate = "Il sistema integrato si installa e funziona in un ambiente di test simile alla produzione."
+
+[[fasi]]
+numero = 10
+nome = "Verifica"
+skill = "parallel-build"
+gate = "I criteri di uscita della strategia di test sono soddisfatti e nessun difetto bloccante è aperto."
+
+[[fasi]]
+numero = 11
+nome = "Validazione e accettazione"
+skill = "parallel-build"
+gate = "L'utente accetta formalmente e, se previsto dal profilo, chi gestirà il sistema dà il via libera operativo."
+
+[[fasi]]
+numero = 12
+nome = "Rilascio e transizione in esercizio"
+skill = "parallel-build"
+gate = "L'app è rilasciata secondo il profilo; con un'esposizione pubblica, a fine hypercare le metriche sono stabili e non ci sono incidenti bloccanti aperti."
+
+[[fasi]]
+numero = 13
+nome = "Esercizio (periodica)"
+skill = "fuori-catena"
+gate = "A ogni controllo periodico gli SLO risultano rispettati entro l'error budget."
+
+[[fasi]]
+numero = 14
+nome = "Manutenzione ed evoluzione (periodica)"
+skill = "fuori-catena"
+gate = "Ogni modifica supera, in scala ridotta, i gate delle fasi che tocca."
+
+[[fasi]]
+numero = 15
+nome = "Dismissione"
+skill = "fuori-catena"
+gate = "Nessun dato orfano, nessun accesso residuo, nessun costo residuo."
+
+# ---------------------------------------------------------------------------
+# 0. Precondizioni
+# ---------------------------------------------------------------------------
+
+[[voci]]
+id = "0.01"
+fase = 0
+testo = "Repo git con il branch d'integrazione attivo; in un ambiente effimero il lavoro si pusha a ogni chiusura, con il permesso dell'utente"
+quando = "sempre"
+natura = "progetto"
+origine = "metodo"
+dove = "git"
+
+[[voci]]
+id = "0.02"
+fase = 0
+testo = "`.build/` esclusa da git, `.claude/worktrees/` ignorata, `worktree.baseRef` impostato a \"head\""
+quando = "sempre"
+natura = "progetto"
+origine = "metodo"
+dove = ".git/info/exclude, .gitignore, .claude/settings.json"
+dipende = ["0.01"]
+
+[[voci]]
+id = "0.03"
+fase = 0
+testo = "Agenti installati in `.claude/agents/` e provati con la sonda, oppure ripiego dichiarato"
+quando = "sempre"
+natura = "progetto"
+origine = "metodo"
+dove = ".claude/agents/"
+dipende = ["0.02"]
+
+[[voci]]
+id = "0.04"
+fase = 0
+testo = "Convenzioni del repo rilevate: percorsi e formati già in uso per ADR, design e contratti"
+quando = "sempre"
+natura = "progetto"
+origine = "metodo"
+dove = "stato.toml"
+
+[[voci]]
+id = "0.05"
+fase = 0
+testo = "Stato della progettazione inizializzato: stato.toml, gate.toml e registri.toml dall'esempio, senza congelamento"
+quando = "sempre"
+natura = "progetto"
+origine = "metodo"
+dove = "docs/progettazione/"
+dipende = ["0.01"]
+controllo = ["stato"]
+
+# ---------------------------------------------------------------------------
+# 1. Avvio, analisi del problema e fattibilità
+# ---------------------------------------------------------------------------
+
+[[voci]]
+id = "1.01"
+fase = 1
+testo = "Problema descritto senza riferimenti a una soluzione"
+quando = "sempre"
+natura = "progetto"
+origine = "checklist"
+dove = "prodotto/visione.md, sezione Problema"
+controllo = ["visione"]
+
+[[voci]]
+id = "1.02"
+fase = 1
+testo = "Obiettivi misurabili, ciascuno con metrica e valore atteso"
+quando = "sempre"
+natura = "progetto"
+origine = "checklist"
+dove = "prodotto/prodotto.toml [[obiettivi]]"
+dipende = ["1.01"]
+controllo = ["obiettivi"]
+
+[[voci]]
+id = "1.03"
+fase = 1
+testo = "Stakeholder identificati, inclusi esercizio, sicurezza e legale, con interesse e influenza"
+quando = "sempre"
+natura = "progetto"
+origine = "checklist"
+dove = "prodotto/prodotto.toml [[stakeholder]]"
+controllo = ["stakeholder"]
+
+[[voci]]
+id = "1.04"
+fase = 1
+testo = "Contesto analizzato: processi attuali, sistemi da integrare, soluzioni esistenti"
+quando = "sempre"
+natura = "progetto"
+origine = "checklist"
+dove = "prodotto/visione.md, sezione Contesto; prodotto/prodotto.toml [[sistemi]]"
+legge = ["stakeholder"]
+controllo = ["visione", "sistemi"]
+
+[[voci]]
+id = "1.05"
+fase = 1
+testo = "Fattibilità valutata su tutti gli assi: tecnica, economica (sviluppo ed esercizio), operativa, legale, temporale"
+quando = "sempre"
+natura = "progetto"
+origine = "checklist"
+dove = "prodotto/prodotto.toml [fattibilita]; il ragionamento in prodotto/visione.md"
+legge = ["obiettivi", "vincoli", "sistemi"]
+dipende = ["1.02", "1.09"]
+controllo = ["fattibilita"]
+
+[[voci]]
+id = "1.06"
+fase = 1
+testo = "Alternative make, buy, riuso e SaaS confrontate, con la scelta motivata"
+quando = "sempre"
+natura = "progetto"
+origine = "checklist"
+dove = "un ADR"
+legge = ["obiettivi", "vincoli"]
+dipende = ["1.02"]
+controllo = ["adr"]
+
+[[voci]]
+id = "1.07"
+fase = 1
+testo = "Se commissionato o acquistato: contratto, proprietà intellettuale, criteri di accettazione e livelli di servizio definiti"
+quando = "innesco commissionato"
+natura = "progetto"
+origine = "checklist"
+dove = "prodotto/visione.md, sezione Committenza"
+
+[[voci]]
+id = "1.08"
+fase = 1
+testo = "Scope e non-scope scritti"
+quando = "sempre"
+natura = "progetto"
+origine = "checklist"
+dove = "prodotto/visione.md, sezione Perimetro; prodotto/prodotto.toml [[non_obiettivi]]"
+dipende = ["1.02"]
+controllo = ["non-obiettivi"]
+
+[[voci]]
+id = "1.09"
+fase = 1
+testo = "Vincoli raccolti: budget, scadenze, tecnologie imposte, competenze disponibili"
+quando = "sempre"
+natura = "progetto"
+origine = "checklist"
+dove = "prodotto/prodotto.toml [[vincoli]]"
+controllo = ["vincoli"]
+
+[[voci]]
+id = "1.10"
+fase = 1
+testo = "Registro dei rischi aperto con i rischi iniziali"
+quando = "sempre"
+natura = "progetto"
+origine = "checklist"
+dove = "registri.toml [[rischi]]"
+controllo = ["rischi"]
+
+[[voci]]
+id = "1.11"
+fase = 1
+testo = "Stima d'ordine di grandezza, con l'incertezza dichiarata"
+quando = "sempre"
+natura = "progetto"
+origine = "adattata"
+nota = "Si stima in funzionalità, moduli, incrementi e sessioni di progettazione e costruzione, non in giorni-persona: costruiscono agenti."
+dove = "prodotto/prodotto.toml [stima]"
+legge = ["obiettivi", "vincoli"]
+dipende = ["1.08"]
+controllo = ["stima"]
+
+[[voci]]
+id = "1.12"
+fase = 1
+testo = "Decisione go/no-go registrata"
+quando = "sempre"
+natura = "progetto"
+origine = "checklist"
+dove = "stato.toml, registro della fase 1"
+dipende = ["1.05", "1.06", "1.08", "1.10", "1.11", "1.13", "1.14"]
+
+[[voci]]
+id = "1.13"
+fase = 1
+testo = "Scheda compilata: esposizione, criticità, inneschi, modello di processo"
+quando = "sempre"
+natura = "progetto"
+origine = "metodo"
+dove = "stato.toml [scheda]"
+dipende = ["1.01", "1.03", "1.04"]
+controllo = ["stato"]
+
+[[voci]]
+id = "1.14"
+fase = 1
+testo = "Verdetto d'ingresso espresso: nebbia, fuori-metodo, incremento-unico o incrementi"
+quando = "sempre"
+natura = "progetto"
+origine = "metodo"
+dove = "stato.toml [scheda].verdetto"
+dipende = ["1.08", "1.11"]
+controllo = ["stato"]
+
+# ---------------------------------------------------------------------------
+# 2. Ingegneria dei requisiti
+# ---------------------------------------------------------------------------
+
+[[voci]]
+id = "2.01"
+fase = 2
+testo = "Requisiti raccolti da tutti gli stakeholder rilevanti, con tecniche adatte al contesto"
+quando = "sempre"
+natura = "progetto"
+origine = "checklist"
+dove = "il campo fonte di storie, RNF e requisiti sui dati"
+legge = ["stakeholder"]
+controllo = ["fonti"]
+
+[[voci]]
+id = "2.02"
+fase = 2
+testo = "Requisiti funzionali specificati come user story con criteri di accettazione: l'inventario copre tutte le funzionalità di tutti gli incrementi, i criteri quelle dell'incremento corrente"
+quando = "sempre"
+natura = "progetto"
+origine = "adattata"
+nota = "Si sceglie la user story con criteri dato/quando/allora perché diventa test eseguibile; l'inventario completo è ciò che permette di progettare gli schemi con tutte le funzionalità davanti."
+dove = "requisiti/storie*.toml"
+legge = ["stakeholder", "non_obiettivi", "aree"]
+dipende = ["2.13"]
+controllo = ["storie"]
+
+[[voci]]
+id = "2.03"
+fase = 2
+testo = "Le nove caratteristiche di qualità della ISO/IEC 25010:2023 passate in rassegna; quelle rilevanti scelte e motivate"
+quando = "sempre"
+natura = "progetto"
+origine = "checklist"
+dove = "requisiti/requisiti.toml [[qualita]]"
+legge = ["obiettivi", "vincoli"]
+controllo = ["qualita"]
+
+[[voci]]
+id = "2.04"
+fase = 2
+testo = "Ogni requisito non funzionale quantificato con uno scenario misurabile: stimolo, contesto, risposta, misura"
+quando = "sempre"
+natura = "progetto"
+origine = "checklist"
+dove = "requisiti/requisiti.toml [[rnf]]"
+legge = ["qualita", "assunzioni"]
+dipende = ["2.03"]
+controllo = ["rnf"]
+
+[[voci]]
+id = "2.05"
+fase = 2
+testo = "Vincoli, interfacce e requisiti sui dati documentati (volumi, crescita, conservazione, qualità)"
+quando = "sempre"
+natura = "progetto"
+origine = "checklist"
+dove = "prodotto/prodotto.toml [[vincoli]] e [[sistemi]]; requisiti/requisiti.toml [[requisiti_dati]]"
+legge = ["vincoli", "sistemi", "glossario"]
+controllo = ["requisiti-dati"]
+
+[[voci]]
+id = "2.06"
+fase = 2
+testo = "Requisiti di conformità identificati: privacy (GDPR), accessibilità, sicurezza dei prodotti (Cyber Resilience Act), IA (AI Act), norme di settore"
+quando = "sempre"
+natura = "progetto"
+origine = "checklist"
+dove = "prodotto/prodotto.toml [[vincoli]] di tipo conformità; con dati personali, compliance-docs"
+legge = ["scheda", "vincoli"]
+controllo = ["conformita"]
+
+[[voci]]
+id = "2.07"
+fase = 2
+testo = "Ogni requisito necessario, non ambiguo, singolo, verificabile, coerente e fattibile"
+quando = "sempre"
+natura = "progetto"
+origine = "checklist"
+dove = "registri.toml [[revisioni]] di tipo requisiti, svolta da un reviewer"
+dipende = ["2.02", "2.04", "2.05"]
+controllo = ["revisione:requisiti"]
+
+[[voci]]
+id = "2.08"
+fase = 2
+testo = "Conflitti tra stakeholder risolti e registrati"
+quando = "esposizione >= pubblicabile o innesco commissionato"
+natura = "progetto"
+origine = "checklist"
+dove = "requisiti/requisiti.toml [[conflitti]]"
+legge = ["stakeholder"]
+dipende = ["2.02"]
+
+[[voci]]
+id = "2.09"
+fase = 2
+testo = "Priorità assegnate con un metodo esplicito"
+quando = "sempre"
+natura = "progetto"
+origine = "checklist"
+dove = "requisiti/requisiti.toml metodo_priorita; il campo priorita delle storie"
+dipende = ["2.02"]
+controllo = ["storie"]
+
+[[voci]]
+id = "2.10"
+fase = 2
+testo = "Requisiti validati con gli stakeholder tramite revisione, prototipo o walkthrough"
+quando = "sempre"
+natura = "progetto"
+origine = "checklist"
+dove = "registri.toml [[revisioni]] di tipo validazione"
+dipende = ["2.07"]
+controllo = ["revisione:validazione"]
+
+[[voci]]
+id = "2.11"
+fase = 2
+testo = "Baseline e procedura di gestione delle modifiche definite"
+quando = "sempre"
+natura = "progetto"
+origine = "adattata"
+nota = "La baseline è il tag del gate; la procedura è quella di references/gate.md, uguale per tutti i progetti."
+dove = "tag progettazione/fase-2"
+
+[[voci]]
+id = "2.12"
+fase = 2
+testo = "Matrice di tracciabilità avviata"
+quando = "sempre"
+natura = "progetto"
+origine = "adattata"
+nota = "Non si scrive: è una vista generata dalle tracce, quindi non può divergere dalle sorgenti."
+dove = "viste/tracciabilita.md"
+controllo = ["viste"]
+
+[[voci]]
+id = "2.13"
+fase = 2
+testo = "Glossario condiviso"
+quando = "sempre"
+natura = "progetto"
+origine = "checklist"
+dove = "dominio/glossario.toml"
+controllo = ["glossario"]
+
+[[voci]]
+id = "2.14"
+fase = 2
+testo = "Funzionalità trasversali passate in rassegna, ognuna con le sue storie o tra i non-obiettivi"
+quando = "sempre"
+natura = "progetto"
+origine = "metodo"
+dove = "requisiti/requisiti.toml [trasversali]"
+legge = ["storie", "non_obiettivi"]
+dipende = ["2.02"]
+controllo = ["trasversali"]
+
+[[voci]]
+id = "2.15"
+fase = 2
+testo = "Percorsi critici individuati: le sequenze di storie che, se si rompono, rendono l'app inutile"
+quando = "sempre"
+natura = "progetto"
+origine = "metodo"
+dove = "requisiti/requisiti.toml [[percorsi]]"
+legge = ["storie"]
+dipende = ["2.02"]
+controllo = ["percorsi"]
+
+# ---------------------------------------------------------------------------
+# 3. Analisi e modellazione del dominio
+# ---------------------------------------------------------------------------
+
+[[voci]]
+id = "3.01"
+fase = 3
+testo = "Modello di dominio con concetti, relazioni, invarianti e regole di business"
+quando = "sempre"
+natura = "progetto"
+origine = "checklist"
+dove = "dominio/entita.toml; dominio/regole.toml"
+legge = ["glossario", "storie", "requisiti_dati"]
+dipende = ["3.03"]
+controllo = ["regole"]
+
+[[voci]]
+id = "3.02"
+fase = 3
+testo = "Linguaggio ubiquo allineato al glossario e usato sia dai tecnici sia dagli esperti"
+quando = "sempre"
+natura = "progetto"
+origine = "checklist"
+dove = "dominio/glossario.toml; il campo termine delle entità"
+dipende = ["3.07"]
+controllo = ["glossario"]
+
+[[voci]]
+id = "3.03"
+fase = 3
+testo = "Sottodomini classificati (core, di supporto, generici) e bounded context individuati: ogni bounded context è un modulo"
+quando = "sempre"
+natura = "progetto"
+origine = "adattata"
+nota = "Il metodo fa coincidere bounded context e modulo: un solo confine da progettare, possedere e verificare."
+dove = "dominio/moduli.toml [[sottodomini]] e [[moduli]]"
+legge = ["glossario", "storie"]
+controllo = ["moduli"]
+
+[[voci]]
+id = "3.04"
+fase = 3
+testo = "Context map delle relazioni tra i contesti"
+quando = "sempre"
+natura = "progetto"
+origine = "checklist"
+dove = "dominio/moduli.toml [[dipendenze]]; vista viste/moduli.md"
+legge = ["moduli"]
+dipende = ["3.03"]
+controllo = ["moduli"]
+
+[[voci]]
+id = "3.05"
+fase = 3
+testo = "Processi principali modellati: casi d'uso, diagrammi di attività o Event Storming"
+quando = "sempre"
+natura = "progetto"
+origine = "checklist"
+dove = "dominio/processi/*.md"
+legge = ["storie", "percorsi", "glossario"]
+controllo = ["processi"]
+
+[[voci]]
+id = "3.06"
+fase = 3
+testo = "Ogni entità con un ciclo di vita modellata come macchina a stati, con transizioni ammesse e vietate"
+quando = "sempre"
+natura = "progetto"
+origine = "checklist"
+dove = "dominio/stati.toml; vista viste/stati.md"
+legge = ["entita", "storie", "regole"]
+dipende = ["3.07"]
+controllo = ["macchine"]
+
+[[voci]]
+id = "3.07"
+fase = 3
+testo = "Modello concettuale dei dati, indipendente dalla tecnologia: entità, attributi, identificatori, generalizzazioni, relazioni con cardinalità, dizionario dei dati"
+quando = "sempre"
+natura = "progetto"
+origine = "adattata"
+nota = "Esplicitati gli elementi dello schema E/R classico, così la traduzione logica della fase 5 non deve inventare nulla."
+dove = "dominio/entita.toml; vista viste/er-concettuale.md"
+legge = ["glossario", "storie", "requisiti_dati", "regole", "moduli"]
+dipende = ["3.03"]
+controllo = ["entita", "relazioni"]
+
+[[voci]]
+id = "3.08"
+fase = 3
+testo = "Casi limite ed eccezioni di business documentati"
+quando = "sempre"
+natura = "progetto"
+origine = "checklist"
+dove = "dominio/regole.toml, tipo eccezione; i criteri d'errore delle storie"
+legge = ["regole", "storie"]
+dipende = ["3.07"]
+controllo = ["regole"]
+
+[[voci]]
+id = "3.09"
+fase = 3
+testo = "Modello provato su tutte le storie, senza contraddizioni"
+quando = "sempre"
+natura = "progetto"
+origine = "adattata"
+nota = "Su tutte le storie dell'inventario, non solo sulle prioritarie: è la condizione perché gli schemi reggano le funzionalità future."
+dove = "il campo entita di ogni storia; registri.toml [[revisioni]] di tipo walkthrough"
+legge = ["storie", "entita", "relazioni", "macchine"]
+dipende = ["3.06", "3.07", "3.08"]
+controllo = ["storie-entita", "revisione:walkthrough"]
+
+[[voci]]
+id = "3.10"
+fase = 3
+testo = "Modello rivisto e approvato dagli esperti di dominio"
+quando = "sempre"
+natura = "progetto"
+origine = "checklist"
+dove = "registri.toml [[revisioni]] di tipo dominio; l'approvazione del gate"
+dipende = ["3.09"]
+controllo = ["revisione:dominio"]
+
+# ---------------------------------------------------------------------------
+# 4. Progettazione architetturale
+# ---------------------------------------------------------------------------
+
+[[voci]]
+id = "4.01"
+fase = 4
+testo = "Driver architetturali elencati: funzionalità chiave, attributi di qualità prioritari, vincoli"
+quando = "sempre"
+natura = "progetto"
+origine = "checklist"
+dove = "architettura/architettura.toml [[driver]]"
+legge = ["rnf", "qualita", "vincoli", "percorsi"]
+controllo = ["driver"]
+
+[[voci]]
+id = "4.02"
+fase = 4
+testo = "Stile architetturale scelto, con i compromessi accettati scritti"
+quando = "sempre"
+natura = "progetto"
+origine = "checklist"
+dove = "un ADR"
+legge = ["driver", "moduli"]
+dipende = ["4.01"]
+controllo = ["adr"]
+
+[[voci]]
+id = "4.03"
+fase = 4
+testo = "Componenti definiti con responsabilità, proprietà esclusiva dei dati e dipendenze in una sola direzione"
+quando = "sempre"
+natura = "progetto"
+origine = "checklist"
+dove = "dominio/moduli.toml: archetipo, rischio e [[dipendenze]]; il campo modulo delle entità"
+legge = ["moduli", "entita", "storie"]
+dipende = ["4.02"]
+controllo = ["moduli", "proprietari"]
+
+[[voci]]
+id = "4.04"
+fase = 4
+testo = "Interfacce e contratti tra componenti definiti: sincroni o asincroni, formati, versioning"
+quando = "sempre"
+natura = "progetto"
+origine = "checklist"
+dove = "dominio/moduli.toml [[dipendenze]] campo comunicazione; strategia ST-versionamento"
+legge = ["moduli", "strategie"]
+dipende = ["4.03"]
+controllo = ["moduli", "strategie"]
+
+[[voci]]
+id = "4.05"
+fase = 4
+testo = "Architettura dei dati definita: storage per ogni bisogno, modello di consistenza, partizionamento, replica, conservazione"
+quando = "sempre"
+natura = "progetto"
+origine = "checklist"
+dove = "strategia ST-dati; un ADR se difficile da invertire"
+legge = ["requisiti_dati", "rnf", "entita"]
+dipende = ["4.02"]
+controllo = ["strategie"]
+
+[[voci]]
+id = "4.06"
+fase = 4
+testo = "Obiettivi RPO e RTO fissati, con una strategia di backup coerente"
+quando = "sempre"
+natura = "progetto"
+origine = "checklist"
+dove = "un RNF di affidabilità; strategia ST-backup"
+legge = ["rnf", "requisiti_dati"]
+dipende = ["4.05"]
+controllo = ["strategie"]
+
+[[voci]]
+id = "4.07"
+fase = 4
+testo = "Integrazioni esterne definite, incluso il comportamento quando il sistema esterno non risponde"
+quando = "innesco integrazioni"
+natura = "progetto"
+origine = "checklist"
+dove = "architettura/architettura.toml [[integrazioni]]"
+legge = ["sistemi", "moduli"]
+dipende = ["4.03"]
+controllo = ["integrazioni"]
+
+[[voci]]
+id = "4.08"
+fase = 4
+testo = "Strategie trasversali decise: autenticazione e autorizzazione, errori, osservabilità, configurazione, caching, concorrenza, segreti, audit, internazionalizzazione"
+quando = "sempre"
+natura = "progetto"
+origine = "checklist"
+dove = "architettura/architettura.toml [[strategie]]"
+legge = ["rnf", "vincoli", "moduli"]
+dipende = ["4.02"]
+controllo = ["strategie"]
+
+[[voci]]
+id = "4.09"
+fase = 4
+testo = "Meccanismi di resilienza scelti: timeout, retry con backoff e jitter, circuit breaker, idempotenza, degrado controllato"
+quando = "sempre"
+natura = "progetto"
+origine = "checklist"
+dove = "strategia ST-resilienza; [[integrazioni]]"
+legge = ["integrazioni", "rnf"]
+dipende = ["4.08"]
+controllo = ["strategie"]
+
+[[voci]]
+id = "4.10"
+fase = 4
+testo = "Vista di deployment: ambienti, infrastruttura, rete, scalabilità, infrastruttura come codice"
+quando = "sempre"
+natura = "progetto"
+origine = "checklist"
+dove = "architettura/architettura.toml [[ambienti]]; architettura/architettura.md"
+legge = ["vincoli", "rnf"]
+dipende = ["4.02"]
+controllo = ["ambienti"]
+
+[[voci]]
+id = "4.11"
+fase = 4
+testo = "Threat model su flussi di dati e confini di fiducia, con le contromisure"
+quando = "sempre"
+natura = "progetto"
+origine = "checklist"
+dove = "architettura/minacce.toml"
+legge = ["stakeholder", "moduli", "sistemi", "percorsi", "entita"]
+dipende = ["4.03"]
+controllo = ["minacce"]
+
+[[voci]]
+id = "4.12"
+fase = 4
+testo = "Analisi quantitative svolte: capacità, prestazioni, costi infrastrutturali, affidabilità"
+quando = "esposizione >= pubblicabile o criticita >= alta"
+natura = "progetto"
+origine = "checklist"
+dove = "architettura/analisi.md"
+legge = ["rnf", "requisiti_dati", "ambienti"]
+dipende = ["4.10"]
+controllo = ["analisi"]
+
+[[voci]]
+id = "4.13"
+fase = 4
+testo = "Tecnologie scelte su criteri espliciti: maturità, supporto e licenza, competenze, lock-in, costo totale"
+quando = "sempre"
+natura = "progetto"
+origine = "checklist"
+dove = "ADR dello stack; registri.toml [[deperibili]]"
+legge = ["vincoli", "driver"]
+dipende = ["4.02"]
+controllo = ["adr", "deperibili"]
+
+[[voci]]
+id = "4.14"
+fase = 4
+testo = "Incognite principali ridotte con spike o proof of concept, con gli esiti documentati"
+quando = "sempre"
+natura = "progetto"
+origine = "checklist"
+dove = "registri.toml [[domande]] con criterio; l'esito nell'ADR che ne dipendeva"
+legge = ["domande"]
+dipende = ["4.13"]
+controllo = ["domande"]
+
+[[voci]]
+id = "4.15"
+fase = 4
+testo = "Architettura valutata contro gli scenari di qualità con una revisione strutturata (es. ATAM)"
+quando = "esposizione >= pubblicabile o criticita >= media"
+natura = "progetto"
+origine = "checklist"
+dove = "architettura/valutazione.md; registri.toml [[revisioni]] di tipo architettura"
+legge = ["rnf", "driver", "strategie", "adr"]
+dipende = ["4.16"]
+controllo = ["valutazione", "revisione:architettura"]
+
+[[voci]]
+id = "4.16"
+fase = 4
+testo = "Ogni attributo di qualità prioritario ha almeno una decisione che lo indirizza e un modo per verificarlo"
+quando = "sempre"
+natura = "progetto"
+origine = "checklist"
+dove = "i campi indirizzato_da e prova degli RNF"
+legge = ["rnf", "qualita", "strategie"]
+dipende = ["4.08", "4.13"]
+controllo = ["rnf-indirizzati"]
+
+[[voci]]
+id = "4.17"
+fase = 4
+testo = "Un ADR per ogni decisione significativa: contesto, alternative, scelta, conseguenze"
+quando = "sempre"
+natura = "progetto"
+origine = "checklist"
+dove = "docs/adr/"
+controllo = ["adr"]
+
+[[voci]]
+id = "4.18"
+fase = 4
+testo = "Diagrammi (C4 o 4+1) versionati come testo accanto al codice"
+quando = "sempre"
+natura = "progetto"
+origine = "adattata"
+nota = "Contesto e dipendenze tra moduli si generano; container e deployment si disegnano in architettura/architettura.md."
+dove = "architettura/architettura.md; viste/contesto.md, viste/moduli.md"
+dipende = ["4.10"]
+controllo = ["architettura-md", "viste"]
+
+[[voci]]
+id = "4.19"
+fase = 4
+testo = "Rischi tecnici residui accettati esplicitamente, ciascuno con un responsabile"
+quando = "sempre"
+natura = "progetto"
+origine = "checklist"
+dove = "registri.toml [[rischi]] di tipo tecnico"
+dipende = ["4.15", "4.16"]
+controllo = ["rischi"]
+
+# ---------------------------------------------------------------------------
+# 5. Progettazione di dettaglio
+# ---------------------------------------------------------------------------
+
+[[voci]]
+id = "5.01"
+fase = 5
+testo = "Ogni requisito in scope assegnato a un componente"
+quando = "sempre"
+natura = "progetto"
+origine = "checklist"
+dove = "i campi modulo e tocca delle storie"
+legge = ["storie", "moduli"]
+controllo = ["storie-moduli"]
+
+[[voci]]
+id = "5.02"
+fase = 5
+testo = "Responsabilità interne dei componenti definite: alta coesione, basso accoppiamento, information hiding"
+quando = "sempre"
+natura = "progetto"
+origine = "adattata"
+nota = "Si specifica ciò che l'archetipo non decide: la struttura ripetuta la fissa l'esemplare in costruzione."
+dove = "moduli/<modulo>.toml [[componenti]]"
+legge = ["moduli", "storie", "regole", "entita"]
+dipende = ["5.01"]
+controllo = ["dettaglio"]
+
+[[voci]]
+id = "5.03"
+fase = 5
+testo = "Pattern usati solo dove risolvono un problema presente, con il motivo scritto"
+quando = "sempre"
+natura = "progetto"
+origine = "checklist"
+dove = "moduli/<modulo>.toml [[pattern]]"
+dipende = ["5.02"]
+controllo = ["dettaglio"]
+
+[[voci]]
+id = "5.04"
+fase = 5
+testo = "Algoritmi e strutture dati scelti, con la complessità valutata sui volumi previsti"
+quando = "sempre"
+natura = "progetto"
+origine = "checklist"
+dove = "moduli/<modulo>.toml [[algoritmi]]"
+legge = ["volumi", "regole"]
+dipende = ["5.02", "5.05.1"]
+controllo = ["dettaglio"]
+
+[[voci]]
+id = "5.05.1"
+fase = 5
+testo = "Tavola dei volumi: entità e relazioni con il numero stimato di istanze e la crescita"
+quando = "sempre"
+natura = "progetto"
+origine = "metodo"
+dove = "dati/dati.toml [[volumi]]"
+legge = ["entita", "relazioni", "requisiti_dati"]
+controllo = ["volumi"]
+
+[[voci]]
+id = "5.05.2"
+fase = 5
+testo = "Tavola degli accessi: per ogni operazione frequente, frequenza, concetti attraversati, letture e scritture"
+quando = "sempre"
+natura = "progetto"
+origine = "metodo"
+dove = "dati/dati.toml [[accessi]]"
+legge = ["storie", "percorsi", "rnf", "entita", "relazioni", "volumi"]
+dipende = ["5.05.1"]
+controllo = ["accessi"]
+
+[[voci]]
+id = "5.05.3"
+fase = 5
+testo = "Ristrutturazione dello schema concettuale: ridondanze, generalizzazioni, partizionamenti e accorpamenti, identificatori principali, decisi sui numeri delle tavole"
+quando = "sempre"
+natura = "progetto"
+origine = "metodo"
+dove = "dati/dati.toml [[ristrutturazione]]"
+legge = ["entita", "relazioni", "volumi", "accessi"]
+dipende = ["5.05.2"]
+controllo = ["ristrutturazione"]
+
+[[voci]]
+id = "5.05.4"
+fase = 5
+testo = "Traduzione nel modello logico e normalizzazione, con ogni denormalizzazione motivata"
+quando = "sempre"
+natura = "progetto"
+origine = "metodo"
+dove = "contracts/schema.toml; vista viste/er-logico.md"
+legge = ["entita", "relazioni", "ristrutturazione"]
+dipende = ["5.05.3"]
+controllo = ["schema"]
+
+[[voci]]
+id = "5.05"
+fase = 5
+testo = "Schema dati logico e fisico: chiavi, vincoli di integrità, indici derivati dalle query reali"
+quando = "sempre"
+natura = "progetto"
+origine = "checklist"
+dove = "contracts/schema.toml"
+legge = ["tabelle", "accessi"]
+dipende = ["5.05.4"]
+controllo = ["schema", "indici"]
+
+[[voci]]
+id = "5.06"
+fase = 5
+testo = "Migrazioni di schema compatibili con il rilascio progressivo (expand/contract)"
+quando = "sempre"
+natura = "progetto"
+origine = "checklist"
+dove = "strategia ST-migrazioni"
+dipende = ["5.05"]
+controllo = ["strategie"]
+
+[[voci]]
+id = "5.07"
+fase = 5
+testo = "Contratti API formalizzati (OpenAPI o AsyncAPI): errori, paginazione, idempotenza, versioning, limiti di frequenza"
+quando = "sempre"
+natura = "progetto"
+origine = "checklist"
+dove = "contracts/openapi.json, contracts/asyncapi.json"
+legge = ["storie", "moduli", "tabelle", "errori", "strategie"]
+dipende = ["5.01", "5.09"]
+controllo = ["api"]
+
+[[voci]]
+id = "5.08"
+fase = 5
+testo = "Flussi critici descritti con diagrammi di sequenza"
+quando = "sempre"
+natura = "progetto"
+origine = "checklist"
+dove = "sequenze/<percorso>.md"
+legge = ["percorsi", "api", "dettaglio"]
+dipende = ["5.07"]
+controllo = ["sequenze"]
+
+[[voci]]
+id = "5.09"
+fase = 5
+testo = "Tassonomia degli errori: cosa si recupera, cosa si propaga, cosa vede l'utente, cosa si registra"
+quando = "sempre"
+natura = "progetto"
+origine = "checklist"
+dove = "contracts/errori.toml; strategia ST-errori"
+legge = ["storie", "regole", "strategie"]
+dipende = ["5.01"]
+controllo = ["errori"]
+
+[[voci]]
+id = "5.10"
+fase = 5
+testo = "Concorrenza e transazioni progettate: isolamento, race condition, saga o outbox se distribuite"
+quando = "sempre"
+natura = "progetto"
+origine = "checklist"
+dove = "moduli/<modulo>.toml [[transazioni]]; strategia ST-concorrenza"
+legge = ["accessi", "regole", "strategie"]
+dipende = ["5.02"]
+controllo = ["dettaglio"]
+
+[[voci]]
+id = "5.11"
+fase = 5
+testo = "Testabilità garantita: dipendenze iniettabili, confini esterni isolati"
+quando = "sempre"
+natura = "progetto"
+origine = "checklist"
+dove = "moduli/<modulo>.toml [[porte]]"
+legge = ["integrazioni", "moduli"]
+dipende = ["5.02"]
+controllo = ["dettaglio"]
+
+[[voci]]
+id = "5.12"
+fase = 5
+testo = "Requisiti di sicurezza verificati su un catalogo come OWASP ASVS"
+quando = "sempre"
+natura = "progetto"
+origine = "checklist"
+dove = "moduli/<modulo>.toml [sicurezza]; registri.toml [[deperibili]]"
+legge = ["minacce", "moduli", "matrice"]
+dipende = ["5.15"]
+controllo = ["dettaglio", "deperibili"]
+
+[[voci]]
+id = "5.13"
+fase = 5
+testo = "Contratti abbastanza stabili da permettere lo sviluppo in parallelo"
+quando = "sempre"
+natura = "progetto"
+origine = "adattata"
+nota = "Lo verifica la prova di decidibilità della fase 7; qui si chiude quando ogni contratto dell'incremento esiste e passa i controlli."
+dove = "contracts/; moduli/"
+dipende = ["5.05", "5.07", "5.09", "5.15", "5.16"]
+controllo = ["contratti"]
+
+[[voci]]
+id = "5.14"
+fase = 5
+testo = "Design revisionato da qualcuno che non l'ha scritto"
+quando = "sempre"
+natura = "progetto"
+origine = "checklist"
+dove = "registri.toml [[revisioni]] di tipo dettaglio, svolta da un reviewer"
+dipende = ["5.13"]
+controllo = ["revisione:dettaglio"]
+
+[[voci]]
+id = "5.15"
+fase = 5
+testo = "Matrice delle autorizzazioni completa: negazione per default, un ruolo per attore, condizioni di proprietà esplicite"
+quando = "sempre"
+natura = "progetto"
+origine = "metodo"
+dove = "contracts/autorizzazioni.toml"
+legge = ["stakeholder", "entita", "minacce", "storie"]
+dipende = ["5.01"]
+controllo = ["matrice"]
+
+[[voci]]
+id = "5.16"
+fase = 5
+testo = "Configurazione definita: variabili e nomi dei segreti, mai i valori"
+quando = "sempre"
+natura = "progetto"
+origine = "metodo"
+dove = "contracts/configurazione.toml"
+legge = ["strategie", "ambienti", "integrazioni"]
+controllo = ["configurazione"]
+
+# ---------------------------------------------------------------------------
+# 6. Progettazione UX/UI — intrecciata alle fasi 2–5
+# ---------------------------------------------------------------------------
+
+[[voci]]
+id = "6.01"
+fase = 6
+testo = "Ricerca utente svolta; personas e user journey documentati"
+quando = "innesco ui"
+natura = "progetto"
+origine = "checklist"
+dove = "ux/utenti.md; ux/ux.toml [[personas]]"
+legge = ["stakeholder", "percorsi", "storie"]
+controllo = ["personas"]
+
+[[voci]]
+id = "6.02"
+fase = 6
+testo = "Architettura dell'informazione definita: struttura, navigazione, terminologia"
+quando = "innesco ui"
+natura = "progetto"
+origine = "checklist"
+dove = "ux/ux.toml [[sezioni]] e [[rotte]]"
+legge = ["glossario", "storie", "stakeholder"]
+dipende = ["6.01", "3.02"]
+controllo = ["navigazione"]
+
+[[voci]]
+id = "6.03"
+fase = 6
+testo = "Wireframe e prototipi dei flussi prioritari"
+quando = "innesco ui"
+natura = "progetto"
+origine = "checklist"
+dove = "docs/design/mockups/"
+legge = ["percorsi", "schermate"]
+dipende = ["6.05"]
+controllo = ["mockup"]
+
+[[voci]]
+id = "6.04"
+fase = 6
+testo = "Design system con token e componenti, oppure adozione motivata di uno esistente"
+quando = "innesco ui"
+natura = "progetto"
+origine = "checklist"
+dove = "ux/design-system.toml, oppure un ADR"
+dipende = ["6.02"]
+controllo = ["design-system"]
+
+[[voci]]
+id = "6.05"
+fase = 6
+testo = "Ogni schermata progettata in tutti gli stati: vuoto, caricamento, errore, parziale, successo, permessi insufficienti"
+quando = "innesco ui"
+natura = "progetto"
+origine = "checklist"
+dove = "ux/ux.toml [[schermate]]"
+legge = ["storie", "rotte", "api", "matrice", "testi"]
+dipende = ["6.02", "5.07"]
+controllo = ["schermate"]
+
+[[voci]]
+id = "6.06"
+fase = 6
+testo = "Criteri WCAG 2.2 di livello AA, o del livello richiesto, applicati al design"
+quando = "innesco ui"
+natura = "progetto"
+origine = "checklist"
+dove = "registri.toml [[revisioni]] di tipo accessibilita, con frontend-craft"
+dipende = ["6.03", "6.04"]
+controllo = ["revisione:accessibilita"]
+
+[[voci]]
+id = "6.07"
+fase = 6
+testo = "Messaggi d'errore e microcopy che dicono cosa è successo e cosa fare"
+quando = "innesco ui"
+natura = "progetto"
+origine = "checklist"
+dove = "ux/testi.toml; il campo utente degli errori"
+legge = ["errori", "glossario"]
+dipende = ["5.09"]
+controllo = ["testi"]
+
+[[voci]]
+id = "6.08"
+fase = 6
+testo = "Test di usabilità sui prototipi con utenti reali; problemi principali risolti"
+quando = "innesco ui e esposizione >= pubblico"
+natura = "esercizio"
+origine = "checklist"
+dove = "registri.toml [[revisioni]] di tipo usabilita"
+dipende = ["6.03"]
+controllo = ["revisione:usabilita"]
+
+[[voci]]
+id = "6.09"
+fase = 6
+testo = "Varianti per dispositivo e internazionalizzazione considerate"
+quando = "innesco ui"
+natura = "progetto"
+origine = "checklist"
+dove = "strategia ST-i18n; il campo varianti delle schermate"
+dipende = ["6.05"]
+controllo = ["strategie"]
+
+[[voci]]
+id = "6.10"
+fase = 6
+testo = "Revisione euristica di usabilità dei mockup, prima di quella con utenti reali"
+quando = "innesco ui"
+natura = "progetto"
+origine = "metodo"
+dove = "registri.toml [[revisioni]] di tipo euristica, con frontend-craft"
+dipende = ["6.03"]
+controllo = ["revisione:euristica"]
+
+# ---------------------------------------------------------------------------
+# 7. Pianificazione della realizzazione
+# ---------------------------------------------------------------------------
+
+[[voci]]
+id = "7.01"
+fase = 7
+testo = "Lavoro scomposto in task e ondate, con dipendenze e percorso critico"
+quando = "sempre"
+natura = "progetto"
+origine = "adattata"
+nota = "La scomposizione è il piano di parallel-build: un task per modulo e lato, ondate fisse, proprietà dei percorsi disgiunta."
+dove = "piano/piano.toml"
+legge = ["moduli", "storie", "percorsi"]
+dipende = ["7.12"]
+controllo = ["piano"]
+
+[[voci]]
+id = "7.02"
+fase = 7
+testo = "Stime prodotte con un metodo dichiarato e con l'incertezza esplicita"
+quando = "sempre"
+natura = "progetto"
+origine = "adattata"
+nota = "In task per ondata, rientri seriali e sessioni: il numero di rientri seriali è il collo di bottiglia della costruzione."
+dove = "piano/piano.toml [stima]"
+dipende = ["7.01"]
+controllo = ["piano"]
+
+[[voci]]
+id = "7.03"
+fase = 7
+testo = "Roadmap, milestone e piano dei rilasci, con il primo incremento di valore (MVP) identificato"
+quando = "sempre"
+natura = "progetto"
+origine = "checklist"
+dove = "piano/piano.toml [[incrementi]]; il campo incremento delle storie"
+legge = ["storie", "obiettivi"]
+controllo = ["incrementi"]
+
+[[voci]]
+id = "7.04"
+fase = 7
+testo = "Team e ownership dei moduli assegnati"
+quando = "sempre"
+natura = "progetto"
+origine = "adattata"
+nota = "Il team sono gli agenti del piano; l'ownership è la proprietà dei percorsi per task, verificata dallo script."
+dove = "piano/piano.toml [[task]] campi agente e possiede"
+dipende = ["7.01"]
+controllo = ["piano"]
+
+[[voci]]
+id = "7.05"
+fase = 7
+testo = "Strategia di test scritta: livelli, tipi, ambienti, dati di test, automazione, criteri di ingresso e uscita, tecniche di progettazione dei casi"
+quando = "sempre"
+natura = "progetto"
+origine = "adattata"
+nota = "Aggiunte le tecniche sistematiche della fase 10 (classi di equivalenza, valori limite, tabelle di decisione, transizioni di stato): gli oracoli si scrivono prima del codice, quindi le tecniche si decidono qui."
+dove = "piano/test.toml"
+legge = ["rnf", "strategie", "ambienti"]
+controllo = ["strategia-test"]
+
+[[voci]]
+id = "7.06"
+fase = 7
+testo = "DoD di incremento adottata e condivisa"
+quando = "sempre"
+natura = "progetto"
+origine = "adattata"
+nota = "È la sezione D del catalogo, filtrata dal profilo: progetto.py checklist --dod. parallel-build la applica a ogni rientro."
+dove = "progetto.py checklist --dod"
+
+[[voci]]
+id = "7.07"
+fase = 7
+testo = "Repository, strategia di branching, linter, formatter e analisi statica decisi"
+quando = "sempre"
+natura = "progetto"
+origine = "adattata"
+nota = "Qui si decidono; li configura lo scheletro di parallel-build, che chiude 7.10."
+dove = "ADR dello stack; strategia ST-qualita-codice"
+controllo = ["strategie"]
+
+[[voci]]
+id = "7.08"
+fase = 7
+testo = "Pipeline CI/CD progettata"
+quando = "sempre"
+natura = "progetto"
+origine = "adattata"
+nota = "Qui si progetta; la costruisce lo scheletro."
+dove = "strategia ST-ci-cd"
+controllo = ["strategie"]
+
+[[voci]]
+id = "7.09"
+fase = 7
+testo = "Ambienti disponibili: sviluppo, test, staging, produzione, secondo il profilo"
+quando = "sempre"
+natura = "esercizio"
+origine = "adattata"
+nota = "Quali ambienti servono lo dice la vista di deployment (4.10); un progetto personale ne ha di solito due."
+dove = "architettura/architettura.toml [[ambienti]]"
+skill = "parallel-build"
+controllo = ["ambienti"]
+
+[[voci]]
+id = "7.10"
+fase = 7
+testo = "Walking skeleton che attraversa tutti gli strati dell'architettura"
+quando = "sempre"
+natura = "progetto"
+origine = "checklist"
+dove = "tag build/scheletro"
+skill = "parallel-build"
+
+[[voci]]
+id = "7.11"
+fase = 7
+testo = "Registro dei rischi aggiornato"
+quando = "sempre"
+natura = "progetto"
+origine = "checklist"
+dove = "registri.toml [[rischi]]"
+controllo = ["rischi"]
+
+[[voci]]
+id = "7.12"
+fase = 7
+testo = "Modalità di costruzione decisa: parallela con parallel-build, o seriale in una sessione"
+quando = "sempre"
+natura = "progetto"
+origine = "metodo"
+dove = "stato.toml [scheda].costruzione"
+legge = ["moduli"]
+controllo = ["stato"]
+
+[[voci]]
+id = "7.13"
+fase = 7
+testo = "Revisione di prontezza senza P0 né P1"
+quando = "sempre"
+natura = "progetto"
+origine = "metodo"
+dove = "registri.toml [[revisioni]] di tipo prontezza"
+dipende = ["7.01", "7.05"]
+controllo = ["revisione:prontezza"]
+
+[[voci]]
+id = "7.14"
+fase = 7
+testo = "Prova di decidibilità senza domande: un reviewer prepara la costruzione di ogni esemplare con i soli file del repo"
+quando = "sempre"
+natura = "progetto"
+origine = "metodo"
+dove = "registri.toml [[revisioni]] di tipo decidibilita"
+dipende = ["7.13"]
+controllo = ["revisione:decidibilita"]
+
+[[voci]]
+id = "7.15"
+fase = 7
+testo = "Riferimenti deperibili riverificati alla data del congelamento"
+quando = "sempre"
+natura = "progetto"
+origine = "metodo"
+dove = "registri.toml [[deperibili]]"
+dipende = ["7.14"]
+controllo = ["deperibili"]
+
+[[voci]]
+id = "7.16"
+fase = 7
+testo = "Pre-mortem svolto: ogni causa plausibile corretta o accettata come rischio con il suo segnale"
+quando = "sempre"
+natura = "progetto"
+origine = "metodo"
+dove = "registri.toml [[revisioni]] di tipo pre-mortem; [[rischi]]"
+dipende = ["7.15"]
+controllo = ["revisione:pre-mortem", "rischi"]
+
+[[voci]]
+id = "7.17"
+fase = 7
+testo = "Progetto congelato: brief del gate letto, approvazione dell'utente, tag progettazione/incremento-N"
+quando = "sempre"
+natura = "progetto"
+origine = "metodo"
+dove = "stato.toml [congelamento]"
+dipende = ["7.16"]
+controllo = ["congelamento"]
+
+# ---------------------------------------------------------------------------
+# 8. Implementazione — parallel-build
+# ---------------------------------------------------------------------------
+
+[[voci]]
+id = "8.01"
+fase = 8
+testo = "Ogni incremento del perimetro ha superato la DoD di incremento"
+quando = "sempre"
+natura = "progetto"
+origine = "adattata"
+nota = "Ogni task la supera al rientro; l'incremento quando tutti i task sono rientrati."
+dove = ".build/registro.jsonl"
+
+[[voci]]
+id = "8.02"
+fase = 8
+testo = "Linter, formatter e analisi statica attivi in pipeline su tutto il codice"
+quando = "sempre"
+natura = "progetto"
+origine = "checklist"
+dove = "CI"
+
+[[voci]]
+id = "8.03"
+fase = 8
+testo = "Nessun problema bloccante aperto da SAST e SCA"
+quando = "sempre"
+natura = "progetto"
+origine = "checklist"
+dove = "comando supply_chain; report di CI"
+
+[[voci]]
+id = "8.04"
+fase = 8
+testo = "Licenze di tutte le dipendenze verificate e compatibili"
+quando = "sempre"
+natura = "progetto"
+origine = "checklist"
+dove = "report di CI"
+
+[[voci]]
+id = "8.05"
+fase = 8
+testo = "SBOM (CycloneDX o SPDX) aggiornata all'ultima build"
+quando = "esposizione >= pubblico o innesco mercato-ue"
+natura = "esercizio"
+origine = "checklist"
+dove = "artefatto di CI"
+
+[[voci]]
+id = "8.06"
+fase = 8
+testo = "Verifica automatica dei segreti attiva; nessun segreto nel repository"
+quando = "sempre"
+natura = "progetto"
+origine = "checklist"
+dove = "CI"
+
+[[voci]]
+id = "8.07"
+fase = 8
+testo = "Build riproducibile da qualunque commit"
+quando = "sempre"
+natura = "progetto"
+origine = "checklist"
+dove = "lockfile; CI"
+
+[[voci]]
+id = "8.08"
+fase = 8
+testo = "Feature flag temporanei rimossi o con una data di rimozione"
+quando = "sempre"
+natura = "progetto"
+origine = "checklist"
+dove = "strategia ST-flag; codice"
+
+[[voci]]
+id = "8.09"
+fase = 8
+testo = "Registro del debito tecnico aggiornato e rivisto"
+quando = "sempre"
+natura = "progetto"
+origine = "checklist"
+dove = "registri.toml [[debito]]"
+controllo = ["debito"]
+
+[[voci]]
+id = "8.10"
+fase = 8
+testo = "Documentazione tecnica allineata al codice"
+quando = "sempre"
+natura = "progetto"
+origine = "checklist"
+dove = "docs/design/, README, CLAUDE.md"
+
+[[voci]]
+id = "8.11"
+fase = 8
+testo = "Oracoli scritti prima del codice da chi non costruisce, rossi per la ragione giusta"
+quando = "sempre"
+natura = "progetto"
+origine = "metodo"
+dove = "tag build/oracoli"
+
+[[voci]]
+id = "8.12"
+fase = 8
+testo = "Esemplari approvati dall'utente e prova a secco superata prima dell'ondata di costruzione"
+quando = "sempre"
+natura = "progetto"
+origine = "metodo"
+dove = "tag build/esemplari; .build/gate-esemplari.md"
+dipende = ["8.11"]
+
+[[voci]]
+id = "8.13"
+fase = 8
+testo = "Elenco dei moduli in attesa vuoto: nessun oracolo escluso dalla suite"
+quando = "sempre"
+natura = "progetto"
+origine = "metodo"
+dove = "tests/in-attesa.txt"
+dipende = ["8.12"]
+
+# ---------------------------------------------------------------------------
+# 9. Integrazione — parallel-build
+# ---------------------------------------------------------------------------
+
+[[voci]]
+id = "9.01"
+fase = 9
+testo = 'Strategia di integrazione esplicita, continua o per incrementi, senza "big bang"'
+quando = "sempre"
+natura = "progetto"
+origine = "adattata"
+nota = "È il rientro seriale di parallel-build: un ramo alla volta, il branch d'integrazione sempre verde."
+dove = "references/rientro.md di parallel-build; .build/registro.jsonl"
+
+[[voci]]
+id = "9.02"
+fase = 9
+testo = "Test di integrazione con dipendenze reali o containerizzate verdi"
+quando = "sempre"
+natura = "progetto"
+origine = "checklist"
+dove = "comando suite"
+
+[[voci]]
+id = "9.03"
+fase = 9
+testo = "Contract test tra moduli e verso l'API verdi"
+quando = "sempre"
+natura = "progetto"
+origine = "adattata"
+nota = "In un monolite modulare i contratti sono le facciate e l'API, non servizi separati."
+dove = "comando suite"
+
+[[voci]]
+id = "9.04"
+fase = 9
+testo = "Integrazioni con sistemi terzi provate in sandbox, comprese le risposte d'errore"
+quando = "innesco integrazioni"
+natura = "progetto"
+origine = "checklist"
+dove = "test d'integrazione; report di consegna"
+
+[[voci]]
+id = "9.05"
+fase = 9
+testo = "Differenze tra ambienti documentate e gestite in configurazione"
+quando = "sempre"
+natura = "progetto"
+origine = "checklist"
+dove = "contracts/configurazione.toml; README"
+
+[[voci]]
+id = "9.06"
+fase = 9
+testo = "Migrazione dei dati provata su una copia realistica, con verifica di integrità e riconciliazione"
+quando = "innesco migrazione-dati"
+natura = "progetto"
+origine = "checklist"
+dove = "verbale della prova"
+
+[[voci]]
+id = "9.07"
+fase = 9
+testo = "Installazione e avvio riusciti in un ambiente simile alla produzione"
+quando = "sempre"
+natura = "progetto"
+origine = "checklist"
+dove = "README; registro"
+
+[[voci]]
+id = "9.08"
+fase = 9
+testo = "Percorsi critici end-to-end verdi sull'app integrata"
+quando = "sempre"
+natura = "progetto"
+origine = "metodo"
+dove = "comando e2e; tag build/e2e"
+
+# ---------------------------------------------------------------------------
+# 10. Verifica — parallel-build
+# ---------------------------------------------------------------------------
+
+[[voci]]
+id = "10.01"
+fase = 10
+testo = "Revisioni o ispezioni svolte su requisiti, design e codice"
+quando = "sempre"
+natura = "progetto"
+origine = "adattata"
+nota = "Requisiti e design le ha già in registri.toml; sul codice sono le tre lenti della revisione di parallel-build."
+dove = "registri.toml [[revisioni]]; tag build/revisione"
+
+[[voci]]
+id = "10.02"
+fase = 10
+testo = "Analisi statica completa, senza problemi bloccanti"
+quando = "sempre"
+natura = "progetto"
+origine = "checklist"
+dove = "CI"
+
+[[voci]]
+id = "10.03"
+fase = 10
+testo = "Metodi formali applicati alle parti critiche, dove previsti"
+quando = "criticita >= regolamentata"
+natura = "progetto"
+origine = "checklist"
+dove = "report di verifica"
+
+[[voci]]
+id = "10.04"
+fase = 10
+testo = "Casi di test funzionali progettati con tecniche sistematiche: classi di equivalenza, valori limite, tabelle di decisione, transizioni di stato"
+quando = "sempre"
+natura = "progetto"
+origine = "checklist"
+dove = "oracoli; piano/test.toml"
+
+[[voci]]
+id = "10.05"
+fase = 10
+testo = "Test di sistema ed end-to-end sui flussi prioritari verdi"
+quando = "sempre"
+natura = "progetto"
+origine = "checklist"
+dove = "comandi suite ed e2e"
+
+[[voci]]
+id = "10.06"
+fase = 10
+testo = "Regressione automatizzata verde"
+quando = "sempre"
+natura = "progetto"
+origine = "checklist"
+dove = "CI"
+
+[[voci]]
+id = "10.07"
+fase = 10
+testo = "Prestazioni verificate contro gli scenari della fase 2: carico, stress, durata, picchi"
+quando = "esposizione >= pubblico o criticita >= alta"
+natura = "esercizio"
+origine = "checklist"
+dove = "report di prestazioni"
+
+[[voci]]
+id = "10.08"
+fase = 10
+testo = "Sicurezza verificata con SAST, DAST e analisi delle dipendenze; fuzzing e penetration test dove previsti"
+quando = "sempre"
+natura = "progetto"
+origine = "checklist"
+dove = "report di sicurezza; lente di sicurezza della revisione"
+
+[[voci]]
+id = "10.09"
+fase = 10
+testo = "Failover e ripristino da backup provati davvero"
+quando = "esposizione >= pubblico o criticita >= media"
+natura = "esercizio"
+origine = "checklist"
+dove = "verbale della prova di ripristino"
+
+[[voci]]
+id = "10.10"
+fase = 10
+testo = "Compatibilità, accessibilità, installazione e aggiornamento verificati"
+quando = "sempre"
+natura = "progetto"
+origine = "checklist"
+dove = "lente interfaccia della revisione; test"
+
+[[voci]]
+id = "10.11"
+fase = 10
+testo = "Efficacia dei test valutata oltre la copertura, per esempio con mutation testing sulle parti critiche"
+quando = "sempre"
+natura = "progetto"
+origine = "checklist"
+dove = "comando mutazioni sui moduli ad alto rischio"
+
+[[voci]]
+id = "10.12"
+fase = 10
+testo = "Difetti residui non bloccanti accettati esplicitamente"
+quando = "sempre"
+natura = "progetto"
+origine = "checklist"
+dove = ".build/report.md"
+
+[[voci]]
+id = "10.13"
+fase = 10
+testo = "Cause radice dei difetti ricorrenti analizzate"
+quando = "sempre"
+natura = "progetto"
+origine = "checklist"
+dove = "interruttore sistemico e retrospettiva dal registro"
+
+# ---------------------------------------------------------------------------
+# 11. Validazione e accettazione — parallel-build
+# ---------------------------------------------------------------------------
+
+[[voci]]
+id = "11.01"
+fase = 11
+testo = "Test di accettazione utente (UAT) svolti sui criteri della fase 2, esiti registrati"
+quando = "sempre"
+natura = "progetto"
+origine = "checklist"
+dove = "matrice di tracciabilità; verbale UAT"
+
+[[voci]]
+id = "11.02"
+fase = 11
+testo = "Accettazione operativa (OAT) svolta da chi gestirà il sistema: backup, monitoraggio, ripristino, runbook"
+quando = "esposizione >= pubblico"
+natura = "esercizio"
+origine = "checklist"
+dove = "verbale OAT"
+
+[[voci]]
+id = "11.03"
+fase = 11
+testo = "Alfa, beta o pilota con utenti reali; feedback gestito"
+quando = "esposizione >= pubblico"
+natura = "esercizio"
+origine = "checklist"
+dove = "report del pilota"
+
+[[voci]]
+id = "11.04"
+fase = 11
+testo = "Conformità verificata: privacy, accessibilità, sicurezza, contratti, norme di settore"
+quando = "innesco dati-personali o innesco commissionato o esposizione >= pubblico o criticita >= regolamentata"
+natura = "esercizio"
+origine = "checklist"
+dove = "evidenze di conformità; compliance-docs"
+
+[[voci]]
+id = "11.05"
+fase = 11
+testo = "Valutazione di conformità o certificazione ottenuta, dove richiesta"
+quando = "criticita >= regolamentata o innesco mercato-ue"
+natura = "esercizio"
+origine = "checklist"
+dove = "evidenze di conformità"
+
+[[voci]]
+id = "11.06"
+fase = 11
+testo = "Tracciabilità chiusa: ogni requisito ha almeno un test e un esito"
+quando = "sempre"
+natura = "progetto"
+origine = "checklist"
+dove = "viste/tracciabilita.md con gli esiti della costruzione"
+
+[[voci]]
+id = "11.07"
+fase = 11
+testo = "Gli obiettivi misurabili della fase 1 hanno un modo di essere misurati in esercizio"
+quando = "sempre"
+natura = "progetto"
+origine = "checklist"
+dove = "il campo misura degli obiettivi"
+
+[[voci]]
+id = "11.08"
+fase = 11
+testo = "Verbale di accettazione firmato"
+quando = "sempre"
+natura = "progetto"
+origine = "adattata"
+nota = "Per un progetto personale è l'approvazione dell'utente nel registro del gate 11."
+dove = "stato.toml, registro della fase 11"
+
+# ---------------------------------------------------------------------------
+# 12. Rilascio e transizione in esercizio — parallel-build
+# ---------------------------------------------------------------------------
+
+[[voci]]
+id = "12.01"
+fase = 12
+testo = "Pipeline di rilascio automatizzata, con artefatti immutabili e firmati e provenienza verificabile"
+quando = "esposizione >= pubblico o innesco mercato-ue"
+natura = "esercizio"
+origine = "checklist"
+dove = "CI/CD"
+
+[[voci]]
+id = "12.02"
+fase = 12
+testo = "Strategia di rilascio scelta (blue/green, canary, rolling) con criteri di arresto"
+quando = "esposizione >= pubblico"
+natura = "esercizio"
+origine = "checklist"
+dove = "strategia ST-rilascio"
+
+[[voci]]
+id = "12.03"
+fase = 12
+testo = "Rollback provato, migrazioni di schema comprese"
+quando = "esposizione >= pubblico o criticita >= alta"
+natura = "esercizio"
+origine = "checklist"
+dove = "verbale della prova; runbook"
+
+[[voci]]
+id = "12.04"
+fase = 12
+testo = "Migrazione dei dati e cut-over pianificati e provati"
+quando = "innesco migrazione-dati"
+natura = "progetto"
+origine = "checklist"
+dove = "piano di cut-over"
+
+[[voci]]
+id = "12.05"
+fase = 12
+testo = "Monitoraggio e alert attivi prima del go-live"
+quando = "esposizione >= pubblico"
+natura = "esercizio"
+origine = "checklist"
+dove = "strategia ST-osservabilita; configurazione degli alert"
+
+[[voci]]
+id = "12.06"
+fase = 12
+testo = "Runbook, reperibilità e catena di escalation pronti"
+quando = "esposizione >= pubblico"
+natura = "esercizio"
+origine = "checklist"
+dove = "runbook"
+
+[[voci]]
+id = "12.07"
+fase = 12
+testo = "Utenti e supporto formati; documentazione utente pubblicata"
+quando = "esposizione >= pubblico"
+natura = "esercizio"
+origine = "checklist"
+dove = "documentazione utente"
+
+[[voci]]
+id = "12.08"
+fase = 12
+testo = "Note di rilascio e comunicazione agli stakeholder inviate"
+quando = "esposizione >= pubblico"
+natura = "esercizio"
+origine = "checklist"
+dove = "note di rilascio"
+
+[[voci]]
+id = "12.09"
+fase = 12
+testo = "Periodo di hypercare definito, con i responsabili"
+quando = "esposizione >= pubblico"
+natura = "esercizio"
+origine = "checklist"
+dove = "piano di hypercare"
+
+[[voci]]
+id = "12.10"
+fase = 12
+testo = "Metriche stabili e nessun incidente bloccante a fine hypercare"
+quando = "esposizione >= pubblico"
+natura = "esercizio"
+origine = "checklist"
+dove = "report di fine hypercare"
+dipende = ["12.09"]
+
+[[voci]]
+id = "12.11"
+fase = 12
+testo = "README e runbook coprono avvio, test, deploy, rollback e ripristino da backup"
+quando = "sempre"
+natura = "progetto"
+origine = "metodo"
+dove = "README; runbook"
+
+# ---------------------------------------------------------------------------
+# 13. Esercizio (periodica) — fuori catena
+# ---------------------------------------------------------------------------
+
+[[voci]]
+id = "13.01"
+fase = 13
+testo = "SLI e SLO definiti; eventuali SLA coerenti con gli SLO"
+quando = "esposizione >= pubblico"
+natura = "esercizio"
+origine = "checklist"
+
+[[voci]]
+id = "13.02"
+fase = 13
+testo = "Error budget misurato e usato nelle decisioni di rilascio"
+quando = "esposizione >= pubblico"
+natura = "esercizio"
+origine = "checklist"
+
+[[voci]]
+id = "13.03"
+fase = 13
+testo = "Dashboard e alert sui sintomi percepiti dall'utente, senza alert rumorosi"
+quando = "esposizione >= pubblico"
+natura = "esercizio"
+origine = "checklist"
+
+[[voci]]
+id = "13.04"
+fase = 13
+testo = "Postmortem senza colpe per ogni incidente rilevante, con azioni correttive tracciate"
+quando = "esposizione >= pubblico"
+natura = "esercizio"
+origine = "checklist"
+
+[[voci]]
+id = "13.05"
+fase = 13
+testo = "Problemi ricorrenti analizzati; modifiche gestite con un processo"
+quando = "esposizione >= pubblico"
+natura = "esercizio"
+origine = "checklist"
+
+[[voci]]
+id = "13.06"
+fase = 13
+testo = "Dipendenze monitorate per vulnerabilità; patch applicate nei tempi stabiliti"
+quando = "sempre"
+natura = "esercizio"
+origine = "checklist"
+
+[[voci]]
+id = "13.07"
+fase = 13
+testo = "Se è un prodotto con elementi digitali sul mercato UE: procedura di segnalazione del Cyber Resilience Act pronta (preallerta entro 24 ore, notifica entro 72), con un responsabile della decisione"
+quando = "innesco mercato-ue"
+natura = "esercizio"
+origine = "checklist"
+
+[[voci]]
+id = "13.08"
+fase = 13
+testo = "Capacità e costi sotto controllo, con una previsione"
+quando = "esposizione >= pubblico"
+natura = "esercizio"
+origine = "checklist"
+
+[[voci]]
+id = "13.09"
+fase = 13
+testo = "Ultima prova di ripristino da backup riuscita entro la cadenza stabilita"
+quando = "esposizione >= pubblico o criticita >= media"
+natura = "esercizio"
+origine = "checklist"
+
+[[voci]]
+id = "13.10"
+fase = 13
+testo = "Esercitazione di disaster recovery svolta"
+quando = "esposizione >= pubblico e criticita >= alta"
+natura = "esercizio"
+origine = "checklist"
+
+[[voci]]
+id = "13.11"
+fase = 13
+testo = "Feedback e metriche d'uso raccolti e portati nel backlog"
+quando = "esposizione >= pubblico"
+natura = "esercizio"
+origine = "checklist"
+
+# ---------------------------------------------------------------------------
+# 14. Manutenzione ed evoluzione (periodica) — fuori catena
+# ---------------------------------------------------------------------------
+
+[[voci]]
+id = "14.01"
+fase = 14
+testo = "Ogni modifica ripercorre analisi d'impatto, requisiti, design, implementazione, verifica e rilascio, in proporzione alla sua dimensione"
+quando = "sempre"
+natura = "progetto"
+origine = "adattata"
+nota = "Le modifiche strutturali rientrano da app-blueprint come incremento; le altre con dev-discipline, aggiornando le sorgenti che toccano."
+
+[[voci]]
+id = "14.02"
+fase = 14
+testo = "Modifiche classificate (correttiva, adattiva, perfettiva, preventiva) per vedere dove va l'impegno"
+quando = "esposizione >= pubblico"
+natura = "esercizio"
+origine = "checklist"
+
+[[voci]]
+id = "14.03"
+fase = 14
+testo = "Registro del debito tecnico rivisto, con un budget esplicito per ripagarlo"
+quando = "sempre"
+natura = "esercizio"
+origine = "checklist"
+
+[[voci]]
+id = "14.04"
+fase = 14
+testo = "Dipendenze e runtime lontani dal fine vita; piano di aggiornamento per quelli vicini"
+quando = "sempre"
+natura = "esercizio"
+origine = "checklist"
+
+[[voci]]
+id = "14.05"
+fase = 14
+testo = "Fitness function automatiche a protezione delle proprietà architetturali chiave"
+quando = "sempre"
+natura = "progetto"
+origine = "checklist"
+
+[[voci]]
+id = "14.06"
+fase = 14
+testo = "Piano di sostituzione graduale per le parti legacy (es. strangler fig)"
+quando = "sempre"
+natura = "esercizio"
+origine = "checklist"
+
+[[voci]]
+id = "14.07"
+fase = 14
+testo = "Versionamento semantico e politica di deprecazione applicati"
+quando = "esposizione >= pubblico o innesco api-pubblica"
+natura = "esercizio"
+origine = "checklist"
+
+[[voci]]
+id = "14.08"
+fase = 14
+testo = "Diagrammi, ADR e documentazione allineati allo stato corrente del sistema"
+quando = "sempre"
+natura = "progetto"
+origine = "checklist"
+
+# ---------------------------------------------------------------------------
+# 15. Dismissione — fuori catena
+# ---------------------------------------------------------------------------
+
+[[voci]]
+id = "15.01"
+fase = 15
+testo = "Piano di dismissione approvato"
+quando = "sempre"
+natura = "esercizio"
+origine = "checklist"
+
+[[voci]]
+id = "15.02"
+fase = 15
+testo = "Utenti avvisati con preavviso adeguato; data di fine supporto pubblicata"
+quando = "esposizione >= pubblico"
+natura = "esercizio"
+origine = "checklist"
+
+[[voci]]
+id = "15.03"
+fase = 15
+testo = "Utenti e dati migrati verso il sistema successivo, con completezza verificata"
+quando = "esposizione >= pubblico"
+natura = "esercizio"
+origine = "checklist"
+
+[[voci]]
+id = "15.04"
+fase = 15
+testo = "Dati soggetti a obblighi di conservazione archiviati, con la data di scadenza"
+quando = "innesco dati-personali o innesco denaro"
+natura = "esercizio"
+origine = "checklist"
+
+[[voci]]
+id = "15.05"
+fase = 15
+testo = "Altri dati cancellati in modo sicuro, con evidenza"
+quando = "sempre"
+natura = "esercizio"
+origine = "checklist"
+
+[[voci]]
+id = "15.06"
+fase = 15
+testo = "Infrastruttura spenta; nessuna risorsa ancora attiva o fatturata"
+quando = "sempre"
+natura = "esercizio"
+origine = "checklist"
+
+[[voci]]
+id = "15.07"
+fase = 15
+testo = "Credenziali, certificati, chiavi API, accessi e integrazioni revocati"
+quando = "sempre"
+natura = "esercizio"
+origine = "checklist"
+
+[[voci]]
+id = "15.08"
+fase = 15
+testo = "Contratti e licenze chiusi"
+quando = "innesco commissionato o esposizione >= pubblico"
+natura = "esercizio"
+origine = "checklist"
+
+[[voci]]
+id = "15.09"
+fase = 15
+testo = "Documentazione e lezioni apprese archiviate"
+quando = "sempre"
+natura = "esercizio"
+origine = "checklist"
+
+# ---------------------------------------------------------------------------
+# Controlli trasversali — si rivedono a ogni gate; l'esito va nella nota del
+# registro, non in chiusure per voce
+# ---------------------------------------------------------------------------
+
+[[trasversali]]
+id = "T.01"
+testo = "Registro dei rischi aggiornato; ogni rischio ha un responsabile"
+quando = "sempre"
+controllo = ["rischi"]
+
+[[trasversali]]
+id = "T.02"
+testo = "Decisioni significative della fase registrate in ADR"
+quando = "sempre"
+controllo = ["adr"]
+
+[[trasversali]]
+id = "T.03"
+testo = "Codice, configurazione, infrastruttura e documentazione versionati; il contenuto di ogni release è ricostruibile"
+quando = "sempre"
+
+[[trasversali]]
+id = "T.04"
+testo = "Modifiche ai requisiti passate dal controllo delle modifiche, con analisi d'impatto"
+quando = "sempre"
+
+[[trasversali]]
+id = "T.05"
+testo = "Il processo seguito è quello dichiarato (verifica di assicurazione qualità)"
+quando = "sempre"
+controllo = ["gate"]
+
+[[trasversali]]
+id = "T.06"
+testo = "Metriche di prodotto e di delivery raccolte, per esempio le metriche DORA"
+quando = "esposizione >= pubblico"
+
+[[trasversali]]
+id = "T.07"
+testo = "Documentazione per chi sviluppa, chi gestisce e chi usa allineata allo stato corrente"
+quando = "sempre"
+controllo = ["viste"]
+
+[[trasversali]]
+id = "T.08"
+testo = "Attività di sicurezza previste per la fase svolte (secure SDLC)"
+quando = "sempre"
+
+[[trasversali]]
+id = "T.09"
+testo = "Conformità ricontrollata: privacy (DPIA se il rischio è elevato), accessibilità, licenze, norme di settore, Cyber Resilience Act e AI Act se applicabili"
+quando = "sempre"
+
+# ---------------------------------------------------------------------------
+# DoD di incremento — la applica parallel-build a ogni rientro (task) e alla
+# chiusura dell'incremento
+# ---------------------------------------------------------------------------
+
+[[dod]]
+id = "D.01"
+testo = "Criteri di accettazione soddisfatti e verificati"
+quando = "sempre"
+livello = "task"
+
+[[dod]]
+id = "D.02"
+testo = "Codice conforme alle convenzioni; linter e formatter verdi"
+quando = "sempre"
+livello = "task"
+
+[[dod]]
+id = "D.03"
+testo = "Test unitari e di integrazione scritti e verdi"
+quando = "sempre"
+livello = "task"
+
+[[dod]]
+id = "D.04"
+testo = "Regressione verde in pipeline"
+quando = "sempre"
+livello = "incremento"
+
+[[dod]]
+id = "D.05"
+testo = "Code review completata"
+quando = "sempre"
+livello = "incremento"
+nota = "Le tre lenti dei reviewer di parallel-build; per i moduli ad alto rischio anche l'utente guarda il diff."
+
+[[dod]]
+id = "D.06"
+testo = "Nessun nuovo problema bloccante da SAST e SCA"
+quando = "sempre"
+livello = "task"
+
+[[dod]]
+id = "D.07"
+testo = "Nessun segreto nel codice; configurazione esternalizzata"
+quando = "sempre"
+livello = "task"
+
+[[dod]]
+id = "D.08"
+testo = "Log, metriche e tracce per il nuovo comportamento, senza dati personali o segreti"
+quando = "sempre"
+livello = "task"
+
+[[dod]]
+id = "D.09"
+testo = "Funzionalità incomplete dietro feature flag"
+quando = "sempre"
+livello = "incremento"
+
+[[dod]]
+id = "D.10"
+testo = "Contratti API e schema dati aggiornati; migrazioni compatibili all'indietro"
+quando = "sempre"
+livello = "task"
+nota = "Durante la costruzione i contratti sono congelati: un aggiornamento passa dalla gestione del cambiamento."
+
+[[dod]]
+id = "D.11"
+testo = "Documentazione aggiornata: tecnica, utente, ADR e diagrammi se la modifica li tocca"
+quando = "sempre"
+livello = "task"
+
+[[dod]]
+id = "D.12"
+testo = "Tracciabilità aggiornata tra requisito e test"
+quando = "sempre"
+livello = "task"
+nota = "Gli oracoli portano l'id della storia nel nome o in un'annotazione."
+
+[[dod]]
+id = "D.13"
+testo = "Debito tecnico introdotto registrato, non nascosto"
+quando = "sempre"
+livello = "task"
+
+[[dod]]
+id = "D.14"
+testo = "Incremento deployabile, o già deployato in staging"
+quando = "sempre"
+livello = "incremento"
+
+[[dod]]
+id = "D.15"
+testo = "Accettato dal product owner"
+quando = "sempre"
+livello = "incremento"
+nota = "Il product owner è l'utente, al gate 11."

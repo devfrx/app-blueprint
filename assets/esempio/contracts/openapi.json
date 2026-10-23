@@ -1,0 +1,3277 @@
+{
+  "openapi": "3.1.1",
+  "info": {
+    "title": "Officina",
+    "version": "1.0.0",
+    "description": "API dell'app web: unico consumatore il frontend (ST-versionamento). Errori in Problem Details (ST-errori). Le operazioni con security vuota sono pubbliche; tutte le altre passano dalla matrice delle autorizzazioni.",
+    "x-paginazione": [
+      "cursore",
+      "limite"
+    ]
+  },
+  "security": [
+    {
+      "sessione": []
+    }
+  ],
+  "paths": {
+    "/api/v1/sessione": {
+      "post": {
+        "operationId": "accedi",
+        "summary": "Accede con email e password",
+        "x-modulo": "accessi",
+        "x-storie": [
+          "ACC-1",
+          "ACC-4"
+        ],
+        "x-errori": [
+          "credenziali-non-valide",
+          "account-bloccato",
+          "troppe-richieste"
+        ],
+        "responses": {
+          "200": {
+            "description": "Accesso riuscito; per il responsabile serve il secondo fattore",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "richiede_secondo_fattore": {
+                      "type": "boolean"
+                    }
+                  }
+                },
+                "example": {
+                  "richiede_secondo_fattore": false
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "credenziali-non-valide",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problema"
+                },
+                "examples": {
+                  "credenziali-non-valide": {
+                    "value": {
+                      "type": "credenziali-non-valide",
+                      "title": "Credenziali non valide",
+                      "status": 401
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "423": {
+            "description": "account-bloccato",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problema"
+                },
+                "examples": {
+                  "account-bloccato": {
+                    "value": {
+                      "type": "account-bloccato",
+                      "title": "Account bloccato",
+                      "status": 423
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "troppe-richieste",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problema"
+                },
+                "examples": {
+                  "troppe-richieste": {
+                    "value": {
+                      "type": "troppe-richieste",
+                      "title": "Troppe richieste",
+                      "status": 429
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "email",
+                  "password"
+                ],
+                "properties": {
+                  "email": {
+                    "type": "string"
+                  },
+                  "password": {
+                    "type": "string"
+                  }
+                }
+              },
+              "example": {
+                "email": "mario@officina.test",
+                "password": "una-password-lunga"
+              }
+            }
+          }
+        },
+        "security": []
+      },
+      "delete": {
+        "operationId": "esci",
+        "summary": "Esce",
+        "x-modulo": "accessi",
+        "x-storie": [
+          "ACC-1"
+        ],
+        "x-errori": [
+          "non-autenticato"
+        ],
+        "responses": {
+          "204": {
+            "description": "Sessione chiusa"
+          },
+          "401": {
+            "description": "non-autenticato",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problema"
+                },
+                "examples": {
+                  "non-autenticato": {
+                    "value": {
+                      "type": "non-autenticato",
+                      "title": "Accesso richiesto",
+                      "status": 401
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/sessione/secondo-fattore": {
+      "post": {
+        "operationId": "verificaSecondoFattore",
+        "summary": "Verifica il codice TOTP",
+        "x-modulo": "accessi",
+        "x-storie": [
+          "ACC-4"
+        ],
+        "x-errori": [
+          "codice-non-valido",
+          "troppe-richieste"
+        ],
+        "responses": {
+          "204": {
+            "description": "Secondo fattore verificato"
+          },
+          "401": {
+            "description": "codice-non-valido",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problema"
+                },
+                "examples": {
+                  "codice-non-valido": {
+                    "value": {
+                      "type": "codice-non-valido",
+                      "title": "Codice non valido",
+                      "status": 401
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "troppe-richieste",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problema"
+                },
+                "examples": {
+                  "troppe-richieste": {
+                    "value": {
+                      "type": "troppe-richieste",
+                      "title": "Troppe richieste",
+                      "status": 429
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "codice"
+                ],
+                "properties": {
+                  "codice": {
+                    "type": "string",
+                    "pattern": "^[0-9]{6}$"
+                  }
+                }
+              },
+              "example": {
+                "codice": "123456"
+              }
+            }
+          }
+        },
+        "security": []
+      }
+    },
+    "/api/v1/recupero-password": {
+      "post": {
+        "operationId": "chiediRecuperoPassword",
+        "summary": "Chiede il link di recupero",
+        "x-modulo": "accessi",
+        "x-storie": [
+          "ACC-3"
+        ],
+        "x-errori": [
+          "troppe-richieste"
+        ],
+        "responses": {
+          "202": {
+            "description": "Sempre la stessa risposta, che l'account esista o no"
+          },
+          "429": {
+            "description": "troppe-richieste",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problema"
+                },
+                "examples": {
+                  "troppe-richieste": {
+                    "value": {
+                      "type": "troppe-richieste",
+                      "title": "Troppe richieste",
+                      "status": 429
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "email"
+                ],
+                "properties": {
+                  "email": {
+                    "type": "string"
+                  }
+                }
+              },
+              "example": {
+                "email": "mario@officina.test"
+              }
+            }
+          }
+        },
+        "security": []
+      }
+    },
+    "/api/v1/recupero-password/{token}": {
+      "post": {
+        "operationId": "impostaPasswordDaRecupero",
+        "summary": "Imposta la password dal link di recupero",
+        "x-modulo": "accessi",
+        "x-storie": [
+          "ACC-3"
+        ],
+        "x-errori": [
+          "link-non-valido",
+          "password-debole"
+        ],
+        "responses": {
+          "204": {
+            "description": "Password impostata"
+          },
+          "410": {
+            "description": "link-non-valido",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problema"
+                },
+                "examples": {
+                  "link-non-valido": {
+                    "value": {
+                      "type": "link-non-valido",
+                      "title": "Link non valido",
+                      "status": 410
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "password-debole",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problema"
+                },
+                "examples": {
+                  "password-debole": {
+                    "value": {
+                      "type": "password-debole",
+                      "title": "Password debole",
+                      "status": 422
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "token",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "password"
+                ],
+                "properties": {
+                  "password": {
+                    "type": "string",
+                    "minLength": 12
+                  }
+                }
+              },
+              "example": {
+                "password": "una-password-lunga"
+              }
+            }
+          }
+        },
+        "security": []
+      }
+    },
+    "/api/v1/attivazioni/{token}": {
+      "post": {
+        "operationId": "attivaAccount",
+        "summary": "Attiva l'account dall'invito",
+        "x-modulo": "accessi",
+        "x-storie": [
+          "ACC-5"
+        ],
+        "x-errori": [
+          "link-non-valido",
+          "password-debole"
+        ],
+        "responses": {
+          "204": {
+            "description": "Account attivo, sessione aperta"
+          },
+          "410": {
+            "description": "link-non-valido",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problema"
+                },
+                "examples": {
+                  "link-non-valido": {
+                    "value": {
+                      "type": "link-non-valido",
+                      "title": "Link non valido",
+                      "status": 410
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "password-debole",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problema"
+                },
+                "examples": {
+                  "password-debole": {
+                    "value": {
+                      "type": "password-debole",
+                      "title": "Password debole",
+                      "status": 422
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "token",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "password"
+                ],
+                "properties": {
+                  "password": {
+                    "type": "string",
+                    "minLength": 12
+                  }
+                }
+              },
+              "example": {
+                "password": "una-password-lunga"
+              }
+            }
+          }
+        },
+        "security": []
+      }
+    },
+    "/api/v1/account": {
+      "post": {
+        "operationId": "creaAccount",
+        "summary": "Crea un account e invia l'invito",
+        "x-modulo": "accessi",
+        "x-storie": [
+          "ACC-2"
+        ],
+        "x-errori": [
+          "account-esistente",
+          "validazione",
+          "non-autorizzato"
+        ],
+        "responses": {
+          "201": {
+            "description": "Account invitato",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Account"
+                },
+                "example": {
+                  "id": "01JB2Z9K4M6Q8R0T2V4X6Y8Z0A",
+                  "email": "luca@officina.test",
+                  "ruolo": "operatore",
+                  "stato": "invitato"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "non-autorizzato",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problema"
+                },
+                "examples": {
+                  "non-autorizzato": {
+                    "value": {
+                      "type": "non-autorizzato",
+                      "title": "Operazione non consentita",
+                      "status": 403
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "account-esistente",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problema"
+                },
+                "examples": {
+                  "account-esistente": {
+                    "value": {
+                      "type": "account-esistente",
+                      "title": "Account esistente",
+                      "status": 409
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "validazione",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problema"
+                },
+                "examples": {
+                  "validazione": {
+                    "value": {
+                      "type": "validazione",
+                      "title": "Dati non validi",
+                      "status": 422
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "email",
+                  "ruolo"
+                ],
+                "properties": {
+                  "email": {
+                    "type": "string"
+                  },
+                  "ruolo": {
+                    "enum": [
+                      "operatore",
+                      "responsabile"
+                    ]
+                  }
+                }
+              },
+              "example": {
+                "email": "luca@officina.test",
+                "ruolo": "operatore"
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "operationId": "elencoAccount",
+        "summary": "Elenca gli account",
+        "x-modulo": "accessi",
+        "x-storie": [
+          "ACC-2",
+          "ACC-7"
+        ],
+        "x-errori": [
+          "non-autorizzato"
+        ],
+        "responses": {
+          "200": {
+            "description": "Una pagina di account",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "elementi",
+                    "cursore_successivo"
+                  ],
+                  "properties": {
+                    "elementi": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/Account"
+                      }
+                    },
+                    "cursore_successivo": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    }
+                  }
+                },
+                "example": {
+                  "elementi": [
+                    {
+                      "id": "01JB2Z9K4M6Q8R0T2V4X6Y8Z0A",
+                      "email": "luca@officina.test",
+                      "ruolo": "operatore",
+                      "stato": "invitato"
+                    }
+                  ],
+                  "cursore_successivo": null
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "non-autorizzato",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problema"
+                },
+                "examples": {
+                  "non-autorizzato": {
+                    "value": {
+                      "type": "non-autorizzato",
+                      "title": "Operazione non consentita",
+                      "status": 403
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "cursore",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limite",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 25
+            }
+          }
+        ],
+        "x-lista": true
+      }
+    },
+    "/api/v1/account/{id}/sblocco": {
+      "post": {
+        "operationId": "sbloccaAccount",
+        "summary": "Sblocca un account",
+        "x-modulo": "accessi",
+        "x-storie": [
+          "ACC-7"
+        ],
+        "x-errori": [
+          "non-autorizzato",
+          "non-trovato"
+        ],
+        "responses": {
+          "204": {
+            "description": "Account attivo, tentativi azzerati"
+          },
+          "403": {
+            "description": "non-autorizzato",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problema"
+                },
+                "examples": {
+                  "non-autorizzato": {
+                    "value": {
+                      "type": "non-autorizzato",
+                      "title": "Operazione non consentita",
+                      "status": 403
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "non-trovato",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problema"
+                },
+                "examples": {
+                  "non-trovato": {
+                    "value": {
+                      "type": "non-trovato",
+                      "title": "Non trovato",
+                      "status": 404
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/api/v1/clienti": {
+      "post": {
+        "operationId": "registraCliente",
+        "summary": "Registra un cliente",
+        "x-modulo": "clienti",
+        "x-storie": [
+          "CLI-1"
+        ],
+        "x-errori": [
+          "cliente-duplicato",
+          "codice-fiscale-non-valido",
+          "validazione",
+          "non-autorizzato"
+        ],
+        "responses": {
+          "201": {
+            "description": "Cliente registrato con account invitato",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Cliente"
+                },
+                "example": {
+                  "id": "01JB2Z9K4M6Q8R0T2V4X6Y8Z0B",
+                  "nome": "Mario",
+                  "cognome": "Rossi",
+                  "codice_fiscale": "RSSMRA80A01H501U",
+                  "email": "mario.rossi@example.test"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "non-autorizzato",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problema"
+                },
+                "examples": {
+                  "non-autorizzato": {
+                    "value": {
+                      "type": "non-autorizzato",
+                      "title": "Operazione non consentita",
+                      "status": 403
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "cliente-duplicato",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problema"
+                },
+                "examples": {
+                  "cliente-duplicato": {
+                    "value": {
+                      "type": "cliente-duplicato",
+                      "title": "Cliente già registrato",
+                      "status": 409
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "codice-fiscale-non-valido o validazione",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problema"
+                },
+                "examples": {
+                  "codice-fiscale-non-valido": {
+                    "value": {
+                      "type": "codice-fiscale-non-valido",
+                      "title": "Codice fiscale non valido",
+                      "status": 422
+                    }
+                  },
+                  "validazione": {
+                    "value": {
+                      "type": "validazione",
+                      "title": "Dati non validi",
+                      "status": 422
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NuovoCliente"
+              },
+              "example": {
+                "nome": "Mario",
+                "cognome": "Rossi",
+                "codice_fiscale": "RSSMRA80A01H501U",
+                "email": "mario.rossi@example.test"
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "operationId": "elencoClienti",
+        "summary": "Elenca i clienti",
+        "x-modulo": "clienti",
+        "x-storie": [
+          "CLI-1"
+        ],
+        "x-errori": [
+          "non-autorizzato"
+        ],
+        "responses": {
+          "200": {
+            "description": "Una pagina di clienti",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "elementi",
+                    "cursore_successivo"
+                  ],
+                  "properties": {
+                    "elementi": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/Cliente"
+                      }
+                    },
+                    "cursore_successivo": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    }
+                  }
+                },
+                "example": {
+                  "elementi": [
+                    {
+                      "id": "01JB2Z9K4M6Q8R0T2V4X6Y8Z0B",
+                      "nome": "Mario",
+                      "cognome": "Rossi",
+                      "codice_fiscale": "RSSMRA80A01H501U",
+                      "email": "mario.rossi@example.test"
+                    }
+                  ],
+                  "cursore_successivo": null
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "non-autorizzato",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problema"
+                },
+                "examples": {
+                  "non-autorizzato": {
+                    "value": {
+                      "type": "non-autorizzato",
+                      "title": "Operazione non consentita",
+                      "status": 403
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "cursore",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limite",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 25
+            }
+          }
+        ],
+        "x-lista": true
+      }
+    },
+    "/api/v1/clienti/ricerca": {
+      "get": {
+        "operationId": "cercaClienti",
+        "summary": "Cerca i clienti per nome",
+        "x-modulo": "clienti",
+        "x-storie": [
+          "CLI-2"
+        ],
+        "x-errori": [
+          "validazione",
+          "non-autorizzato"
+        ],
+        "responses": {
+          "200": {
+            "description": "Clienti il cui cognome o nome inizia con il testo",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "elementi",
+                    "cursore_successivo"
+                  ],
+                  "properties": {
+                    "elementi": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/Cliente"
+                      }
+                    },
+                    "cursore_successivo": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    }
+                  }
+                },
+                "example": {
+                  "elementi": [
+                    {
+                      "id": "01JB2Z9K4M6Q8R0T2V4X6Y8Z0B",
+                      "nome": "Mario",
+                      "cognome": "Rossi",
+                      "codice_fiscale": "RSSMRA80A01H501U",
+                      "email": "mario.rossi@example.test"
+                    }
+                  ],
+                  "cursore_successivo": null
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "non-autorizzato",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problema"
+                },
+                "examples": {
+                  "non-autorizzato": {
+                    "value": {
+                      "type": "non-autorizzato",
+                      "title": "Operazione non consentita",
+                      "status": 403
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "validazione",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problema"
+                },
+                "examples": {
+                  "validazione": {
+                    "value": {
+                      "type": "validazione",
+                      "title": "Dati non validi",
+                      "status": 422
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "testo",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 2
+            }
+          },
+          {
+            "name": "cursore",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limite",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 25
+            }
+          }
+        ],
+        "x-lista": true
+      }
+    },
+    "/api/v1/clienti/{id}": {
+      "get": {
+        "operationId": "dettaglioCliente",
+        "summary": "Legge un cliente",
+        "x-modulo": "clienti",
+        "x-storie": [
+          "CLI-1",
+          "VEI-1"
+        ],
+        "x-errori": [
+          "non-trovato",
+          "non-autorizzato"
+        ],
+        "responses": {
+          "200": {
+            "description": "Il cliente",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Cliente"
+                },
+                "example": {
+                  "id": "01JB2Z9K4M6Q8R0T2V4X6Y8Z0B",
+                  "nome": "Mario",
+                  "cognome": "Rossi",
+                  "codice_fiscale": "RSSMRA80A01H501U",
+                  "email": "mario.rossi@example.test"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "non-autorizzato",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problema"
+                },
+                "examples": {
+                  "non-autorizzato": {
+                    "value": {
+                      "type": "non-autorizzato",
+                      "title": "Operazione non consentita",
+                      "status": 403
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "non-trovato",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problema"
+                },
+                "examples": {
+                  "non-trovato": {
+                    "value": {
+                      "type": "non-trovato",
+                      "title": "Non trovato",
+                      "status": 404
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/api/v1/clienti/{id}/veicoli": {
+      "post": {
+        "operationId": "associaVeicolo",
+        "summary": "Associa un veicolo al cliente",
+        "x-modulo": "veicoli",
+        "x-storie": [
+          "VEI-1"
+        ],
+        "x-errori": [
+          "veicolo-duplicato",
+          "validazione",
+          "non-trovato",
+          "non-autorizzato"
+        ],
+        "responses": {
+          "201": {
+            "description": "Veicolo associato",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Veicolo"
+                },
+                "example": {
+                  "id": "01JB2Z9K4M6Q8R0T2V4X6Y8Z0C",
+                  "targa": "AB123CD",
+                  "marca": "Fiat",
+                  "modello": "Panda"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "non-autorizzato",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problema"
+                },
+                "examples": {
+                  "non-autorizzato": {
+                    "value": {
+                      "type": "non-autorizzato",
+                      "title": "Operazione non consentita",
+                      "status": 403
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "non-trovato",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problema"
+                },
+                "examples": {
+                  "non-trovato": {
+                    "value": {
+                      "type": "non-trovato",
+                      "title": "Non trovato",
+                      "status": 404
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "veicolo-duplicato",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problema"
+                },
+                "examples": {
+                  "veicolo-duplicato": {
+                    "value": {
+                      "type": "veicolo-duplicato",
+                      "title": "Targa già associata",
+                      "status": 409
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "validazione",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problema"
+                },
+                "examples": {
+                  "validazione": {
+                    "value": {
+                      "type": "validazione",
+                      "title": "Dati non validi",
+                      "status": 422
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "targa",
+                  "marca",
+                  "modello"
+                ],
+                "properties": {
+                  "targa": {
+                    "type": "string"
+                  },
+                  "marca": {
+                    "type": "string"
+                  },
+                  "modello": {
+                    "type": "string"
+                  }
+                }
+              },
+              "example": {
+                "targa": "ab 123 cd",
+                "marca": "Fiat",
+                "modello": "Panda"
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "operationId": "elencoVeicoliCliente",
+        "summary": "Elenca i veicoli di un cliente",
+        "x-modulo": "veicoli",
+        "x-storie": [
+          "VEI-1"
+        ],
+        "x-errori": [
+          "non-trovato",
+          "non-autorizzato"
+        ],
+        "responses": {
+          "200": {
+            "description": "Veicoli del cliente",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "elementi",
+                    "cursore_successivo"
+                  ],
+                  "properties": {
+                    "elementi": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/Veicolo"
+                      }
+                    },
+                    "cursore_successivo": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    }
+                  }
+                },
+                "example": {
+                  "elementi": [
+                    {
+                      "id": "01JB2Z9K4M6Q8R0T2V4X6Y8Z0C",
+                      "targa": "AB123CD",
+                      "marca": "Fiat",
+                      "modello": "Panda"
+                    }
+                  ],
+                  "cursore_successivo": null
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "non-autorizzato",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problema"
+                },
+                "examples": {
+                  "non-autorizzato": {
+                    "value": {
+                      "type": "non-autorizzato",
+                      "title": "Operazione non consentita",
+                      "status": 403
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "non-trovato",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problema"
+                },
+                "examples": {
+                  "non-trovato": {
+                    "value": {
+                      "type": "non-trovato",
+                      "title": "Non trovato",
+                      "status": 404
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "cursore",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limite",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 25
+            }
+          }
+        ],
+        "x-lista": true
+      }
+    },
+    "/api/v1/interventi": {
+      "post": {
+        "operationId": "apriIntervento",
+        "summary": "Apre un intervento",
+        "x-modulo": "interventi",
+        "x-storie": [
+          "INT-1"
+        ],
+        "x-errori": [
+          "intervento-gia-aperto",
+          "non-trovato",
+          "validazione",
+          "non-autorizzato"
+        ],
+        "responses": {
+          "201": {
+            "description": "Intervento in accettazione con preventivo vuoto",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Intervento"
+                },
+                "example": {
+                  "id": "01JB2Z9K4M6Q8R0T2V4X6Y8Z0D",
+                  "codice": "INT-2026-0001",
+                  "stato": "accettazione",
+                  "versione": 1,
+                  "veicolo": {
+                    "id": "01JB2Z9K4M6Q8R0T2V4X6Y8Z0C",
+                    "targa": "AB123CD",
+                    "marca": "Fiat",
+                    "modello": "Panda"
+                  },
+                  "cliente": {
+                    "nome": "Mario",
+                    "cognome": "Rossi"
+                  },
+                  "aperto_il": "2026-10-21T08:30:00Z",
+                  "data_prevista": "2026-10-23",
+                  "preventivo": {
+                    "stato": "bozza",
+                    "versione": 1,
+                    "righe": [],
+                    "imponibile_centesimi": 0,
+                    "iva_centesimi": 0,
+                    "totale_centesimi": 0
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "non-autorizzato",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problema"
+                },
+                "examples": {
+                  "non-autorizzato": {
+                    "value": {
+                      "type": "non-autorizzato",
+                      "title": "Operazione non consentita",
+                      "status": 403
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "non-trovato",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problema"
+                },
+                "examples": {
+                  "non-trovato": {
+                    "value": {
+                      "type": "non-trovato",
+                      "title": "Non trovato",
+                      "status": 404
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "intervento-gia-aperto",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problema"
+                },
+                "examples": {
+                  "intervento-gia-aperto": {
+                    "value": {
+                      "type": "intervento-gia-aperto",
+                      "title": "Intervento già aperto",
+                      "status": 409
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "validazione",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problema"
+                },
+                "examples": {
+                  "validazione": {
+                    "value": {
+                      "type": "validazione",
+                      "title": "Dati non validi",
+                      "status": 422
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "veicolo_id",
+                  "descrizione"
+                ],
+                "properties": {
+                  "veicolo_id": {
+                    "type": "string"
+                  },
+                  "descrizione": {
+                    "type": "string"
+                  }
+                }
+              },
+              "example": {
+                "veicolo_id": "01JB2Z9K4M6Q8R0T2V4X6Y8Z0C",
+                "descrizione": "Cambio delle pastiglie dei freni"
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "operationId": "elencoInterventiAperti",
+        "summary": "Elenca gli interventi aperti",
+        "x-modulo": "interventi",
+        "x-storie": [
+          "INT-6"
+        ],
+        "x-errori": [
+          "non-autorizzato"
+        ],
+        "responses": {
+          "200": {
+            "description": "Gli interventi non chiusi, i più vecchi per primi",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "elementi",
+                    "cursore_successivo"
+                  ],
+                  "properties": {
+                    "elementi": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/InterventoInElenco"
+                      }
+                    },
+                    "cursore_successivo": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    }
+                  }
+                },
+                "example": {
+                  "elementi": [
+                    {
+                      "id": "01JB2Z9K4M6Q8R0T2V4X6Y8Z0D",
+                      "codice": "INT-2026-0001",
+                      "stato": "accettazione",
+                      "targa": "AB123CD",
+                      "cliente": "Mario Rossi",
+                      "aperto_il": "2026-10-21T08:30:00Z"
+                    }
+                  ],
+                  "cursore_successivo": null
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "non-autorizzato",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problema"
+                },
+                "examples": {
+                  "non-autorizzato": {
+                    "value": {
+                      "type": "non-autorizzato",
+                      "title": "Operazione non consentita",
+                      "status": 403
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "cursore",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limite",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 25
+            }
+          }
+        ],
+        "x-lista": true
+      }
+    },
+    "/api/v1/interventi/{id}": {
+      "get": {
+        "operationId": "dettaglioIntervento",
+        "summary": "Legge un intervento; per il cliente solo il proprio, altrimenti non-trovato",
+        "x-modulo": "interventi",
+        "x-storie": [
+          "INT-3",
+          "INT-5"
+        ],
+        "x-errori": [
+          "non-trovato",
+          "non-autorizzato"
+        ],
+        "responses": {
+          "200": {
+            "description": "L'intervento con il preventivo",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Intervento"
+                },
+                "example": {
+                  "id": "01JB2Z9K4M6Q8R0T2V4X6Y8Z0D",
+                  "codice": "INT-2026-0001",
+                  "stato": "accettazione",
+                  "versione": 1,
+                  "veicolo": {
+                    "id": "01JB2Z9K4M6Q8R0T2V4X6Y8Z0C",
+                    "targa": "AB123CD",
+                    "marca": "Fiat",
+                    "modello": "Panda"
+                  },
+                  "cliente": {
+                    "nome": "Mario",
+                    "cognome": "Rossi"
+                  },
+                  "aperto_il": "2026-10-21T08:30:00Z",
+                  "data_prevista": "2026-10-23",
+                  "preventivo": {
+                    "stato": "bozza",
+                    "versione": 3,
+                    "righe": [
+                      {
+                        "numero": 1,
+                        "codice_voce": "MAN-ORA",
+                        "descrizione": "Manodopera",
+                        "tipo": "manodopera",
+                        "quantita": "2.00",
+                        "prezzo_unitario_centesimi": 4500,
+                        "aliquota_iva": "22.00",
+                        "importo_centesimi": 10980
+                      }
+                    ],
+                    "imponibile_centesimi": 15000,
+                    "iva_centesimi": 3300,
+                    "totale_centesimi": 18300
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "non-autorizzato",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problema"
+                },
+                "examples": {
+                  "non-autorizzato": {
+                    "value": {
+                      "type": "non-autorizzato",
+                      "title": "Operazione non consentita",
+                      "status": 403
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "non-trovato",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problema"
+                },
+                "examples": {
+                  "non-trovato": {
+                    "value": {
+                      "type": "non-trovato",
+                      "title": "Non trovato",
+                      "status": 404
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/api/v1/interventi/{id}/preventivo/righe": {
+      "post": {
+        "operationId": "aggiungiRigaPreventivo",
+        "summary": "Aggiunge una riga dal listino",
+        "x-modulo": "interventi",
+        "x-storie": [
+          "INT-5"
+        ],
+        "x-errori": [
+          "quantita-non-valida",
+          "preventivo-approvato",
+          "conflitto-di-versione",
+          "non-trovato",
+          "non-autorizzato"
+        ],
+        "responses": {
+          "201": {
+            "description": "Preventivo aggiornato con i totali del motore",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Preventivo"
+                },
+                "example": {
+                  "stato": "bozza",
+                  "versione": 3,
+                  "righe": [
+                    {
+                      "numero": 1,
+                      "codice_voce": "MAN-ORA",
+                      "descrizione": "Manodopera",
+                      "tipo": "manodopera",
+                      "quantita": "2.00",
+                      "prezzo_unitario_centesimi": 4500,
+                      "aliquota_iva": "22.00",
+                      "importo_centesimi": 10980
+                    }
+                  ],
+                  "imponibile_centesimi": 15000,
+                  "iva_centesimi": 3300,
+                  "totale_centesimi": 18300
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "non-autorizzato",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problema"
+                },
+                "examples": {
+                  "non-autorizzato": {
+                    "value": {
+                      "type": "non-autorizzato",
+                      "title": "Operazione non consentita",
+                      "status": 403
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "non-trovato",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problema"
+                },
+                "examples": {
+                  "non-trovato": {
+                    "value": {
+                      "type": "non-trovato",
+                      "title": "Non trovato",
+                      "status": 404
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "preventivo-approvato o conflitto-di-versione",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problema"
+                },
+                "examples": {
+                  "preventivo-approvato": {
+                    "value": {
+                      "type": "preventivo-approvato",
+                      "title": "Preventivo già approvato",
+                      "status": 409
+                    }
+                  },
+                  "conflitto-di-versione": {
+                    "value": {
+                      "type": "conflitto-di-versione",
+                      "title": "Modificato nel frattempo",
+                      "status": 409
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "quantita-non-valida",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problema"
+                },
+                "examples": {
+                  "quantita-non-valida": {
+                    "value": {
+                      "type": "quantita-non-valida",
+                      "title": "Quantità non valida",
+                      "status": 422
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "codice_voce",
+                  "quantita",
+                  "versione"
+                ],
+                "properties": {
+                  "codice_voce": {
+                    "type": "string"
+                  },
+                  "quantita": {
+                    "type": "string"
+                  },
+                  "versione": {
+                    "type": "integer"
+                  }
+                }
+              },
+              "example": {
+                "codice_voce": "MAN-ORA",
+                "quantita": "2.00",
+                "versione": 2
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/interventi/{id}/preventivo/approvazione": {
+      "post": {
+        "operationId": "approvaPreventivo",
+        "summary": "Approva il preventivo",
+        "x-modulo": "interventi",
+        "x-storie": [
+          "INT-2"
+        ],
+        "x-errori": [
+          "preventivo-vuoto",
+          "conflitto-di-versione",
+          "non-trovato",
+          "non-autorizzato"
+        ],
+        "responses": {
+          "200": {
+            "description": "Preventivo approvato, intervento in lavorazione",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Intervento"
+                },
+                "example": {
+                  "id": "01JB2Z9K4M6Q8R0T2V4X6Y8Z0D",
+                  "codice": "INT-2026-0001",
+                  "stato": "lavorazione",
+                  "versione": 1,
+                  "veicolo": {
+                    "id": "01JB2Z9K4M6Q8R0T2V4X6Y8Z0C",
+                    "targa": "AB123CD",
+                    "marca": "Fiat",
+                    "modello": "Panda"
+                  },
+                  "cliente": {
+                    "nome": "Mario",
+                    "cognome": "Rossi"
+                  },
+                  "aperto_il": "2026-10-21T08:30:00Z",
+                  "data_prevista": "2026-10-23",
+                  "preventivo": {
+                    "stato": "approvato",
+                    "versione": 3,
+                    "righe": [
+                      {
+                        "numero": 1,
+                        "codice_voce": "MAN-ORA",
+                        "descrizione": "Manodopera",
+                        "tipo": "manodopera",
+                        "quantita": "2.00",
+                        "prezzo_unitario_centesimi": 4500,
+                        "aliquota_iva": "22.00",
+                        "importo_centesimi": 10980
+                      }
+                    ],
+                    "imponibile_centesimi": 15000,
+                    "iva_centesimi": 3300,
+                    "totale_centesimi": 18300
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "non-autorizzato",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problema"
+                },
+                "examples": {
+                  "non-autorizzato": {
+                    "value": {
+                      "type": "non-autorizzato",
+                      "title": "Operazione non consentita",
+                      "status": 403
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "non-trovato",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problema"
+                },
+                "examples": {
+                  "non-trovato": {
+                    "value": {
+                      "type": "non-trovato",
+                      "title": "Non trovato",
+                      "status": 404
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "preventivo-vuoto o conflitto-di-versione",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problema"
+                },
+                "examples": {
+                  "preventivo-vuoto": {
+                    "value": {
+                      "type": "preventivo-vuoto",
+                      "title": "Preventivo vuoto",
+                      "status": 409
+                    }
+                  },
+                  "conflitto-di-versione": {
+                    "value": {
+                      "type": "conflitto-di-versione",
+                      "title": "Modificato nel frattempo",
+                      "status": 409
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "versione"
+                ],
+                "properties": {
+                  "versione": {
+                    "type": "integer"
+                  }
+                }
+              },
+              "example": {
+                "versione": 3
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/interventi/{id}/chiusura": {
+      "post": {
+        "operationId": "chiudiIntervento",
+        "summary": "Chiude l'intervento",
+        "x-modulo": "interventi",
+        "x-storie": [
+          "INT-4"
+        ],
+        "x-errori": [
+          "preventivo-non-approvato",
+          "conflitto-di-versione",
+          "non-trovato",
+          "non-autorizzato"
+        ],
+        "responses": {
+          "200": {
+            "description": "Intervento chiuso",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Intervento"
+                },
+                "example": {
+                  "id": "01JB2Z9K4M6Q8R0T2V4X6Y8Z0D",
+                  "codice": "INT-2026-0001",
+                  "stato": "chiuso",
+                  "versione": 1,
+                  "veicolo": {
+                    "id": "01JB2Z9K4M6Q8R0T2V4X6Y8Z0C",
+                    "targa": "AB123CD",
+                    "marca": "Fiat",
+                    "modello": "Panda"
+                  },
+                  "cliente": {
+                    "nome": "Mario",
+                    "cognome": "Rossi"
+                  },
+                  "aperto_il": "2026-10-21T08:30:00Z",
+                  "data_prevista": "2026-10-23",
+                  "preventivo": {
+                    "stato": "bozza",
+                    "versione": 3,
+                    "righe": [
+                      {
+                        "numero": 1,
+                        "codice_voce": "MAN-ORA",
+                        "descrizione": "Manodopera",
+                        "tipo": "manodopera",
+                        "quantita": "2.00",
+                        "prezzo_unitario_centesimi": 4500,
+                        "aliquota_iva": "22.00",
+                        "importo_centesimi": 10980
+                      }
+                    ],
+                    "imponibile_centesimi": 15000,
+                    "iva_centesimi": 3300,
+                    "totale_centesimi": 18300
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "non-autorizzato",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problema"
+                },
+                "examples": {
+                  "non-autorizzato": {
+                    "value": {
+                      "type": "non-autorizzato",
+                      "title": "Operazione non consentita",
+                      "status": 403
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "non-trovato",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problema"
+                },
+                "examples": {
+                  "non-trovato": {
+                    "value": {
+                      "type": "non-trovato",
+                      "title": "Non trovato",
+                      "status": 404
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "preventivo-non-approvato o conflitto-di-versione",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problema"
+                },
+                "examples": {
+                  "preventivo-non-approvato": {
+                    "value": {
+                      "type": "preventivo-non-approvato",
+                      "title": "Preventivo non approvato",
+                      "status": 409
+                    }
+                  },
+                  "conflitto-di-versione": {
+                    "value": {
+                      "type": "conflitto-di-versione",
+                      "title": "Modificato nel frattempo",
+                      "status": 409
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "versione"
+                ],
+                "properties": {
+                  "versione": {
+                    "type": "integer"
+                  }
+                }
+              },
+              "example": {
+                "versione": 2
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/interventi/{id}/fattura": {
+      "post": {
+        "operationId": "emettiFattura",
+        "summary": "Emette la fattura di un intervento chiuso",
+        "x-modulo": "fatture",
+        "x-storie": [
+          "FAT-1"
+        ],
+        "x-errori": [
+          "intervento-non-chiuso",
+          "fattura-esistente",
+          "non-trovato",
+          "non-autorizzato"
+        ],
+        "responses": {
+          "201": {
+            "description": "Fattura emessa",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Fattura"
+                },
+                "example": {
+                  "id": "01JB2Z9K4M6Q8R0T2V4X6Y8Z0E",
+                  "anno": 2026,
+                  "numero": 42,
+                  "emessa_il": "2026-10-23T15:00:00Z",
+                  "righe": [
+                    {
+                      "numero": 1,
+                      "codice_voce": "MAN-ORA",
+                      "descrizione": "Manodopera",
+                      "tipo": "manodopera",
+                      "quantita": "2.00",
+                      "prezzo_unitario_centesimi": 4500,
+                      "aliquota_iva": "22.00",
+                      "importo_centesimi": 10980
+                    }
+                  ],
+                  "imponibile_centesimi": 15000,
+                  "iva_centesimi": 3300,
+                  "totale_centesimi": 18300
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "non-autorizzato",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problema"
+                },
+                "examples": {
+                  "non-autorizzato": {
+                    "value": {
+                      "type": "non-autorizzato",
+                      "title": "Operazione non consentita",
+                      "status": 403
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "non-trovato",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problema"
+                },
+                "examples": {
+                  "non-trovato": {
+                    "value": {
+                      "type": "non-trovato",
+                      "title": "Non trovato",
+                      "status": 404
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "intervento-non-chiuso o fattura-esistente",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problema"
+                },
+                "examples": {
+                  "intervento-non-chiuso": {
+                    "value": {
+                      "type": "intervento-non-chiuso",
+                      "title": "Intervento non chiuso",
+                      "status": 409
+                    }
+                  },
+                  "fattura-esistente": {
+                    "value": {
+                      "type": "fattura-esistente",
+                      "title": "Fattura già emessa",
+                      "status": 409
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/api/v1/fatture/{id}": {
+      "get": {
+        "operationId": "dettaglioFattura",
+        "summary": "Legge una fattura",
+        "x-modulo": "fatture",
+        "x-storie": [
+          "FAT-3"
+        ],
+        "x-errori": [
+          "non-trovato",
+          "non-autorizzato"
+        ],
+        "responses": {
+          "200": {
+            "description": "La fattura",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Fattura"
+                },
+                "example": {
+                  "id": "01JB2Z9K4M6Q8R0T2V4X6Y8Z0E",
+                  "anno": 2026,
+                  "numero": 42,
+                  "emessa_il": "2026-10-23T15:00:00Z",
+                  "righe": [
+                    {
+                      "numero": 1,
+                      "codice_voce": "MAN-ORA",
+                      "descrizione": "Manodopera",
+                      "tipo": "manodopera",
+                      "quantita": "2.00",
+                      "prezzo_unitario_centesimi": 4500,
+                      "aliquota_iva": "22.00",
+                      "importo_centesimi": 10980
+                    }
+                  ],
+                  "imponibile_centesimi": 15000,
+                  "iva_centesimi": 3300,
+                  "totale_centesimi": 18300
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "non-autorizzato",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problema"
+                },
+                "examples": {
+                  "non-autorizzato": {
+                    "value": {
+                      "type": "non-autorizzato",
+                      "title": "Operazione non consentita",
+                      "status": 403
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "non-trovato",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problema"
+                },
+                "examples": {
+                  "non-trovato": {
+                    "value": {
+                      "type": "non-trovato",
+                      "title": "Non trovato",
+                      "status": 404
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/api/v1/fatture/{id}/pdf": {
+      "get": {
+        "operationId": "pdfFattura",
+        "summary": "Scarica il PDF di una fattura",
+        "x-modulo": "fatture",
+        "x-storie": [
+          "FAT-3"
+        ],
+        "x-errori": [
+          "non-trovato",
+          "non-autorizzato"
+        ],
+        "responses": {
+          "200": {
+            "description": "Il PDF della fattura",
+            "content": {
+              "application/pdf": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                },
+                "example": "(PDF della fattura 42/2026)"
+              }
+            }
+          },
+          "403": {
+            "description": "non-autorizzato",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problema"
+                },
+                "examples": {
+                  "non-autorizzato": {
+                    "value": {
+                      "type": "non-autorizzato",
+                      "title": "Operazione non consentita",
+                      "status": 403
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "non-trovato",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problema"
+                },
+                "examples": {
+                  "non-trovato": {
+                    "value": {
+                      "type": "non-trovato",
+                      "title": "Non trovato",
+                      "status": 404
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/api/v1/fatture/esportazione": {
+      "get": {
+        "operationId": "esportaFatture",
+        "summary": "Esporta in CSV le fatture di un mese",
+        "x-modulo": "fatture",
+        "x-storie": [
+          "FAT-2"
+        ],
+        "x-errori": [
+          "validazione",
+          "non-autorizzato"
+        ],
+        "responses": {
+          "200": {
+            "description": "Le fatture del mese in CSV",
+            "content": {
+              "text/csv": {
+                "schema": {
+                  "type": "string"
+                },
+                "example": "anno;numero;emessa_il;totale\n2026;42;2026-10-23;183,00\n"
+              }
+            }
+          },
+          "403": {
+            "description": "non-autorizzato",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problema"
+                },
+                "examples": {
+                  "non-autorizzato": {
+                    "value": {
+                      "type": "non-autorizzato",
+                      "title": "Operazione non consentita",
+                      "status": 403
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "validazione",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problema"
+                },
+                "examples": {
+                  "validazione": {
+                    "value": {
+                      "type": "validazione",
+                      "title": "Dati non validi",
+                      "status": 422
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "mese",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9]{4}-[0-9]{2}$"
+            }
+          }
+        ]
+      }
+    },
+    "/api/v1/listino": {
+      "get": {
+        "operationId": "elencoVociListino",
+        "summary": "Elenca le voci di listino",
+        "x-modulo": "prezzi",
+        "x-storie": [
+          "INT-5"
+        ],
+        "x-errori": [
+          "non-autorizzato"
+        ],
+        "responses": {
+          "200": {
+            "description": "Una pagina di voci di listino",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "elementi",
+                    "cursore_successivo"
+                  ],
+                  "properties": {
+                    "elementi": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/VoceListino"
+                      }
+                    },
+                    "cursore_successivo": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    }
+                  }
+                },
+                "example": {
+                  "elementi": [
+                    {
+                      "codice": "MAN-ORA",
+                      "descrizione": "Manodopera",
+                      "tipo": "manodopera",
+                      "prezzo_centesimi": 4500,
+                      "aliquota_iva": "22.00"
+                    }
+                  ],
+                  "cursore_successivo": null
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "non-autorizzato",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problema"
+                },
+                "examples": {
+                  "non-autorizzato": {
+                    "value": {
+                      "type": "non-autorizzato",
+                      "title": "Operazione non consentita",
+                      "status": 403
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "cursore",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limite",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 25
+            }
+          }
+        ],
+        "x-lista": true
+      }
+    },
+    "/api/v1/listino/{codice}": {
+      "put": {
+        "operationId": "aggiornaVoceListino",
+        "summary": "Aggiorna una voce di listino",
+        "x-modulo": "prezzi",
+        "x-storie": [
+          "PRZ-1"
+        ],
+        "x-errori": [
+          "validazione",
+          "non-trovato",
+          "non-autorizzato"
+        ],
+        "responses": {
+          "200": {
+            "description": "Voce aggiornata",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VoceListino"
+                },
+                "example": {
+                  "codice": "MAN-ORA",
+                  "descrizione": "Manodopera",
+                  "tipo": "manodopera",
+                  "prezzo_centesimi": 4500,
+                  "aliquota_iva": "22.00"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "non-autorizzato",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problema"
+                },
+                "examples": {
+                  "non-autorizzato": {
+                    "value": {
+                      "type": "non-autorizzato",
+                      "title": "Operazione non consentita",
+                      "status": 403
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "non-trovato",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problema"
+                },
+                "examples": {
+                  "non-trovato": {
+                    "value": {
+                      "type": "non-trovato",
+                      "title": "Non trovato",
+                      "status": 404
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "validazione",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problema"
+                },
+                "examples": {
+                  "validazione": {
+                    "value": {
+                      "type": "validazione",
+                      "title": "Dati non validi",
+                      "status": 422
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "codice",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/VoceListino"
+              },
+              "example": {
+                "codice": "MAN-ORA",
+                "descrizione": "Manodopera",
+                "tipo": "manodopera",
+                "prezzo_centesimi": 4500,
+                "aliquota_iva": "22.00"
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "Problema": {
+        "type": "object",
+        "description": "Problem Details (RFC 9457); type è il codice del catalogo",
+        "required": [
+          "type",
+          "title",
+          "status"
+        ],
+        "properties": {
+          "type": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "status": {
+            "type": "integer"
+          },
+          "detail": {
+            "type": "string"
+          },
+          "errori": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "Account": {
+        "type": "object",
+        "required": [
+          "id",
+          "email",
+          "ruolo",
+          "stato"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string"
+          },
+          "ruolo": {
+            "enum": [
+              "operatore",
+              "responsabile",
+              "cliente"
+            ]
+          },
+          "stato": {
+            "enum": [
+              "invitato",
+              "attivo",
+              "bloccato"
+            ]
+          }
+        }
+      },
+      "NuovoCliente": {
+        "type": "object",
+        "required": [
+          "nome",
+          "cognome",
+          "codice_fiscale",
+          "email"
+        ],
+        "properties": {
+          "nome": {
+            "type": "string"
+          },
+          "cognome": {
+            "type": "string"
+          },
+          "codice_fiscale": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string"
+          }
+        }
+      },
+      "Cliente": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/NuovoCliente"
+          },
+          {
+            "type": "object",
+            "required": [
+              "id"
+            ],
+            "properties": {
+              "id": {
+                "type": "string"
+              }
+            }
+          }
+        ]
+      },
+      "Veicolo": {
+        "type": "object",
+        "required": [
+          "id",
+          "targa",
+          "marca",
+          "modello"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "targa": {
+            "type": "string"
+          },
+          "marca": {
+            "type": "string"
+          },
+          "modello": {
+            "type": "string"
+          }
+        }
+      },
+      "Riga": {
+        "type": "object",
+        "required": [
+          "numero",
+          "codice_voce",
+          "descrizione",
+          "tipo",
+          "quantita",
+          "prezzo_unitario_centesimi",
+          "aliquota_iva",
+          "importo_centesimi"
+        ],
+        "properties": {
+          "numero": {
+            "type": "integer"
+          },
+          "codice_voce": {
+            "type": "string"
+          },
+          "descrizione": {
+            "type": "string"
+          },
+          "tipo": {
+            "enum": [
+              "manodopera",
+              "ricambio"
+            ]
+          },
+          "quantita": {
+            "type": "string"
+          },
+          "prezzo_unitario_centesimi": {
+            "type": "integer"
+          },
+          "aliquota_iva": {
+            "type": "string"
+          },
+          "importo_centesimi": {
+            "type": "integer"
+          }
+        }
+      },
+      "Preventivo": {
+        "type": "object",
+        "required": [
+          "stato",
+          "versione",
+          "righe",
+          "imponibile_centesimi",
+          "iva_centesimi",
+          "totale_centesimi"
+        ],
+        "properties": {
+          "stato": {
+            "enum": [
+              "bozza",
+              "approvato"
+            ]
+          },
+          "versione": {
+            "type": "integer"
+          },
+          "righe": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Riga"
+            }
+          },
+          "imponibile_centesimi": {
+            "type": "integer"
+          },
+          "iva_centesimi": {
+            "type": "integer"
+          },
+          "totale_centesimi": {
+            "type": "integer"
+          }
+        }
+      },
+      "Intervento": {
+        "type": "object",
+        "required": [
+          "id",
+          "codice",
+          "stato",
+          "versione",
+          "veicolo",
+          "aperto_il",
+          "preventivo"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "codice": {
+            "type": "string"
+          },
+          "stato": {
+            "enum": [
+              "accettazione",
+              "lavorazione",
+              "chiuso"
+            ]
+          },
+          "versione": {
+            "type": "integer"
+          },
+          "veicolo": {
+            "$ref": "#/components/schemas/Veicolo"
+          },
+          "cliente": {
+            "type": "object",
+            "properties": {
+              "nome": {
+                "type": "string"
+              },
+              "cognome": {
+                "type": "string"
+              }
+            }
+          },
+          "aperto_il": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "data_prevista": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date"
+          },
+          "preventivo": {
+            "$ref": "#/components/schemas/Preventivo"
+          }
+        }
+      },
+      "InterventoInElenco": {
+        "type": "object",
+        "required": [
+          "id",
+          "codice",
+          "stato",
+          "targa",
+          "cliente",
+          "aperto_il"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "codice": {
+            "type": "string"
+          },
+          "stato": {
+            "type": "string"
+          },
+          "targa": {
+            "type": "string"
+          },
+          "cliente": {
+            "type": "string"
+          },
+          "aperto_il": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "Fattura": {
+        "type": "object",
+        "required": [
+          "id",
+          "anno",
+          "numero",
+          "emessa_il",
+          "righe",
+          "imponibile_centesimi",
+          "iva_centesimi",
+          "totale_centesimi"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "anno": {
+            "type": "integer"
+          },
+          "numero": {
+            "type": "integer"
+          },
+          "emessa_il": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "righe": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Riga"
+            }
+          },
+          "imponibile_centesimi": {
+            "type": "integer"
+          },
+          "iva_centesimi": {
+            "type": "integer"
+          },
+          "totale_centesimi": {
+            "type": "integer"
+          }
+        }
+      },
+      "VoceListino": {
+        "type": "object",
+        "required": [
+          "codice",
+          "descrizione",
+          "tipo",
+          "prezzo_centesimi",
+          "aliquota_iva"
+        ],
+        "properties": {
+          "codice": {
+            "type": "string"
+          },
+          "descrizione": {
+            "type": "string"
+          },
+          "tipo": {
+            "enum": [
+              "manodopera",
+              "ricambio"
+            ]
+          },
+          "prezzo_centesimi": {
+            "type": "integer"
+          },
+          "aliquota_iva": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "securitySchemes": {
+      "sessione": {
+        "type": "apiKey",
+        "in": "cookie",
+        "name": "officina_sessione"
+      }
+    }
+  }
+}

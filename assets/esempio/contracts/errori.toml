@@ -1,0 +1,233 @@
+# Catalogo degli errori e regole di validazione — fonte unica per backend e frontend.
+# Formato di risposta: Problem Details (ST-errori), con il codice nel campo type.
+# categoria dice cosa si recupera e cosa si propaga; utente è la chiave del testo
+# che l'utente vede (ux/testi.toml); log è il livello con cui si registra.
+
+[[errori]]
+codice = "validazione"
+categoria = "validazione"
+http = 422
+recuperabile = true
+log = "debug"
+utente = "errore.validazione"
+
+[[errori]]
+codice = "non-autenticato"
+categoria = "autenticazione"
+http = 401
+recuperabile = true
+log = "info"
+utente = "errore.non-autenticato"
+
+[[errori]]
+codice = "credenziali-non-valide"
+categoria = "autenticazione"
+http = 401
+recuperabile = true
+log = "info"
+utente = "errore.credenziali-non-valide"
+traccia = ["ACC-1"]
+
+[[errori]]
+codice = "account-bloccato"
+categoria = "autenticazione"
+http = 423
+recuperabile = false
+log = "avviso"
+utente = "errore.account-bloccato"
+traccia = ["R-6"]
+
+[[errori]]
+codice = "codice-non-valido"
+categoria = "autenticazione"
+http = 401
+recuperabile = true
+log = "info"
+utente = "errore.codice-non-valido"
+traccia = ["ACC-4"]
+
+[[errori]]
+codice = "link-non-valido"
+categoria = "autenticazione"
+http = 410
+recuperabile = false
+log = "info"
+utente = "errore.link-non-valido"
+traccia = ["ACC-5", "MI-4"]
+
+[[errori]]
+codice = "password-debole"
+categoria = "validazione"
+http = 422
+recuperabile = true
+log = "debug"
+utente = "errore.password-debole"
+traccia = ["ACC-5"]
+
+[[errori]]
+codice = "non-autorizzato"
+categoria = "autorizzazione"
+http = 403
+recuperabile = false
+log = "avviso"
+utente = "errore.non-autorizzato"
+traccia = ["RNF-4"]
+
+[[errori]]
+codice = "non-trovato"
+categoria = "non-trovato"
+http = 404
+recuperabile = false
+log = "info"
+utente = "errore.non-trovato"
+traccia = ["MI-1"]
+
+[[errori]]
+codice = "troppe-richieste"
+categoria = "limite"
+http = 429
+recuperabile = true
+log = "avviso"
+utente = "errore.troppe-richieste"
+traccia = ["MI-6"]
+
+[[errori]]
+codice = "conflitto-di-versione"
+categoria = "conflitto"
+http = 409
+recuperabile = true
+log = "info"
+utente = "errore.conflitto-di-versione"
+traccia = ["ST-concorrenza"]
+
+[[errori]]
+codice = "account-esistente"
+categoria = "conflitto"
+http = 409
+recuperabile = false
+log = "info"
+utente = "errore.account-esistente"
+traccia = ["ACC-2"]
+
+[[errori]]
+codice = "cliente-duplicato"
+categoria = "conflitto"
+http = 409
+recuperabile = false
+log = "info"
+utente = "errore.cliente-duplicato"
+traccia = ["CLI-1", "R-7"]
+
+[[errori]]
+codice = "codice-fiscale-non-valido"
+categoria = "validazione"
+http = 422
+recuperabile = true
+log = "debug"
+utente = "errore.codice-fiscale-non-valido"
+traccia = ["R-7"]
+
+[[errori]]
+codice = "veicolo-duplicato"
+categoria = "conflitto"
+http = 409
+recuperabile = false
+log = "info"
+utente = "errore.veicolo-duplicato"
+traccia = ["R-8"]
+
+[[errori]]
+codice = "intervento-gia-aperto"
+categoria = "dominio"
+http = 409
+recuperabile = false
+log = "info"
+utente = "errore.intervento-gia-aperto"
+traccia = ["R-4"]
+
+[[errori]]
+codice = "quantita-non-valida"
+categoria = "validazione"
+http = 422
+recuperabile = true
+log = "debug"
+utente = "errore.quantita-non-valida"
+traccia = ["R-9"]
+
+[[errori]]
+codice = "preventivo-approvato"
+categoria = "dominio"
+http = 409
+recuperabile = false
+log = "info"
+utente = "errore.preventivo-approvato"
+traccia = ["R-9"]
+
+[[errori]]
+codice = "preventivo-vuoto"
+categoria = "dominio"
+http = 409
+recuperabile = true
+log = "info"
+utente = "errore.preventivo-vuoto"
+traccia = ["INT-2"]
+
+[[errori]]
+codice = "preventivo-non-approvato"
+categoria = "dominio"
+http = 409
+recuperabile = false
+log = "info"
+utente = "errore.preventivo-non-approvato"
+traccia = ["R-1"]
+
+[[errori]]
+codice = "intervento-non-chiuso"
+categoria = "dominio"
+http = 409
+recuperabile = false
+log = "info"
+utente = "errore.intervento-non-chiuso"
+traccia = ["FAT-1"]
+
+[[errori]]
+codice = "fattura-esistente"
+categoria = "conflitto"
+http = 409
+recuperabile = false
+log = "info"
+utente = "errore.fattura-esistente"
+traccia = ["FAT-1", "R-3"]
+
+[[errori]]
+codice = "errore-interno"
+categoria = "infrastruttura"
+http = 500
+recuperabile = false
+log = "errore"
+utente = "errore.interno"
+
+[[validazioni]]
+campo = "cliente.codice_fiscale"
+regola = "16 caratteri alfanumerici con il carattere di controllo corretto"
+errore = "codice-fiscale-non-valido"
+
+[[validazioni]]
+campo = "cliente.email"
+regola = "indirizzo email sintatticamente valido, al massimo 254 caratteri"
+errore = "validazione"
+
+[[validazioni]]
+campo = "veicolo.targa"
+regola = "dopo la normalizzazione, da 5 a 10 caratteri alfanumerici"
+errore = "validazione"
+
+[[validazioni]]
+campo = "riga_preventivo.quantita"
+regola = "numero maggiore di zero con al massimo due decimali"
+errore = "quantita-non-valida"
+
+[[validazioni]]
+campo = "account.password"
+regola = "almeno 12 caratteri"
+errore = "password-debole"

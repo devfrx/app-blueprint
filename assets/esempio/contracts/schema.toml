@@ -1,0 +1,261 @@
+# Schema logico e fisico — contratto congelato al gate: lo scheletro ne deriva le
+# migrazioni senza prendere decisioni. PostgreSQL (ADR-0002).
+#
+# Ogni tabella di dominio dichiara il modulo proprietario e i concetti che traduce
+# (da); ogni colonna l'attributo da cui nasce (da) o la sua traccia; ogni indice
+# gli accessi che lo giustificano. Le tabelle di piattaforma (piattaforma = true)
+# le crea lo scheletro nel kernel condiviso, e citano la strategia che le richiede.
+# L'incremento di ogni elemento lo calcola lo script dalla traccia: le colonne e gli
+# indici che servono solo al secondo incremento non entrano nelle migrazioni del primo.
+
+[[tabelle]]
+nome = "account"
+modulo = "accessi"
+da = ["entita:account"]
+chiave = ["id"]
+uniche = [["email"]]
+normalizzazione = "BCNF"
+colonne = [
+  { nome = "id", tipo = "char(26)", nullo = false, descrizione = "ULID", traccia = ["ST-identificatori"] },
+  { nome = "email", tipo = "varchar(254)", nullo = false, da = "account.email" },
+  { nome = "ruolo", tipo = "varchar(20)", nullo = false, da = "account.ruolo" },
+  { nome = "stato", tipo = "varchar(20)", nullo = false, da = "account.stato" },
+  { nome = "tentativi_falliti", tipo = "smallint", nullo = false, default = "0", da = "account.tentativi_falliti" },
+  { nome = "password_hash", tipo = "varchar(255)", nullo = true, da = "account.password" },
+  { nome = "secondo_fattore", tipo = "varchar(512)", nullo = true, da = "account.secondo_fattore" },
+  { nome = "creato_il", tipo = "timestamptz", nullo = false, da = "account.creato_il" },
+]
+controlli = [
+  { nome = "account_ruolo", espressione = "ruolo in ('operatore', 'responsabile', 'cliente')", traccia = ["matrice:account.crea"] },
+  { nome = "account_stato", espressione = "stato in ('invitato', 'attivo', 'bloccato')", traccia = ["ACC-5"] },
+  { nome = "account_tentativi", espressione = "tentativi_falliti between 0 and 5", traccia = ["R-6"] },
+]
+
+[[tabelle]]
+nome = "clienti"
+modulo = "clienti"
+da = ["entita:cliente"]
+chiave = ["id"]
+uniche = [["codice_fiscale"], ["account_id"]]
+normalizzazione = "BCNF"
+colonne = [
+  { nome = "id", tipo = "char(26)", nullo = false, traccia = ["ST-identificatori"] },
+  { nome = "nome", tipo = "varchar(100)", nullo = false, da = "cliente.nome" },
+  { nome = "cognome", tipo = "varchar(100)", nullo = false, da = "cliente.cognome" },
+  { nome = "codice_fiscale", tipo = "char(16)", nullo = false, da = "cliente.codice_fiscale" },
+  { nome = "email", tipo = "varchar(254)", nullo = false, da = "cliente.email" },
+  { nome = "account_id", tipo = "char(26)", nullo = true, traccia = ["CLI-1"] },
+]
+esterne = [
+  { colonne = ["account_id"], riferisce = "account", colonne_rif = ["id"], relazione = "relazione:account-cliente", cancellazione = "set-null", aggiornamento = "no-action", motivo = "clienti sta a valle di accessi: la chiave esterna protegge il collegamento all'account senza che clienti ne scriva la tabella." },
+]
+indici = [
+  { nome = "ix_clienti_cognome", colonne = ["cognome", "nome"], accessi = ["AC-7"] },
+]
+
+[[tabelle]]
+nome = "veicoli"
+modulo = "veicoli"
+da = ["entita:veicolo"]
+chiave = ["id"]
+uniche = [["targa"]]
+normalizzazione = "BCNF"
+colonne = [
+  { nome = "id", tipo = "char(26)", nullo = false, traccia = ["ST-identificatori"] },
+  { nome = "targa", tipo = "varchar(10)", nullo = false, da = "veicolo.targa" },
+  { nome = "marca", tipo = "varchar(60)", nullo = false, da = "veicolo.marca" },
+  { nome = "modello", tipo = "varchar(60)", nullo = false, da = "veicolo.modello" },
+  { nome = "scadenza_revisione", tipo = "date", nullo = true, da = "veicolo.scadenza_revisione" },
+  { nome = "promemoria_inviato_il", tipo = "date", nullo = true, da = "veicolo.promemoria_inviato_il" },
+  { nome = "cliente_id", tipo = "char(26)", nullo = false, traccia = ["VEI-1"] },
+]
+esterne = [
+  { colonne = ["cliente_id"], riferisce = "clienti", colonne_rif = ["id"], relazione = "relazione:cliente-veicolo", cancellazione = "restrict", aggiornamento = "no-action", motivo = "veicoli sta a valle di clienti: un cliente con veicoli non si cancella." },
+]
+indici = [
+  { nome = "ix_veicoli_cliente", colonne = ["cliente_id"], accessi = ["AC-9"] },
+  { nome = "ix_veicoli_scadenza_revisione", colonne = ["scadenza_revisione"], accessi = ["AC-8"] },
+]
+
+[[tabelle]]
+nome = "interventi"
+modulo = "interventi"
+da = ["entita:intervento"]
+chiave = ["id"]
+uniche = [["codice"]]
+normalizzazione = "BCNF"
+colonne = [
+  { nome = "id", tipo = "char(26)", nullo = false, traccia = ["ST-identificatori"] },
+  { nome = "codice", tipo = "varchar(16)", nullo = false, da = "intervento.codice" },
+  { nome = "veicolo_id", tipo = "char(26)", nullo = false, traccia = ["INT-1"] },
+  { nome = "descrizione", tipo = "text", nullo = false, da = "intervento.descrizione" },
+  { nome = "stato", tipo = "varchar(20)", nullo = false, da = "intervento.stato" },
+  { nome = "aperto_il", tipo = "timestamptz", nullo = false, da = "intervento.aperto_il" },
+  { nome = "chiuso_il", tipo = "timestamptz", nullo = true, da = "intervento.chiuso_il" },
+  { nome = "data_prevista", tipo = "date", nullo = true, da = "intervento.data_prevista" },
+  { nome = "versione", tipo = "integer", nullo = false, default = "1", traccia = ["ST-concorrenza"] },
+]
+esterne = [
+  { colonne = ["veicolo_id"], riferisce = "veicoli", colonne_rif = ["id"], relazione = "relazione:veicolo-intervento", cancellazione = "restrict", aggiornamento = "no-action", motivo = "interventi sta a valle di veicoli: un veicolo con interventi non si cancella." },
+]
+controlli = [
+  { nome = "interventi_stato", espressione = "stato in ('accettazione', 'lavorazione', 'chiuso')", traccia = ["INT-4"] },
+  { nome = "interventi_chiusura", espressione = "(stato = 'chiuso') = (chiuso_il is not null)", traccia = ["INT-4"] },
+]
+indici = [
+  { nome = "ix_interventi_stato_aperto", colonne = ["stato", "aperto_il"], accessi = ["AC-1"] },
+  { nome = "ux_interventi_veicolo_aperto", colonne = ["veicolo_id"], unico = true, condizione = "stato <> 'chiuso'", accessi = ["AC-10"], traccia = ["R-4"] },
+]
+
+[[tabelle]]
+nome = "preventivi"
+modulo = "interventi"
+da = ["entita:preventivo", "relazione:intervento-preventivo"]
+chiave = ["id"]
+uniche = [["intervento_id"]]
+normalizzazione = "BCNF"
+colonne = [
+  { nome = "id", tipo = "char(26)", nullo = false, traccia = ["ST-identificatori"] },
+  { nome = "intervento_id", tipo = "char(26)", nullo = false, traccia = ["INT-1"] },
+  { nome = "stato", tipo = "varchar(20)", nullo = false, da = "preventivo.stato" },
+  { nome = "approvato_il", tipo = "timestamptz", nullo = true, da = "preventivo.approvato_il" },
+  { nome = "approvato_da", tipo = "char(26)", nullo = true, descrizione = "Id dell'account del responsabile, senza chiave esterna verso accessi: lo storico resta anche se l'account cambia.", traccia = ["ST-audit", "INT-2"] },
+  { nome = "versione", tipo = "integer", nullo = false, default = "1", traccia = ["ST-concorrenza"] },
+]
+esterne = [
+  { colonne = ["intervento_id"], riferisce = "interventi", colonne_rif = ["id"], relazione = "relazione:intervento-preventivo", cancellazione = "restrict", aggiornamento = "no-action" },
+]
+controlli = [
+  { nome = "preventivi_stato", espressione = "stato in ('bozza', 'approvato')", traccia = ["INT-2"] },
+]
+
+[[tabelle]]
+nome = "righe_preventivo"
+modulo = "interventi"
+da = ["entita:riga_preventivo", "relazione:preventivo-righe"]
+chiave = ["id"]
+uniche = [["preventivo_id", "numero"]]
+normalizzazione = "BCNF"
+colonne = [
+  { nome = "id", tipo = "char(26)", nullo = false, traccia = ["ST-identificatori"] },
+  { nome = "preventivo_id", tipo = "char(26)", nullo = false, traccia = ["INT-5"] },
+  { nome = "numero", tipo = "smallint", nullo = false, da = "riga_preventivo.numero" },
+  { nome = "codice_voce", tipo = "varchar(20)", nullo = false, da = "riga_preventivo.codice_voce" },
+  { nome = "descrizione", tipo = "varchar(200)", nullo = false, da = "riga_preventivo.descrizione" },
+  { nome = "tipo", tipo = "varchar(12)", nullo = false, da = "riga_preventivo.tipo" },
+  { nome = "quantita", tipo = "numeric(8,2)", nullo = false, da = "riga_preventivo.quantita" },
+  { nome = "prezzo_unitario_centesimi", tipo = "integer", nullo = false, da = "riga_preventivo.prezzo_unitario" },
+  { nome = "aliquota_iva", tipo = "numeric(4,2)", nullo = false, da = "riga_preventivo.aliquota_iva" },
+]
+esterne = [
+  { colonne = ["preventivo_id"], riferisce = "preventivi", colonne_rif = ["id"], relazione = "relazione:preventivo-righe", cancellazione = "cascade", aggiornamento = "no-action" },
+]
+controlli = [
+  { nome = "righe_quantita", espressione = "quantita > 0", traccia = ["R-9"] },
+]
+
+[[tabelle]]
+nome = "numeratori_fatture"
+modulo = "fatture"
+da = ["entita:fattura"]
+chiave = ["anno"]
+normalizzazione = "BCNF"
+motivo = "Tabella tecnica del numeratore senza buchi: una riga per anno, bloccata durante l'emissione (R-3, ST-concorrenza)."
+colonne = [
+  { nome = "anno", tipo = "smallint", nullo = false, traccia = ["R-3"] },
+  { nome = "ultimo_numero", tipo = "integer", nullo = false, default = "0", traccia = ["R-3"] },
+]
+
+[[tabelle]]
+nome = "fatture"
+modulo = "fatture"
+da = ["entita:fattura", "relazione:intervento-fattura"]
+chiave = ["id"]
+uniche = [["anno", "numero"], ["intervento_id"]]
+normalizzazione = "BCNF"
+colonne = [
+  { nome = "id", tipo = "char(26)", nullo = false, traccia = ["ST-identificatori"] },
+  { nome = "anno", tipo = "smallint", nullo = false, da = "fattura.anno" },
+  { nome = "numero", tipo = "integer", nullo = false, da = "fattura.numero" },
+  { nome = "intervento_id", tipo = "char(26)", nullo = false, traccia = ["FAT-1"] },
+  { nome = "emessa_il", tipo = "timestamptz", nullo = false, da = "fattura.emessa_il" },
+  { nome = "totale_centesimi", tipo = "bigint", nullo = false, da = "fattura.totale" },
+]
+esterne = [
+  { colonne = ["intervento_id"], riferisce = "interventi", colonne_rif = ["id"], relazione = "relazione:intervento-fattura", cancellazione = "restrict", aggiornamento = "no-action", motivo = "fatture sta a valle di interventi: un intervento fatturato non si cancella." },
+]
+controlli = [
+  { nome = "fatture_numero", espressione = "numero > 0", traccia = ["R-3"] },
+]
+
+[[tabelle]]
+nome = "righe_fattura"
+modulo = "fatture"
+da = ["entita:riga_fattura", "relazione:fattura-righe"]
+chiave = ["id"]
+uniche = [["fattura_id", "numero"]]
+normalizzazione = "BCNF"
+colonne = [
+  { nome = "id", tipo = "char(26)", nullo = false, traccia = ["ST-identificatori"] },
+  { nome = "fattura_id", tipo = "char(26)", nullo = false, traccia = ["FAT-1"] },
+  { nome = "numero", tipo = "smallint", nullo = false, da = "riga_fattura.numero" },
+  { nome = "descrizione", tipo = "varchar(200)", nullo = false, da = "riga_fattura.descrizione" },
+  { nome = "quantita", tipo = "numeric(8,2)", nullo = false, da = "riga_fattura.quantita" },
+  { nome = "prezzo_unitario_centesimi", tipo = "integer", nullo = false, da = "riga_fattura.prezzo_unitario" },
+  { nome = "aliquota_iva", tipo = "numeric(4,2)", nullo = false, da = "riga_fattura.aliquota_iva" },
+  { nome = "importo_centesimi", tipo = "bigint", nullo = false, da = "riga_fattura.importo" },
+]
+esterne = [
+  { colonne = ["fattura_id"], riferisce = "fatture", colonne_rif = ["id"], relazione = "relazione:fattura-righe", cancellazione = "restrict", aggiornamento = "no-action" },
+]
+
+[[tabelle]]
+nome = "voci_listino"
+modulo = "prezzi"
+da = ["entita:voce_listino", "entita:manodopera", "entita:ricambio"]
+chiave = ["id"]
+uniche = [["codice"]]
+normalizzazione = "BCNF"
+colonne = [
+  { nome = "id", tipo = "char(26)", nullo = false, traccia = ["ST-identificatori"] },
+  { nome = "codice", tipo = "varchar(20)", nullo = false, da = "voce_listino.codice" },
+  { nome = "descrizione", tipo = "varchar(200)", nullo = false, da = "voce_listino.descrizione" },
+  { nome = "tipo", tipo = "varchar(12)", nullo = false, descrizione = "manodopera o ricambio: accorpamento della generalizzazione", traccia = ["INT-5"] },
+  { nome = "prezzo_centesimi", tipo = "integer", nullo = false, da = "voce_listino.prezzo" },
+  { nome = "aliquota_iva", tipo = "numeric(4,2)", nullo = false, da = "voce_listino.aliquota_iva" },
+  { nome = "durata_standard_minuti", tipo = "smallint", nullo = true, da = "manodopera.durata_standard" },
+  { nome = "codice_fornitore", tipo = "varchar(40)", nullo = true, da = "ricambio.codice_fornitore" },
+]
+controlli = [
+  { nome = "voci_tipo", espressione = "tipo in ('manodopera', 'ricambio')", traccia = ["INT-5"] },
+  { nome = "voci_figli", espressione = "(tipo = 'manodopera' or durata_standard_minuti is null) and (tipo = 'ricambio' or codice_fornitore is null)", traccia = ["INT-5"] },
+]
+
+[[tabelle]]
+nome = "audit"
+piattaforma = true
+strategia = "ST-audit"
+chiave = ["id"]
+normalizzazione = "BCNF"
+colonne = [
+  { nome = "id", tipo = "char(26)", nullo = false, traccia = ["ST-identificatori"] },
+  { nome = "avvenuto_il", tipo = "timestamptz", nullo = false, traccia = ["ST-audit"] },
+  { nome = "account_id", tipo = "char(26)", nullo = false, traccia = ["ST-audit"] },
+  { nome = "azione", tipo = "varchar(40)", nullo = false, traccia = ["ST-audit"] },
+  { nome = "risorsa", tipo = "varchar(40)", nullo = false, traccia = ["ST-audit"] },
+  { nome = "risorsa_id", tipo = "char(26)", nullo = false, traccia = ["ST-audit"] },
+]
+
+[[tabelle]]
+nome = "coda"
+piattaforma = true
+strategia = "ST-resilienza"
+chiave = ["id"]
+normalizzazione = "BCNF"
+motivo = "Tabelle della coda del framework: le crea lo scheletro con la migrazione del framework."
+colonne = [
+  { nome = "id", tipo = "bigint", nullo = false, traccia = ["ST-resilienza"] },
+  { nome = "contenuto", tipo = "text", nullo = false, traccia = ["ST-resilienza"] },
+  { nome = "tentativi", tipo = "smallint", nullo = false, traccia = ["ST-resilienza"] },
+  { nome = "disponibile_dal", tipo = "timestamptz", nullo = false, traccia = ["ST-resilienza"] },
+]

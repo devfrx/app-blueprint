@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Il tuo intervento — mockup di Officina</title>
+<!-- Mockup: struttura e intenzione, non pixel-perfection. Self-contained, nessuna dipendenza esterna. -->
+<style>
+  :root { --primario:#1F4E79; --sfondo:#F4F6F8; --superficie:#fff; --testo:#1B1F23; --secondario:#4A5560; --bordo:#C9D1D9; --errore:#B42318; --successo:#1E7B34; }
+  * { box-sizing: border-box; }
+  body { margin:0; font: 1rem/1.5 system-ui, sans-serif; color: var(--testo); background: var(--sfondo); }
+  header { background: var(--primario); color:#fff; padding: .75rem 1rem; display:flex; gap:1rem; align-items:center; }
+  header a { color:#fff; }
+  main { max-width: 60rem; margin: 1.5rem auto; padding: 0 1rem; }
+  .scheda { background: var(--superficie); border:1px solid var(--bordo); border-radius:6px; padding:1rem; margin-bottom:1rem; }
+  button { min-height:44px; min-width:44px; padding:.5rem 1rem; border-radius:6px; border:1px solid var(--primario); font:inherit; cursor:pointer; }
+  button.primario { background: var(--primario); color:#fff; }
+  button.secondario { background:#fff; color: var(--primario); }
+  button:focus-visible, a:focus-visible, input:focus-visible { outline:3px solid var(--primario); outline-offset:2px; }
+  table { width:100%; border-collapse: collapse; }
+  th, td { text-align:left; padding:.5rem; border-bottom:1px solid var(--bordo); }
+  .badge { display:inline-block; padding:.1rem .5rem; border-radius:999px; border:1px solid currentColor; font-size:.875rem; }
+  label { display:block; margin:.75rem 0 .25rem; font-weight:600; }
+  input { width:100%; min-height:44px; padding:.5rem; border:1px solid var(--bordo); border-radius:6px; font:inherit; }
+  .nota { color: var(--secondario); font-size:.875rem; }
+  @media (max-width: 40rem) { table thead { display:none; } table tr { display:block; border-bottom:1px solid var(--bordo); } table td { display:block; border:0; } }
+</style>
+</head>
+<body>
+<header><strong>Officina</strong> — I miei interventi</header>
+<main>
+<h1>Il tuo intervento</h1>
+<section class="scheda">
+  <p>Fiat Panda AB123CD</p>
+  <p>Stato: <span class="badge">lavorazione</span></p>
+  <p>Riconsegna prevista: <strong>23 ottobre 2026</strong></p>
+</section>
+<section class="scheda" aria-labelledby="p">
+  <h2 id="p">Preventivo approvato</h2>
+  <ul><li>Manodopera, 2 h — 109,80 €</li><li>Pastiglie freni — 73,20 €</li></ul>
+  <p><strong>Totale: 183,00 €</strong></p>
+</section>
+</main>
+</body>
+</html>

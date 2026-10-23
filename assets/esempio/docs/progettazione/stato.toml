@@ -1,0 +1,81 @@
+# Stato della progettazione — si legge a ogni avvio, quindi resta breve.
+# Il dettaglio sta nelle sorgenti; lo stato a colpo d'occhio lo stampa
+# `progetto.py stato`.
+
+metodo = "3.0.0"
+
+[scheda]
+progetto = "Officina"
+responsabile = "responsabile"
+esposizione = "pubblicabile"
+criticita = "media"
+inneschi = ["ui", "dati-personali", "denaro", "integrazioni"]
+processo = "ibrido"
+avvio = 2026-10-05
+verdetto = "incrementi"
+incremento = 1
+costruzione = "parallela"
+
+[corrente]
+fase = 7
+punto = ""
+
+[[registro]]
+fase = 0
+stato = "superato"
+approvato_da = "responsabile"
+data = 2026-10-05
+note = "Repo, agenti e stato pronti."
+
+[[registro]]
+fase = 1
+stato = "superato"
+approvato_da = "responsabile"
+data = 2026-10-07
+note = "Go. Trasversali: RK-1…RK-3 aperti; nessun ADR oltre ADR-0001."
+
+[[registro]]
+fase = 2
+stato = "superato"
+approvato_da = "responsabile"
+data = 2026-10-10
+note = "Baseline progettazione/fase-2; 21 storie, 17 nell'incremento 1."
+
+[[registro]]
+fase = 3
+stato = "superato"
+approvato_da = "responsabile"
+data = 2026-10-13
+note = "Modello provato su tutte le storie (REV-3)."
+
+[[registro]]
+fase = 4
+stato = "superato"
+approvato_da = "responsabile"
+data = 2026-10-15
+note = "ADR-0002…0006; RK-2 chiuso dallo spike; RK-4 e RK-5 accettati."
+
+[[registro]]
+fase = 5
+stato = "superato"
+approvato_da = "responsabile"
+data = 2026-10-19
+note = "Contratti dell'incremento 1 completi (REV-6)."
+
+[[registro]]
+fase = 6
+stato = "superato"
+approvato_da = "responsabile"
+data = 2026-10-19
+note = "Usabilità con utenti reali rinviata al pubblico (6.08, debito di pubblicazione)."
+
+[[registro]]
+fase = 7
+stato = "in-corso"
+note = "Progetto congelato il 2026-10-22; il gate si chiude quando lo scheletro di parallel-build gira (7.09, 7.10)."
+
+[congelamento]
+data = 2026-10-22
+tag = "progettazione/incremento-1"
+revisione = "Nessun P0 o P1 aperto; 9 findings P2 e P3 corretti (REV-9)."
+prova = "Nessuna domanda su clienti, interventi e prezzi (REV-10)."

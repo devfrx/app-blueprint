@@ -1,0 +1,219 @@
+# Modello concettuale dei dati, indipendente dalla tecnologia: entità con attributi,
+# identificatori e modulo proprietario, generalizzazioni, relazioni con cardinalità.
+# Copre tutte le funzionalità di tutti gli incrementi: un attributo che serve solo a
+# una storia futura porta quella storia nella traccia, e l'incremento lo calcola lo script.
+#
+# Cardinalità di un partecipante (min, max): quante volte ogni sua istanza partecipa
+# alla relazione. min 0 o 1, max 1 o "N".
+# Identificatori: liste di attributi; "relazione:<id>" per l'identificazione esterna.
+# Domini concettuali: testo, email, codice_fiscale, targa, intero, decimale, denaro,
+# data, istante, booleano, enumerazione.
+
+[[entita]]
+id = "account"
+termine = "account"
+descrizione = "L'accesso di una persona a Officina."
+modulo = "accessi"
+identificatori = [["email"]]
+attributi = [
+  { nome = "email", dominio = "email", descrizione = "Indirizzo con cui la persona accede e riceve gli inviti." },
+  { nome = "ruolo", dominio = "enumerazione", descrizione = "operatore, responsabile o cliente: i ruoli della matrice." },
+  { nome = "stato", dominio = "enumerazione", descrizione = "invitato, attivo o bloccato.", traccia = ["ACC-5", "R-6"] },
+  { nome = "tentativi_falliti", dominio = "intero", descrizione = "Accessi falliti consecutivi.", traccia = ["R-6"] },
+  { nome = "password", dominio = "testo", descrizione = "Solo la sua impronta, mai in chiaro.", obbligatorio = false, traccia = ["ACC-5", "ST-autenticazione"] },
+  { nome = "secondo_fattore", dominio = "testo", descrizione = "Segreto TOTP cifrato; solo per il responsabile.", obbligatorio = false, traccia = ["ACC-4"] },
+  { nome = "creato_il", dominio = "istante", descrizione = "Quando il responsabile o la registrazione del cliente l'ha creato." },
+]
+
+[[entita]]
+id = "cliente"
+termine = "cliente"
+descrizione = "Chi porta i veicoli in officina e riceve le fatture."
+modulo = "clienti"
+identificatori = [["codice_fiscale"]]
+attributi = [
+  { nome = "nome", dominio = "testo", descrizione = "Nome di battesimo." },
+  { nome = "cognome", dominio = "testo", descrizione = "Cognome; la ricerca per nome lo usa (CLI-2)." },
+  { nome = "codice_fiscale", dominio = "codice_fiscale", descrizione = "Valido e unico (R-7).", traccia = ["R-7"] },
+  { nome = "email", dominio = "email", descrizione = "Per l'invito all'area cliente e i promemoria." },
+]
+
+[[entita]]
+id = "veicolo"
+termine = "veicolo"
+descrizione = "Un mezzo di un cliente."
+modulo = "veicoli"
+identificatori = [["targa"]]
+attributi = [
+  { nome = "targa", dominio = "targa", descrizione = "Normalizzata in maiuscolo senza spazi (R-8).", traccia = ["R-8"] },
+  { nome = "marca", dominio = "testo", descrizione = "Marca del veicolo." },
+  { nome = "modello", dominio = "testo", descrizione = "Modello del veicolo." },
+  { nome = "scadenza_revisione", dominio = "data", descrizione = "Prossima revisione obbligatoria.", obbligatorio = false, traccia = ["VEI-2"] },
+  { nome = "promemoria_inviato_il", dominio = "data", descrizione = "Ultimo promemoria inviato, per non ripeterlo.", obbligatorio = false, traccia = ["VEI-2"] },
+]
+
+[[entita]]
+id = "intervento"
+termine = "intervento"
+descrizione = "Il lavoro su un veicolo, dall'accettazione alla chiusura."
+modulo = "interventi"
+identificatori = [["codice"]]
+attributi = [
+  { nome = "codice", dominio = "testo", descrizione = "INT-AAAA-NNNN, leggibile e unico." },
+  { nome = "descrizione", dominio = "testo", descrizione = "Il problema riferito dal cliente." },
+  { nome = "stato", dominio = "enumerazione", descrizione = "accettazione, lavorazione o chiuso." },
+  { nome = "aperto_il", dominio = "istante", descrizione = "Apertura; ordina l'elenco (INT-6).", traccia = ["INT-6"] },
+  { nome = "chiuso_il", dominio = "istante", descrizione = "Chiusura; misura OB-2.", obbligatorio = false, traccia = ["INT-4", "OB-2"] },
+  { nome = "data_prevista", dominio = "data", descrizione = "Riconsegna prevista, mostrata al cliente.", obbligatorio = false, traccia = ["INT-3"] },
+]
+
+[[entita]]
+id = "preventivo"
+termine = "preventivo"
+descrizione = "Le righe di un intervento; uno per intervento."
+modulo = "interventi"
+identificatori = [["relazione:intervento-preventivo"]]
+attributi = [
+  { nome = "stato", dominio = "enumerazione", descrizione = "bozza o approvato." },
+  { nome = "approvato_il", dominio = "istante", descrizione = "Approvazione del responsabile.", obbligatorio = false, traccia = ["INT-2"] },
+  { nome = "totale", dominio = "denaro", descrizione = "Somma calcolata dal motore.", derivato = "calcolato dal motore dei prezzi sulle righe", traccia = ["R-2"] },
+]
+
+[[entita]]
+id = "riga_preventivo"
+termine = "riga di preventivo"
+descrizione = "Una voce del listino nel preventivo, con i valori del momento."
+modulo = "interventi"
+identificatori = [["numero", "relazione:preventivo-righe"]]
+attributi = [
+  { nome = "numero", dominio = "intero", descrizione = "Posizione nel preventivo." },
+  { nome = "codice_voce", dominio = "testo", descrizione = "Codice della voce di listino al momento dell'inserimento." },
+  { nome = "descrizione", dominio = "testo", descrizione = "Copiata dalla voce di listino." },
+  { nome = "tipo", dominio = "enumerazione", descrizione = "manodopera o ricambio." },
+  { nome = "quantita", dominio = "decimale", descrizione = "Ore o pezzi; maggiore di zero (R-9).", traccia = ["R-9"] },
+  { nome = "prezzo_unitario", dominio = "denaro", descrizione = "Copiato dal listino." },
+  { nome = "aliquota_iva", dominio = "decimale", descrizione = "Copiata dal listino." },
+]
+
+[[entita]]
+id = "fattura"
+termine = "fattura"
+descrizione = "Documento emesso per un intervento chiuso; immutabile (R-3)."
+modulo = "fatture"
+identificatori = [["anno", "numero"]]
+attributi = [
+  { nome = "anno", dominio = "intero", descrizione = "Anno di emissione nel fuso Europe/Rome (R-5).", traccia = ["R-3", "R-5"] },
+  { nome = "numero", dominio = "intero", descrizione = "Progressivo nell'anno, senza buchi (R-3).", traccia = ["R-3"] },
+  { nome = "emessa_il", dominio = "istante", descrizione = "Emissione; misura OB-2.", traccia = ["FAT-1", "OB-2"] },
+  { nome = "totale", dominio = "denaro", descrizione = "Somma degli importi delle righe.", derivato = "somma degli importi delle righe di fattura", traccia = ["R-3"] },
+]
+
+[[entita]]
+id = "riga_fattura"
+termine = "riga di fattura"
+descrizione = "Copia di una riga del preventivo approvato all'emissione."
+modulo = "fatture"
+identificatori = [["numero", "relazione:fattura-righe"]]
+attributi = [
+  { nome = "numero", dominio = "intero", descrizione = "Posizione nella fattura." },
+  { nome = "descrizione", dominio = "testo", descrizione = "Copiata dalla riga del preventivo." },
+  { nome = "quantita", dominio = "decimale", descrizione = "Copiata dalla riga del preventivo." },
+  { nome = "prezzo_unitario", dominio = "denaro", descrizione = "Copiato dalla riga del preventivo." },
+  { nome = "aliquota_iva", dominio = "decimale", descrizione = "Copiata dalla riga del preventivo." },
+  { nome = "importo", dominio = "denaro", descrizione = "Calcolato dal motore all'emissione e congelato (R-2, R-3).", traccia = ["R-2", "R-3"] },
+]
+
+[[entita]]
+id = "voce_listino"
+termine = "voce di listino"
+descrizione = "Una prestazione o un ricambio con prezzo e aliquota."
+modulo = "prezzi"
+identificatori = [["codice"]]
+attributi = [
+  { nome = "codice", dominio = "testo", descrizione = "Codice interno della voce." },
+  { nome = "descrizione", dominio = "testo", descrizione = "Testo che finisce in preventivo e fattura." },
+  { nome = "prezzo", dominio = "denaro", descrizione = "Per ora (manodopera) o per pezzo (ricambio)." },
+  { nome = "aliquota_iva", dominio = "decimale", descrizione = "Aliquota applicata." },
+]
+
+[[entita]]
+id = "manodopera"
+termine = "manodopera"
+descrizione = "Voce di listino prezzata a ore."
+modulo = "prezzi"
+attributi = [
+  { nome = "durata_standard", dominio = "intero", descrizione = "Minuti suggeriti per la prestazione.", obbligatorio = false },
+]
+
+[[entita]]
+id = "ricambio"
+termine = "ricambio"
+descrizione = "Voce di listino prezzata a pezzo."
+modulo = "prezzi"
+attributi = [
+  { nome = "codice_fornitore", dominio = "testo", descrizione = "Codice del fornitore, per il riordino.", obbligatorio = false },
+]
+
+[[generalizzazioni]]
+id = "voce-listino-tipo"
+padre = "voce_listino"
+figli = ["manodopera", "ricambio"]
+copertura = "totale"
+disgiunzione = "esclusiva"
+traccia = ["INT-5"]
+
+[[relazioni]]
+id = "account-cliente"
+nome = "accede-con"
+descrizione = "Il cliente con un account accede all'area cliente."
+partecipanti = [{ entita = "cliente", min = 0, max = 1 }, { entita = "account", min = 0, max = 1 }]
+traccia = ["CLI-1", "ACC-5"]
+
+[[relazioni]]
+id = "cliente-veicolo"
+nome = "possiede"
+descrizione = "I veicoli di un cliente."
+partecipanti = [{ entita = "cliente", min = 0, max = "N" }, { entita = "veicolo", min = 1, max = 1 }]
+traccia = ["VEI-1"]
+
+[[relazioni]]
+id = "veicolo-intervento"
+nome = "riceve"
+descrizione = "Gli interventi su un veicolo."
+partecipanti = [{ entita = "veicolo", min = 0, max = "N" }, { entita = "intervento", min = 1, max = 1 }]
+traccia = ["INT-1"]
+
+[[relazioni]]
+id = "intervento-preventivo"
+nome = "ha"
+descrizione = "Ogni intervento ha il suo preventivo, creato vuoto all'apertura."
+partecipanti = [{ entita = "intervento", min = 1, max = 1 }, { entita = "preventivo", min = 1, max = 1 }]
+traccia = ["INT-1"]
+
+[[relazioni]]
+id = "preventivo-righe"
+nome = "contiene"
+descrizione = "Le righe del preventivo."
+partecipanti = [{ entita = "preventivo", min = 0, max = "N" }, { entita = "riga_preventivo", min = 1, max = 1 }]
+traccia = ["INT-5"]
+
+[[relazioni]]
+id = "voce-riga"
+nome = "prezza"
+descrizione = "La voce di listino da cui nasce una riga di preventivo."
+partecipanti = [{ entita = "voce_listino", min = 0, max = "N" }, { entita = "riga_preventivo", min = 1, max = 1 }]
+traccia = ["INT-5"]
+
+[[relazioni]]
+id = "intervento-fattura"
+nome = "chiuso-da"
+descrizione = "La fattura di un intervento chiuso; al massimo una."
+partecipanti = [{ entita = "intervento", min = 0, max = 1 }, { entita = "fattura", min = 1, max = 1 }]
+traccia = ["FAT-1"]
+
+[[relazioni]]
+id = "fattura-righe"
+nome = "contiene"
+descrizione = "Le righe della fattura."
+partecipanti = [{ entita = "fattura", min = 1, max = "N" }, { entita = "riga_fattura", min = 1, max = 1 }]
+traccia = ["FAT-1"]

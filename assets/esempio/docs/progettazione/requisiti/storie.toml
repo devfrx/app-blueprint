@@ -1,0 +1,310 @@
+# Storie — l'inventario completo di tutte le funzionalità, di tutti gli incrementi.
+# Le storie dell'incremento corrente hanno i criteri dato/quando/allora con dati
+# concreti, varianti ed errori; quelle future hanno almeno titolo, attore ed entità.
+# entita (fase 3), modulo e tocca (fasi 4–5) si aggiungono man mano.
+
+[[storie]]
+id = "ACC-1"
+titolo = "L'operatore accede ed esce"
+attore = "operatore"
+priorita = "must"
+incremento = 1
+fonte = ["operatore"]
+entita = ["account"]
+modulo = "accessi"
+traccia = ["OB-1"]
+criteri = [
+  { dato = "l'account attivo mario@officina.test con la sua password", quando = "accede", allora = "vede l'elenco degli interventi aperti" },
+  { dato = "quattro tentativi falliti per mario@officina.test", quando = "il quinto fallisce", allora = "riceve account-bloccato, e solo il responsabile può sbloccarlo (ACC-7)" },
+  { dato = "l'operatore dentro Officina", quando = "esce", allora = "la sessione termina e ogni pagina interna chiede di nuovo l'accesso" },
+]
+
+[[storie]]
+id = "ACC-2"
+titolo = "Il responsabile crea l'account di un operatore"
+attore = "responsabile"
+priorita = "must"
+incremento = 1
+fonte = ["responsabile"]
+entita = ["account"]
+modulo = "accessi"
+traccia = ["OB-1"]
+criteri = [
+  { dato = "nessun account per luca@officina.test", quando = "il responsabile lo crea con il ruolo operatore", allora = "l'account è invitato e parte l'email con il link d'attivazione" },
+  { dato = "un account per luca@officina.test", quando = "il responsabile lo crea di nuovo", allora = "riceve account-esistente e nessuna email parte" },
+]
+
+[[storie]]
+id = "ACC-3"
+titolo = "L'operatore recupera la password"
+attore = "operatore"
+priorita = "must"
+incremento = 1
+fonte = ["operatore"]
+entita = ["account"]
+modulo = "accessi"
+criteri = [
+  { dato = "l'account attivo mario@officina.test", quando = "chiede il recupero", allora = "riceve un link valido una sola volta per 60 minuti" },
+  { dato = "nessun account per ignoto@officina.test", quando = "chiede il recupero", allora = "vede la stessa conferma del caso precedente, e nessuna email parte" },
+]
+
+[[storie]]
+id = "ACC-4"
+titolo = "Il responsabile accede con un secondo fattore"
+attore = "responsabile"
+priorita = "must"
+incremento = 1
+fonte = ["sviluppatore"]
+entita = ["account"]
+modulo = "accessi"
+criteri = [
+  { dato = "il responsabile con il secondo fattore attivo", quando = "accede con password e codice corretto", allora = "entra" },
+  { dato = "il responsabile con il secondo fattore attivo", quando = "inserisce un codice già usato", allora = "riceve codice-non-valido" },
+]
+
+[[storie]]
+id = "ACC-5"
+titolo = "Il cliente attiva l'account dall'invito"
+attore = "cliente"
+priorita = "must"
+incremento = 1
+fonte = ["responsabile"]
+entita = ["account"]
+modulo = "accessi"
+traccia = ["OB-3"]
+criteri = [
+  { dato = "l'invito valido per mario.rossi@example.test", quando = "apre il link e sceglie una password di 12 caratteri", allora = "l'account è attivo e il cliente entra; lo stesso vale per l'invito di un operatore" },
+  { dato = "un link d'invito già usato", quando = "lo riapre", allora = "riceve link-non-valido" },
+  { dato = "l'invito valido", quando = "sceglie una password di 8 caratteri", allora = "riceve password-debole e l'account resta invitato" },
+]
+
+[[storie]]
+id = "ACC-6"
+titolo = "Il cliente consulta l'informativa privacy e le pagine di servizio"
+attore = "cliente"
+priorita = "must"
+incremento = 1
+fonte = ["consulente-privacy"]
+entita = ["account"]
+modulo = "accessi"
+criteri = [
+  { dato = "la pagina d'attivazione", quando = "il cliente apre il link all'informativa", allora = "legge l'informativa senza dover accedere" },
+  { dato = "un indirizzo inesistente", quando = "lo apre", allora = "vede la pagina 'non trovata' con il link alla pagina iniziale" },
+]
+
+[[storie]]
+id = "ACC-7"
+titolo = "Il responsabile sblocca un account bloccato"
+attore = "responsabile"
+priorita = "must"
+incremento = 1
+fonte = ["responsabile"]
+entita = ["account"]
+modulo = "accessi"
+criteri = [
+  { dato = "mario@officina.test bloccato dopo cinque tentativi", quando = "il responsabile lo sblocca", allora = "l'account torna attivo con zero tentativi falliti" },
+  { dato = "un account attivo", quando = "un operatore prova a sbloccarlo", allora = "riceve non-autorizzato" },
+]
+
+[[storie]]
+id = "CLI-1"
+titolo = "L'operatore registra un cliente"
+attore = "operatore"
+priorita = "must"
+incremento = 1
+fonte = ["operatore"]
+entita = ["cliente", "account"]
+modulo = "clienti"
+tocca = ["accessi"]
+traccia = ["OB-1", "OB-3"]
+criteri = [
+  { dato = "nessun cliente con codice fiscale RSSMRA80A01H501U", quando = "l'operatore registra Mario Rossi con quel codice e l'email mario.rossi@example.test", allora = "il cliente esiste e ha un account invitato" },
+  { dato = "un cliente con codice fiscale RSSMRA80A01H501U", quando = "l'operatore ne registra un altro con lo stesso codice", allora = "riceve cliente-duplicato e nulla viene creato" },
+  { dato = "nessun cliente", quando = "l'operatore registra il codice fiscale RSSMRA80A01H501X", allora = "riceve codice-fiscale-non-valido" },
+]
+
+[[storie]]
+id = "CLI-2"
+titolo = "L'operatore cerca i clienti per nome"
+attore = "operatore"
+priorita = "should"
+incremento = 2
+fonte = ["operatore"]
+entita = ["cliente"]
+modulo = "clienti"
+
+[[storie]]
+id = "VEI-1"
+titolo = "L'operatore associa un veicolo a un cliente"
+attore = "operatore"
+priorita = "must"
+incremento = 1
+fonte = ["operatore"]
+entita = ["veicolo", "cliente"]
+modulo = "veicoli"
+tocca = ["clienti"]
+traccia = ["OB-1"]
+criteri = [
+  { dato = "il cliente Mario Rossi e nessun veicolo con targa AB123CD", quando = "l'operatore gli associa ab 123 cd", allora = "il veicolo AB123CD compare tra quelli del cliente" },
+  { dato = "la targa AB123CD già associata", quando = "l'operatore la associa a un altro cliente", allora = "riceve veicolo-duplicato" },
+]
+
+[[storie]]
+id = "VEI-2"
+titolo = "Il cliente riceve un promemoria quando la revisione del veicolo sta per scadere"
+attore = "cliente"
+priorita = "should"
+incremento = 2
+fonte = ["responsabile"]
+entita = ["veicolo", "cliente"]
+modulo = "veicoli"
+tocca = ["clienti"]
+
+[[storie]]
+id = "INT-1"
+titolo = "L'operatore apre un intervento su un veicolo"
+attore = "operatore"
+priorita = "must"
+incremento = 1
+fonte = ["operatore"]
+entita = ["intervento", "preventivo", "veicolo"]
+modulo = "interventi"
+tocca = ["veicoli"]
+traccia = ["OB-1"]
+criteri = [
+  { dato = "il veicolo AB123CD senza interventi aperti", quando = "l'operatore apre un intervento per il cambio dei freni", allora = "l'intervento INT-2026-0001 è in accettazione con un preventivo vuoto" },
+  { dato = "un intervento aperto su AB123CD", quando = "l'operatore ne apre un secondo", allora = "riceve intervento-gia-aperto (R-4)" },
+]
+
+[[storie]]
+id = "INT-2"
+titolo = "Il responsabile approva il preventivo"
+attore = "responsabile"
+priorita = "must"
+incremento = 1
+fonte = ["responsabile"]
+entita = ["preventivo", "intervento", "riga_preventivo"]
+modulo = "interventi"
+tocca = ["prezzi"]
+traccia = ["OB-1"]
+criteri = [
+  { dato = "un preventivo con manodopera da 90,00 € (2 h a 45,00 €) e pastiglie da 60,00 €, IVA 22%", quando = "il responsabile lo approva", allora = "il totale è 183,00 € e l'intervento passa in lavorazione" },
+  { dato = "lo stesso preventivo", quando = "un operatore prova ad approvarlo", allora = "riceve non-autorizzato e il preventivo resta in bozza" },
+  { dato = "un preventivo senza righe", quando = "il responsabile prova ad approvarlo", allora = "riceve preventivo-vuoto" },
+]
+
+[[storie]]
+id = "INT-3"
+titolo = "Il cliente vede lo stato del proprio intervento"
+attore = "cliente"
+priorita = "must"
+incremento = 1
+fonte = ["responsabile"]
+entita = ["intervento", "preventivo", "riga_preventivo", "veicolo", "cliente"]
+modulo = "interventi"
+tocca = ["veicoli"]
+traccia = ["OB-3"]
+criteri = [
+  { dato = "Mario Rossi con un intervento in lavorazione", quando = "lo apre", allora = "vede stato, preventivo approvato e data prevista" },
+  { dato = "l'intervento di un altro cliente", quando = "Mario Rossi ne apre l'indirizzo", allora = "riceve non-trovato, senza indizi che esista" },
+]
+
+[[storie]]
+id = "INT-4"
+titolo = "L'operatore chiude l'intervento a lavori finiti"
+attore = "operatore"
+priorita = "must"
+incremento = 1
+fonte = ["operatore"]
+entita = ["intervento", "preventivo"]
+modulo = "interventi"
+traccia = ["OB-1"]
+criteri = [
+  { dato = "l'intervento su AB123CD in lavorazione, con il preventivo approvato", quando = "l'operatore lo chiude", allora = "l'intervento è chiuso e si può fatturare" },
+  { dato = "un intervento in accettazione, con il preventivo in bozza", quando = "l'operatore prova a chiuderlo", allora = "riceve preventivo-non-approvato (R-1)" },
+]
+
+[[storie]]
+id = "INT-5"
+titolo = "L'operatore compila il preventivo"
+attore = "operatore"
+priorita = "must"
+incremento = 1
+fonte = ["operatore"]
+entita = ["preventivo", "riga_preventivo", "voce_listino", "manodopera", "ricambio"]
+modulo = "interventi"
+tocca = ["prezzi"]
+traccia = ["OB-1", "OB-2"]
+criteri = [
+  { dato = "l'intervento su AB123CD in accettazione", quando = "l'operatore aggiunge 2 h di manodopera a 45,00 € e le pastiglie da 60,00 € del listino", allora = "il preventivo mostra 183,00 € IVA compresa, calcolati dal motore dei prezzi" },
+  { dato = "lo stesso intervento", quando = "l'operatore aggiunge una riga con quantità 0", allora = "riceve quantita-non-valida e il preventivo non cambia" },
+  { dato = "un preventivo approvato", quando = "l'operatore prova ad aggiungere una riga", allora = "riceve preventivo-approvato" },
+]
+
+[[storie]]
+id = "INT-6"
+titolo = "L'operatore consulta l'elenco degli interventi aperti"
+attore = "operatore"
+priorita = "must"
+incremento = 1
+fonte = ["operatore"]
+entita = ["intervento", "veicolo", "cliente"]
+modulo = "interventi"
+tocca = ["veicoli"]
+traccia = ["OB-1"]
+criteri = [
+  { dato = "30 interventi aperti e 5 chiusi", quando = "l'operatore apre l'elenco", allora = "vede i 25 aperti più vecchi per primi, con targa, cliente e stato, e il collegamento alla pagina successiva" },
+  { dato = "nessun intervento aperto", quando = "apre l'elenco", allora = "vede lo stato vuoto con il comando per aprirne uno" },
+]
+
+[[storie]]
+id = "FAT-1"
+titolo = "Il responsabile emette la fattura di un intervento chiuso"
+attore = "responsabile"
+priorita = "must"
+incremento = 1
+fonte = ["responsabile", "commercialista"]
+entita = ["fattura", "riga_fattura", "intervento", "preventivo", "riga_preventivo"]
+modulo = "fatture"
+tocca = ["interventi", "prezzi"]
+traccia = ["OB-2"]
+criteri = [
+  { dato = "un intervento chiuso, e l'ultima fattura del 2026 con numero 41", quando = "il responsabile emette la fattura", allora = "nasce la fattura 42/2026 con le righe e il totale del preventivo approvato" },
+  { dato = "un intervento in lavorazione", quando = "il responsabile prova a fatturarlo", allora = "riceve intervento-non-chiuso" },
+  { dato = "un intervento già fatturato", quando = "il responsabile prova a fatturarlo di nuovo", allora = "riceve fattura-esistente e nessun numero viene consumato" },
+]
+
+[[storie]]
+id = "FAT-2"
+titolo = "Il responsabile esporta in CSV le fatture del mese"
+attore = "responsabile"
+priorita = "could"
+incremento = 2
+fonte = ["commercialista"]
+entita = ["fattura", "riga_fattura"]
+modulo = "fatture"
+
+[[storie]]
+id = "FAT-3"
+titolo = "Il responsabile scarica il PDF di una fattura per il commercialista"
+attore = "responsabile"
+priorita = "must"
+incremento = 1
+fonte = ["commercialista"]
+entita = ["fattura", "riga_fattura"]
+modulo = "fatture"
+traccia = ["OB-2"]
+criteri = [
+  { dato = "la fattura 42/2026", quando = "il responsabile ne scarica il PDF", allora = "riceve un PDF con numero, data, righe, imponibile, IVA e totale uguali alla fattura" },
+  { dato = "la stessa fattura", quando = "un operatore prova a scaricarla", allora = "riceve non-autorizzato" },
+]
+
+[[storie]]
+id = "PRZ-1"
+titolo = "Il responsabile aggiorna il listino dall'interfaccia"
+attore = "responsabile"
+priorita = "should"
+incremento = 2
+fonte = ["responsabile"]
+entita = ["voce_listino", "manodopera", "ricambio"]
+modulo = "prezzi"

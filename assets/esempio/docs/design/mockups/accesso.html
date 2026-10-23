@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Accesso — mockup di Officina</title>
+<!-- Mockup: struttura e intenzione, non pixel-perfection. Self-contained, nessuna dipendenza esterna. -->
+<style>
+  :root { --primario:#1F4E79; --sfondo:#F4F6F8; --superficie:#fff; --testo:#1B1F23; --secondario:#4A5560; --bordo:#C9D1D9; --errore:#B42318; --successo:#1E7B34; }
+  * { box-sizing: border-box; }
+  body { margin:0; font: 1rem/1.5 system-ui, sans-serif; color: var(--testo); background: var(--sfondo); }
+  header { background: var(--primario); color:#fff; padding: .75rem 1rem; display:flex; gap:1rem; align-items:center; }
+  header a { color:#fff; }
+  main { max-width: 60rem; margin: 1.5rem auto; padding: 0 1rem; }
+  .scheda { background: var(--superficie); border:1px solid var(--bordo); border-radius:6px; padding:1rem; margin-bottom:1rem; }
+  button { min-height:44px; min-width:44px; padding:.5rem 1rem; border-radius:6px; border:1px solid var(--primario); font:inherit; cursor:pointer; }
+  button.primario { background: var(--primario); color:#fff; }
+  button.secondario { background:#fff; color: var(--primario); }
+  button:focus-visible, a:focus-visible, input:focus-visible { outline:3px solid var(--primario); outline-offset:2px; }
+  table { width:100%; border-collapse: collapse; }
+  th, td { text-align:left; padding:.5rem; border-bottom:1px solid var(--bordo); }
+  .badge { display:inline-block; padding:.1rem .5rem; border-radius:999px; border:1px solid currentColor; font-size:.875rem; }
+  label { display:block; margin:.75rem 0 .25rem; font-weight:600; }
+  input { width:100%; min-height:44px; padding:.5rem; border:1px solid var(--bordo); border-radius:6px; font:inherit; }
+  .nota { color: var(--secondario); font-size:.875rem; }
+  @media (max-width: 40rem) { table thead { display:none; } table tr { display:block; border-bottom:1px solid var(--bordo); } table td { display:block; border:0; } }
+</style>
+</head>
+<body>
+<header><strong>Officina</strong></header>
+<main>
+<section class="scheda" aria-labelledby="t">
+  <h1 id="t">Accedi a Officina</h1>
+  <div role="alert" class="nota">Stato d'errore: «Email o password non corrette. Riprova, o recupera la password.»</div>
+  <form>
+    <label for="email">Email</label><input id="email" type="email" autocomplete="username">
+    <label for="password">Password</label><input id="password" type="password" autocomplete="current-password">
+    <p><button class="primario" type="submit">Accedi</button></p>
+  </form>
+  <p><a href="#">Hai dimenticato la password?</a></p>
+  <p class="nota">Responsabile: dopo la password compare il campo «Codice» con il bottone «Verifica il codice».</p>
+</section>
+</main>
+</body>
+</html>

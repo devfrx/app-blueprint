@@ -1,0 +1,94 @@
+# Strategia di test — livelli, strumenti, ambienti, dati, automazione, criteri di
+# ingresso e uscita, tecniche di progettazione dei casi. Gli oracoli si scrivono
+# prima del codice, da chi non costruisce.
+
+[[livelli]]
+id = "unita"
+scopo = "La logica interna di ogni modulo, oltre agli oracoli: la scrive chi costruisce."
+strumento = "PHPUnit (Pest) e Vitest"
+ambiente = "locale e CI, database in memoria dove basta"
+dati = "costruiti nel test"
+automazione = "comandi modulo_backend e modulo_frontend"
+ingresso = "Il modulo compila contro le facciate stub."
+uscita = "Verdi; nessun test che ricalca l'implementazione."
+
+[[livelli]]
+id = "accettazione"
+scopo = "Un test per ogni criterio delle storie, con l'id della storia nel nome."
+strumento = "PHPUnit (Pest) per il backend, Vitest e Testing Library per il frontend"
+ambiente = "locale e CI"
+dati = "sintetici, dalle factory dello scheletro"
+automazione = "comandi modulo_backend e modulo_frontend"
+ingresso = "Oracoli rossi per la ragione giusta prima del codice."
+uscita = "Tutti verdi al rientro del modulo."
+tecniche = ["classi di equivalenza", "valori limite", "tabelle di decisione", "transizioni di stato"]
+
+[[livelli]]
+id = "contratto"
+scopo = "Ogni risposta validata contro contracts/openapi.json, errori e paginazione compresi."
+strumento = "Validatore OpenAPI nei test di Laravel"
+ambiente = "locale e CI"
+dati = "sintetici"
+automazione = "comando modulo_backend"
+ingresso = "Specifica congelata."
+uscita = "Nessuna risposta fuori specifica."
+
+[[livelli]]
+id = "autorizzazione"
+scopo = "Dalla matrice: chi è consentito passa, chi non lo è riceve l'errore previsto; per ogni condizione, la risorsa di un altro."
+strumento = "PHPUnit (Pest), generati dalla matrice"
+ambiente = "locale e CI"
+dati = "un utente per ruolo, due clienti"
+automazione = "comando modulo_backend"
+ingresso = "Matrice congelata."
+uscita = "Tutte le regole provate in entrambe le direzioni."
+
+[[livelli]]
+id = "e2e"
+scopo = "I percorsi critici PC-1 e PC-2 sull'app integrata, per ruolo e nome accessibile."
+strumento = "Playwright"
+ambiente = "locale e CI, con porta e database per esecuzione"
+dati = "sintetici, seme dello scheletro"
+automazione = "comando e2e"
+ingresso = "Moduli dei percorsi rientrati verdi."
+uscita = "Verdi; un rosso è un difetto e torna al proprietario del modulo."
+
+[[livelli]]
+id = "proprieta"
+scopo = "Gli invarianti del motore dei prezzi e della numerazione delle fatture."
+strumento = "PHPUnit con un generatore di casi basato su proprietà"
+ambiente = "locale e CI"
+dati = "generati"
+automazione = "comando modulo_backend"
+ingresso = "Invarianti scritti in R-2, R-3 e nel progetto di prezzi."
+uscita = "Nessun controesempio in 1.000 casi per invariante."
+
+[[livelli]]
+id = "mutazioni"
+scopo = "La forza dei test sui moduli ad alto rischio: accessi, prezzi, fatture."
+strumento = "Infection"
+ambiente = "locale e CI"
+dati = "quelli degli oracoli"
+automazione = "comando mutazioni"
+ingresso = "Oracoli e test di unità verdi."
+uscita = "Indice di mutazioni uccise di almeno l'80% sul modulo."
+
+[[livelli]]
+id = "accessibilita"
+scopo = "WCAG 2.2 AA sui percorsi critici (RNF-3)."
+strumento = "axe-core nei test Playwright, più la lente UI della revisione"
+ambiente = "locale e CI"
+dati = "sintetici"
+automazione = "comando e2e"
+ingresso = "Schermate dei percorsi critici costruite."
+uscita = "Nessuna violazione di livello AA."
+
+[[livelli]]
+id = "prestazioni"
+scopo = "RNF-1 e RNF-5 sotto carico."
+strumento = "k6"
+ambiente = "staging: in locale non si verifica"
+dati = "sintetici, 50.000 interventi"
+automazione = "manuale prima del rilascio"
+ingresso = "Staging aggiornato e popolato."
+uscita = "p95 sotto 300 ms; memoria e CPU nei limiti di RNF-5."

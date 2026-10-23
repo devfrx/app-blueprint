@@ -1,0 +1,43 @@
+# Configurazione — le variabili e i nomi dei segreti, mai i valori.
+
+[[variabili]]
+nome = "APP_URL"
+descrizione = "Indirizzo pubblico, per i link negli inviti."
+ambienti = ["locale", "staging", "produzione"]
+
+[[variabili]]
+nome = "APP_TIMEZONE"
+descrizione = "Fuso dell'interfaccia e dell'anno delle fatture (ST-tempo)."
+ambienti = ["locale", "staging", "produzione"]
+default = "Europe/Rome"
+
+[[variabili]]
+nome = "DB_DATABASE"
+descrizione = "Nome del database; diverso per staging e produzione."
+ambienti = ["locale", "staging", "produzione"]
+
+[[variabili]]
+nome = "MAIL_HOST"
+descrizione = "Server SMTP; Mailpit in locale e in staging."
+ambienti = ["locale", "staging", "produzione"]
+
+[[variabili]]
+nome = "INVITO_VALIDITA_ORE"
+descrizione = "Validità del link d'invito."
+ambienti = ["locale", "staging", "produzione"]
+default = "72"
+
+[[segreti]]
+nome = "APP_KEY"
+descrizione = "Chiave di cifratura dell'app, anche dei segreti TOTP."
+rotazione = "Alla compromissione; ruotarla invalida le sessioni e richiede di ricifrare i segreti TOTP."
+
+[[segreti]]
+nome = "DB_PASSWORD"
+descrizione = "Password del database."
+rotazione = "Annuale."
+
+[[segreti]]
+nome = "MAIL_PASSWORD"
+descrizione = "Password SMTP."
+rotazione = "Quando la cambia il fornitore della posta."

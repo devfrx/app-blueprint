@@ -1,0 +1,218 @@
+# Requisiti — fase 2. Le storie stanno in storie.toml (si possono spezzare in storie-<area>.toml).
+
+metodo_priorita = { nome = "MoSCoW", valori = ["must", "should", "could", "wont"] }
+
+[[aree]]
+prefisso = "ACC"
+nome = "Accessi"
+
+[[aree]]
+prefisso = "CLI"
+nome = "Clienti"
+
+[[aree]]
+prefisso = "VEI"
+nome = "Veicoli"
+
+[[aree]]
+prefisso = "INT"
+nome = "Interventi e preventivi"
+
+[[aree]]
+prefisso = "FAT"
+nome = "Fatture"
+
+[[aree]]
+prefisso = "PRZ"
+nome = "Prezzi"
+
+# Le nove caratteristiche della ISO/IEC 25010:2023, tutte passate in rassegna.
+[[qualita]]
+caratteristica = "idoneita-funzionale"
+rilevanza = "alta"
+motivo = "Un totale sbagliato in fattura è un danno economico e fiscale."
+
+[[qualita]]
+caratteristica = "efficienza-prestazionale"
+rilevanza = "media"
+motivo = "Pochi utenti, ma l'elenco degli interventi si consulta di continuo."
+
+[[qualita]]
+caratteristica = "compatibilita"
+rilevanza = "media"
+motivo = "Coesiste con il sito sullo stesso VPS (V-1)."
+
+[[qualita]]
+caratteristica = "capacita-di-interazione"
+rilevanza = "alta"
+motivo = "Deve essere più comodo dei fogli, o non verrà usata (RK-1)."
+
+[[qualita]]
+caratteristica = "affidabilita"
+rilevanza = "alta"
+motivo = "Le fatture emesse non si possono perdere."
+
+[[qualita]]
+caratteristica = "sicurezza"
+rilevanza = "alta"
+motivo = "Dati personali dei clienti e denaro."
+
+[[qualita]]
+caratteristica = "manutenibilita"
+rilevanza = "alta"
+motivo = "La manterrà uno sviluppatore a tempo parziale che non l'ha scritta (V-3)."
+
+[[qualita]]
+caratteristica = "flessibilita"
+rilevanza = "bassa"
+motivo = "Un solo ambiente d'esercizio, nessun porting previsto."
+
+[[qualita]]
+caratteristica = "safety"
+rilevanza = "non-pertinente"
+motivo = "Nessuna funzione mette a rischio persone o beni."
+
+[[rnf]]
+id = "RNF-1"
+caratteristica = "efficienza-prestazionale"
+stimolo = "20 utenti consultano insieme l'elenco degli interventi aperti"
+contesto = "50.000 interventi in archivio, esercizio normale sul VPS condiviso"
+risposta = "restituisce la prima pagina dell'elenco"
+misura = "300 ms al 95° percentile"
+prova = "Test di carico su staging con dati sintetici prima del rilascio: in locale non si verifica."
+fonte = ["responsabile"]
+assunzione = "A-1"
+indirizzato_da = ["AC-1", "ST-cache", "ADR-0003"]
+
+[[rnf]]
+id = "RNF-2"
+caratteristica = "affidabilita"
+stimolo = "il server va perso"
+contesto = "un incidente del fornitore del VPS"
+risposta = "Officina torna operativa dal backup"
+misura = "RTO di 4 h e RPO di 24 h"
+prova = "Ripristino dal backup notturno provato su staging seguendo il runbook."
+fonte = ["responsabile", "sviluppatore"]
+indirizzato_da = ["ST-backup", "ADR-0006"]
+
+[[rnf]]
+id = "RNF-3"
+caratteristica = "capacita-di-interazione"
+stimolo = "un utente percorre i percorsi critici da tastiera o con un lettore di schermo"
+contesto = "browser recenti, desktop e mobile"
+risposta = "completa ogni passo"
+misura = "nessuna violazione WCAG 2.2 di livello AA"
+prova = "Controllo automatico dell'accessibilità nei test d'interfaccia, più la lente UI della revisione."
+fonte = ["responsabile"]
+indirizzato_da = ["ST-accessibilita"]
+
+[[rnf]]
+id = "RNF-4"
+caratteristica = "sicurezza"
+stimolo = "un utente prova un'operazione o una risorsa fuori dal suo perimetro"
+contesto = "qualsiasi ruolo, compreso chi cambia un id nell'URL"
+risposta = "nega con l'errore previsto dal catalogo"
+misura = "100% delle regole della matrice e delle condizioni di proprietà"
+prova = "Test di autorizzazione dalla matrice; mutation testing sui moduli ad alto rischio; revisione di sicurezza approfondita."
+fonte = ["sviluppatore", "consulente-privacy"]
+indirizzato_da = ["ST-autorizzazione", "ADR-0005", "MI-1"]
+
+[[rnf]]
+id = "RNF-5"
+caratteristica = "compatibilita"
+stimolo = "il carico di RNF-1"
+contesto = "il VPS condiviso con il sito"
+risposta = "Officina resta nei suoi limiti di risorse"
+misura = "al massimo 1 GB di RAM e metà della CPU"
+prova = "Misura su staging durante il test di carico di RNF-1."
+fonte = ["sviluppatore"]
+indirizzato_da = ["ADR-0003", "ST-dati"]
+
+[[rnf]]
+id = "RNF-6"
+caratteristica = "manutenibilita"
+stimolo = "uno sviluppatore che non conosce il progetto deve aggiungere un modulo crud"
+contesto = "solo la documentazione del repo, senza aiuto"
+risposta = "lo aggiunge seguendo i pattern dell'esemplare"
+misura = "nessuna domanda e nessuna deviazione dai pattern nella prova"
+prova = "Test di manutenibilità alla chiusura della costruzione."
+fonte = ["sviluppatore"]
+indirizzato_da = ["ADR-0003", "ST-qualita-codice"]
+
+[[rnf]]
+id = "RNF-7"
+caratteristica = "idoneita-funzionale"
+stimolo = "il motore dei prezzi calcola un preventivo o una fattura"
+contesto = "la tabella di 40 casi d'esempio fornita dal commercialista"
+risposta = "produce imponibile, IVA e totale"
+misura = "uguali al centesimo in tutti i casi"
+prova = "Suite di conformità del motore con i 40 casi, più test basati su proprietà degli invarianti."
+fonte = ["commercialista", "responsabile"]
+indirizzato_da = ["ADR-0004", "ST-denaro"]
+
+[[requisiti_dati]]
+id = "RD-1"
+concetto = "intervento"
+volume = "50.000 in archivio dopo cinque anni"
+crescita = "circa 10.000 all'anno"
+conservazione = "quanto le fatture a cui sono legati"
+qualita = "Ogni intervento chiuso ha un preventivo approvato (R-1)."
+fonte = ["responsabile"]
+
+[[requisiti_dati]]
+id = "RD-2"
+concetto = "cliente"
+volume = "5.000"
+crescita = "circa 800 all'anno"
+conservazione = "finché il cliente è attivo; poi cancellazione su richiesta, salvo i dati che le fatture devono conservare"
+qualita = "Codice fiscale valido e unico (R-7)."
+fonte = ["responsabile", "consulente-privacy"]
+
+[[requisiti_dati]]
+id = "RD-3"
+concetto = "fattura"
+volume = "10.000 all'anno"
+crescita = "lineare con gli interventi"
+conservazione = "il periodo di legge, da verificare con il commercialista (V-6)"
+qualita = "Numerazione progressiva per anno senza buchi; una fattura emessa non cambia (R-3)."
+fonte = ["commercialista"]
+
+[[requisiti_dati]]
+id = "RD-4"
+concetto = "veicolo"
+volume = "6.000"
+crescita = "circa 900 all'anno"
+conservazione = "quanto il cliente"
+qualita = "Targa unica (R-8)."
+fonte = ["operatore"]
+
+[[percorsi]]
+id = "PC-1"
+nome = "intervento completo"
+storie = ["ACC-1", "ACC-4", "INT-1", "INT-5", "INT-2", "INT-4", "FAT-1"]
+
+[[percorsi]]
+id = "PC-2"
+nome = "il cliente segue il suo intervento"
+storie = ["CLI-1", "VEI-1", "ACC-5", "INT-3"]
+
+[[conflitti]]
+id = "CO-1"
+tra = ["operatore", "responsabile"]
+oggetto = "L'operatore vorrebbe approvare da solo i preventivi sotto i 100 €."
+risoluzione = "Tutti i preventivi li approva il responsabile (INT-2): la soglia si potrà introdurre con una storia del secondo incremento."
+data = 2026-10-08
+
+# Ogni funzionalità trasversale con le storie che la coprono o il non-obiettivo che la esclude.
+[trasversali]
+autenticazione = ["ACC-1", "ACC-3", "ACC-4", "ACC-5", "ACC-7"]
+account-e-profilo = ["NO-2", "NO-3"]
+utenti-e-ruoli = ["ACC-2"]
+amministrazione = ["ACC-2", "ACC-7", "PRZ-1"]
+audit = ["NO-4"]
+notifiche = ["NO-5", "VEI-2"]
+ricerca = ["CLI-2"]
+import-export = ["NO-6", "FAT-2"]
+privacy = ["NO-7", "ACC-6"]
+pagine-di-servizio = ["ACC-6"]
+onboarding-e-aiuto = ["NO-8"]

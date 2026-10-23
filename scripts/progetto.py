@@ -5,6 +5,12 @@ calcola ciò che non si scrive e verifica la coerenza.
 Si esegue dalla radice del repo progettato (o con --radice):
 
   progetto.py stato                       lo stato a colpo d'occhio: scheda, registro, frontiera
+  progetto.py apri <voce>                 inizio di un punto: lo registra e stampa il suo fascio
+  progetto.py chiudi <voce> --evidenza E… fine di un punto: controlla e registra la chiusura
+                [--non-applicabile --motivo M [--approvato A]] [--data AAAA-MM-GG]
+  progetto.py approva <fase> --da NOME    fine di una fase: gate verde, approvazione nel registro
+  progetto.py modifica <MOD-n>            applica una modifica approvata: riapre le fasi delle sue voci
+  progetto.py congela --da NOME           Definition of Ready verde: congela l'incremento e chiude la 7.17
   progetto.py checklist [--fase N]        le voci con il loro stato; --dod, --trasversali, --tutte
   progetto.py mostra <id> [<id>…]         un elemento per intero, con chi lo cita
   progetto.py fascio <voce> [--modulo M]  ciò che serve leggere per lavorare una voce
@@ -29,6 +35,7 @@ import condizioni  # noqa: E402
 import controlli  # noqa: E402
 import modello  # noqa: E402
 import piano as modulo_piano  # noqa: E402
+import scrittura  # noqa: E402
 import viste  # noqa: E402
 
 CATALOGO = Path(__file__).resolve().parent.parent / "assets" / "checklist.toml"
@@ -78,9 +85,9 @@ def cmd_stato(args):
         righe.append(f"Punto aperto: {corrente['punto']} — {testo} (dal {corrente.get('aperto_il', '?')})")
     else:
         righe.append(f"Fase corrente: {corrente.get('fase', '?')}, nessun punto aperto")
-    registro = {r.get("fase"): r for r in progetto.stato.get("registro", [])}
+    registro = controlli.righe_correnti(ctx)
     stati = controlli.stati_voci(ctx)
-    righe.append("Registro dei gate:")
+    righe.append(f"Registro dei gate (incremento {progetto.incremento_corrente()}; ↻ = fase che si ripete a ogni incremento):")
     for fase in catalogo.get("fasi", []):
         n = fase["numero"]
         voci = [st for st in stati.values() if st["fase"] == n]
@@ -88,8 +95,12 @@ def cmd_stato(args):
         chiuse = sum(1 for st in applicabili if st["chiusa"])
         riga = registro.get(n, {})
         stato = riga.get("stato", "fuori-catena" if fase["skill"] == "fuori-catena" else "da-fare")
+        ripete = "↻" if any(st["per_incremento"] for st in voci) else " "
         firma = f", approvato da {riga['approvato_da']} il {riga.get('data')}" if riga.get("approvato_da") else ""
-        righe.append(f"  {n:>2}. {fase['nome'][:44]:<44} {stato:<12} {chiuse}/{len(applicabili)} voci{firma}")
+        righe.append(f"  {n:>2}.{ripete}{fase['nome'][:44]:<44} {stato:<12} {chiuse}/{len(applicabili)} voci{firma}")
+    riaperte = sorted((i for i, st in stati.items() if st["riaperta_da"]), key=condizioni.chiave_id)
+    if riaperte:
+        righe.append("Voci riaperte da modifiche: " + ", ".join(f"{i} ({stati[i]['riaperta_da']})" for i in riaperte))
     pronte = controlli.frontiera(ctx, limite=5)
     if pronte:
         righe.append("Frontiera (voci pronte):")
@@ -113,6 +124,251 @@ def cmd_stato(args):
     if peso > BUDGET_STATO:
         righe.append(f"Attenzione: stato.toml pesa {peso} caratteri, oltre {BUDGET_STATO}: va letto a ogni avvio")
     print("\n".join(righe))
+    return 0
+
+
+# --- punti e fasi: apri, chiudi, approva --------------------------------------------------
+
+def _percorso_stato(progetto):
+    return progetto.radice / modello.PROGETTAZIONE / "stato.toml"
+
+
+def _scrivi(percorso, intestazione, trova, campi):
+    testo = percorso.read_text(encoding="utf-8") if percorso.exists() else ""
+    nuovo, esito = scrittura.aggiorna_sezione(testo, intestazione, trova, campi)
+    percorso.write_text(nuovo, encoding="utf-8")
+    return esito
+
+
+def _riga_registro(ctx, fase):
+    """La riga del registro che vale ora per la fase, e come ritrovarla: una fase che si
+    ripete ha una riga per incremento, le altre una sola."""
+    corrente = ctx.progetto.incremento_corrente()
+    ripete = any(st["per_incremento"] for st in controlli.stati_voci(ctx).values() if st["fase"] == fase)
+    riga = controlli.righe_correnti(ctx).get(fase)
+    if ripete:
+        return riga, (lambda d: d.get("fase") == fase and d.get("incremento", 1) == corrente), {"incremento": corrente}
+    return riga, (lambda d: d.get("fase") == fase), ({"incremento": riga["incremento"]} if riga and "incremento" in riga else {})
+
+
+def _aggiorna_registro(ctx, fase, **campi):
+    riga, trova, chiave = _riga_registro(ctx, fase)
+    dati = {"fase": fase, **chiave}
+    for nome in ("stato", "approvato_da", "data", "tag", "note"):
+        valore = campi[nome] if nome in campi else (riga or {}).get(nome)
+        if valore not in (None, ""):
+            dati[nome] = valore
+    return _scrivi(_percorso_stato(ctx.progetto), "[[registro]]", trova, dati)
+
+
+def _oggi(args):
+    if getattr(args, "data", None):
+        try:
+            return datetime.date.fromisoformat(args.data)
+        except ValueError as e:
+            raise ErroreUso(f"data non valida '{args.data}': AAAA-MM-GG") from e
+    return datetime.date.today()
+
+
+def cmd_apri(args):
+    progetto, catalogo = _carica(args)
+    ctx = _contesto(progetto, catalogo)
+    ident = args.voce
+    st = controlli.stati_voci(ctx).get(ident)
+    if st is None:
+        raise ErroreUso(f"voce '{ident}' sconosciuta")
+    if st["applicabilita"] != condizioni.APPLICABILE:
+        raise ErroreUso(f"voce {ident}: {st['applicabilita']} per la scheda, non si lavora")
+    if st["chiusa"]:
+        raise ErroreUso(f"voce {ident} chiusa il {st['chiusura'].get('data')}: riaprirla è una modifica, "
+                        f"da registrare come MOD-n con riapre = [\"{ident}\"] (references/gate.md)")
+    aperto = progetto.stato.get("corrente", {}).get("punto")
+    if aperto and aperto != ident and not any(d.dati.get("punto") == aperto for d in progetto.tutti("domande")):
+        raise ErroreUso(f"il punto {aperto} è aperto: chiudilo, o registra la domanda che lo blocca "
+                        f"(Q-n con punto = \"{aperto}\")")
+    stati = controlli.stati_voci(ctx)
+    attese = [d for d in st["voce"].get("dipende", [])
+              if not stati.get(d, {}).get("chiusa") and stati.get(d, {}).get("applicabilita") == condizioni.APPLICABILE]
+    oggi = _oggi(args)
+    _scrivi(_percorso_stato(progetto), "[corrente]", lambda d: True,
+            {"fase": st["fase"], "punto": ident, "aperto_il": oggi})
+    riga, _, _ = _riga_registro(ctx, st["fase"])
+    stato_fase = (riga or {}).get("stato", "da-fare")
+    if stato_fase in ("da-fare", "superato"):
+        nota = f"riaperta: {st['riaperta_da'] or 'punto ' + ident}" if stato_fase == "superato" else None
+        _aggiorna_registro(ctx, st["fase"], stato="in-corso" if stato_fase == "da-fare" else "riaperto",
+                           approvato_da=None, data=None, tag=None, **({"note": nota} if nota else {}))
+    print(f"Inizio punto {ident} — {st['voce']['testo']}")
+    if attese:
+        print(f"[avviso] dipende da voci ancora aperte: {', '.join(attese)}")
+    print()
+    print(fascio_voce(progetto, catalogo, ident))
+    return 0
+
+
+def cmd_chiudi(args):
+    progetto, catalogo = _carica(args)
+    viste.scrivi(progetto, catalogo)
+    progetto = modello.carica(progetto.radice, catalogo)
+    ctx = _contesto(progetto, catalogo)
+    ident = args.voce
+    st = controlli.stati_voci(ctx).get(ident)
+    if st is None:
+        raise ErroreUso(f"voce '{ident}' sconosciuta")
+    chiusura = {"voce": ident}
+    if st["per_incremento"]:
+        chiusura["incremento"] = progetto.incremento_corrente()
+    if args.non_applicabile:
+        if not args.motivo:
+            raise ErroreUso("un'esclusione ha il motivo: --motivo \"…\"")
+        if args.evidenza:
+            raise ErroreUso("un'esclusione non ha evidenze: o --evidenza, o --non-applicabile")
+        chiusura.update(esito="non-applicabile", motivo=args.motivo, approvato=args.approvato)
+    else:
+        if not args.evidenza:
+            raise ErroreUso("una voce fatta ha l'evidenza: --evidenza <percorso | id | tag:…>")
+        chiusura.update(esito="fatto", evidenza=args.evidenza)
+    chiusura["data"] = _oggi(args)
+    chiusura = {k: v for k, v in chiusura.items() if v is not None}
+    errori = [r for r in controlli.valida_chiusura(ctx, chiusura, scritta=False) if r.livello == "errore"]
+    if errori:
+        for r in errori:
+            print(r.testo())
+        print(f"\nLa voce {ident} non si chiude: {len(errori)} errori.")
+        return 1
+    ripete = st["per_incremento"]
+    _scrivi(progetto.radice / modello.PROGETTAZIONE / "gate.toml", "[[chiusure]]",
+            lambda d: d.get("voce") == ident and (not ripete or d.get("incremento") == chiusura.get("incremento")),
+            chiusura)
+    corrente = progetto.stato.get("corrente", {})
+    if corrente.get("punto") == ident:
+        _scrivi(_percorso_stato(progetto), "[corrente]", lambda d: True, {"fase": st["fase"], "punto": ""})
+    progetto = modello.carica(progetto.radice, catalogo)
+    viste.scrivi(progetto, catalogo)
+    ctx = _contesto(progetto, catalogo)
+    stati = controlli.stati_voci(ctx)
+    prove = ", ".join(args.evidenza) if args.evidenza else f"non applicabile — {args.motivo}"
+    print(f"Fine punto {ident} — {prove}")
+    aperte = [i for i, s in stati.items() if s["fase"] == st["fase"]
+              and s["applicabilita"] == condizioni.APPLICABILE and not s["chiusa"]]
+    if not aperte:
+        print(f"Fase {st['fase']}: voci tutte chiuse. Il gate si chiude con l'approvazione dell'utente: "
+              f"progetto.py approva {st['fase']} --da <chi approva>")
+    pronte = controlli.frontiera(ctx, limite=3)
+    if pronte:
+        print("Frontiera: " + "; ".join(f"{i} {stati[i]['voce']['testo'][:60]}" for i in pronte))
+    return 0
+
+
+def cmd_approva(args):
+    progetto, catalogo = _carica(args)
+    viste.scrivi(progetto, catalogo)
+    progetto = modello.carica(progetto.radice, catalogo)
+    ctx = _contesto(progetto, catalogo)
+    fase = args.fase
+    if fase not in {f["numero"] for f in catalogo.get("fasi", [])}:
+        raise ErroreUso(f"fase '{fase}' sconosciuta")
+    errori = [r for r in controlli.verifica(ctx, fase_gate=fase) if r.livello == "errore"]
+    if errori:
+        for r in errori:
+            print(r.testo())
+        print(f"\nIl gate {fase} non si approva: {len(errori)} errori.")
+        return 1
+    data = _oggi(args)
+    tag = f"progettazione/gate-{fase}-{data.isoformat()}"
+    campi = {"stato": "superato", "approvato_da": args.da, "data": data, "tag": tag}
+    if args.note:
+        campi["note"] = args.note
+    _aggiorna_registro(ctx, fase, **campi)
+    progetto = modello.carica(progetto.radice, catalogo)
+    ctx = _contesto(progetto, catalogo)
+    pronte = controlli.frontiera(ctx, limite=1)
+    prossima = controlli.stati_voci(ctx)[pronte[0]]["fase"] if pronte else fase
+    _scrivi(_percorso_stato(progetto), "[corrente]", lambda d: True, {"fase": prossima, "punto": ""})
+    viste.scrivi(modello.carica(progetto.radice, catalogo), catalogo)
+    print(f"Fine fase {fase} — approvata da {args.da} il {data}.")
+    print(f"Dopo il commit: git tag -a {tag} -m \"Gate {fase} superato\"")
+    return 0
+
+
+def cmd_modifica(args):
+    progetto, catalogo = _carica(args)
+    ctx = _contesto(progetto, catalogo)
+    m = progetto.trova("modifiche", args.id)
+    if m is None:
+        raise ErroreUso(f"modifica '{args.id}' sconosciuta: si registra prima in registri.toml")
+    errori = [r for r in controlli.c_modifiche(ctx, None) if r.dove == m.id]
+    if m.dati.get("esito") != "approvata":
+        errori.append(modello.Reperto("errore", m.id, "si applica solo una modifica approvata", "modifiche"))
+    stati = controlli.stati_voci(ctx)
+    ignote = [v for v in modello._valori(m.dati.get("riapre")) if v not in stati]
+    if ignote:
+        errori.append(modello.Reperto("errore", m.id, f"voci sconosciute in riapre: {ignote}", "modifiche"))
+    if errori:
+        for r in errori:
+            print(r.testo())
+        return 1
+    voci = modello._valori(m.dati.get("riapre"))
+    riaperte = []
+    fasi = {stati[v]["fase"] for v in voci} | {st["fase"] for st in stati.values() if st["riaperta_da"] == m.id}
+    for fase in sorted(fasi):
+        riga, _, _ = _riga_registro(ctx, fase)
+        if riga and riga.get("stato") == "superato":
+            nota = f"riaperta da {m.id} (superata il {riga.get('data')}, approvata da {riga.get('approvato_da')})"
+            _aggiorna_registro(ctx, fase, stato="riaperto", approvato_da=None, data=None, tag=None, note=nota)
+            riaperte.append(fase)
+    progetto = modello.carica(progetto.radice, catalogo)
+    viste.scrivi(progetto, catalogo)
+    print(f"Modifica {m.id} applicata: voci riaperte {', '.join(voci)}; "
+          f"fasi riaperte: {', '.join(map(str, riaperte)) or 'nessuna'}.")
+    return 0
+
+
+def cmd_congela(args):
+    progetto, catalogo = _carica(args)
+    viste.scrivi(progetto, catalogo)
+    progetto = modello.carica(progetto.radice, catalogo)
+    data = _oggi(args)
+    ctx = _contesto(progetto, catalogo, congelamento=data)
+    voce = next(v["id"] for v in catalogo.get("voci", []) if "congelamento" in v.get("controllo", []))
+    errori = [r for r in controlli.verifica(ctx, al_congelamento=True) if r.livello == "errore" and r.dove != voce]
+    if errori:
+        for r in errori:
+            print(r.testo())
+        print(f"\nL'incremento non si congela: {len(errori)} errori alla Definition of Ready del {data}.")
+        return 1
+    corrente = progetto.incremento_corrente()
+
+    def ultima(tipo):
+        revisioni = [r for r in progetto.tutti("revisioni")
+                     if r.dati.get("tipo") == tipo and r.dati.get("incremento") == corrente]
+        return max(revisioni, key=lambda r: str(r.dati.get("data"))).id
+
+    tag = controlli.tag_congelamento(corrente, data)
+    _scrivi(_percorso_stato(progetto), "[congelamento]", lambda d: True,
+            {"incremento": corrente, "data": data, "approvato_da": args.da, "tag": tag,
+             "revisione": ultima("prontezza"), "prova": ultima("decidibilita")})
+    progetto = modello.carica(progetto.radice, catalogo)
+    ctx = _contesto(progetto, catalogo, congelamento=data)
+    chiusura = {"voce": voce, "incremento": corrente, "esito": "fatto",
+                "evidenza": ["stato.toml#congelamento"], "data": data}
+    errori = [r for r in controlli.valida_chiusura(ctx, chiusura, scritta=False) if r.livello == "errore"]
+    if errori:
+        for r in errori:
+            print(r.testo())
+        return 1
+    _scrivi(progetto.radice / modello.PROGETTAZIONE / "gate.toml", "[[chiusure]]",
+            lambda d: d.get("voce") == voce and d.get("incremento") == corrente, chiusura)
+    if progetto.stato.get("corrente", {}).get("punto") == voce:
+        _scrivi(_percorso_stato(progetto), "[corrente]", lambda d: True, {"fase": 7, "punto": ""})
+    progetto = modello.carica(progetto.radice, catalogo)
+    viste.scrivi(progetto, catalogo)
+    print(f"Incremento {corrente} congelato il {data}, approvato da {args.da}.")
+    print(f"Dopo il commit: git tag -a {tag} -m \"Progetto dell'incremento {corrente} congelato\"")
+    pronte = controlli.frontiera(_contesto(progetto, catalogo), limite=3)
+    stati = controlli.stati_voci(_contesto(progetto, catalogo))
+    if pronte:
+        print("Frontiera: " + "; ".join(f"{i} [{stati[i]['skill']}]" for i in pronte))
     return 0
 
 
@@ -143,12 +399,15 @@ def cmd_checklist(args):
             stato = st["applicabilita"]
         elif st["chiusa"]:
             stato = "fatta" if st["chiusura"].get("esito") == "fatto" else "esclusa"
+        elif st["riaperta_da"]:
+            stato = f"riaperta {st['riaperta_da']}"
         else:
             stato = "aperta"
-        print(f"{ident:<7} {stato:<15} {st['voce']['testo']}")
-        if args.dettagli and stato == "aperta":
+        ripete = "↻" if st["per_incremento"] else " "
+        print(f"{ident:<7}{ripete} {stato:<15} {st['voce']['testo']}")
+        if args.dettagli and not st["chiusa"] and st["applicabilita"] == condizioni.APPLICABILE:
             v = st["voce"]
-            print(f"        dove: {v.get('dove', '')}; dipende: {', '.join(v.get('dipende', [])) or '—'}; "
+            print(f"         dove: {v.get('dove', '')}; dipende: {', '.join(v.get('dipende', [])) or '—'}; "
                   f"controllo: {', '.join(v.get('controllo', [])) or '—'}")
     return 0
 
@@ -479,6 +738,31 @@ def principale(argv=None):
     parser.add_argument("--catalogo", default=str(CATALOGO), help=argparse.SUPPRESS)
     sotto = parser.add_subparsers(dest="comando", required=True)
     sotto.add_parser("stato").set_defaults(funzione=cmd_stato)
+    a = sotto.add_parser("apri")
+    a.add_argument("voce")
+    a.add_argument("--data", help=argparse.SUPPRESS)
+    a.set_defaults(funzione=cmd_apri)
+    ch = sotto.add_parser("chiudi")
+    ch.add_argument("voce")
+    ch.add_argument("--evidenza", nargs="+")
+    ch.add_argument("--non-applicabile", action="store_true")
+    ch.add_argument("--motivo")
+    ch.add_argument("--approvato")
+    ch.add_argument("--data")
+    ch.set_defaults(funzione=cmd_chiudi)
+    ap = sotto.add_parser("approva")
+    ap.add_argument("fase", type=int)
+    ap.add_argument("--da", required=True)
+    ap.add_argument("--note")
+    ap.add_argument("--data", help=argparse.SUPPRESS)
+    ap.set_defaults(funzione=cmd_approva)
+    mo = sotto.add_parser("modifica")
+    mo.add_argument("id")
+    mo.set_defaults(funzione=cmd_modifica)
+    co = sotto.add_parser("congela")
+    co.add_argument("--da", required=True)
+    co.add_argument("--data", help=argparse.SUPPRESS)
+    co.set_defaults(funzione=cmd_congela)
     c = sotto.add_parser("checklist")
     c.add_argument("--fase", type=int)
     c.add_argument("--tutte", action="store_true")

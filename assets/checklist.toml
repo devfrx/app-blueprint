@@ -12,6 +12,11 @@
 #              con esposizione "pubblicabile" le voci di progetto valgono come
 #              per un'app pubblica, quelle di esercizio vanno nel debito di
 #              pubblicazione
+#   per_incremento
+#              true se la voce si richiude a ogni incremento: la sua chiusura porta
+#              "incremento", e aprire l'incremento successivo la riapre. Lo è ogni
+#              voce il cui controllo dipende dall'incremento corrente, e ogni voce
+#              delle fasi 8–12
 #   origine    "checklist" (testo della checklist di riferimento) |
 #              "adattata" (adattata al lavoro con agenti; il perché in "nota") |
 #              "metodo" (aggiunta dal metodo)
@@ -364,12 +369,13 @@ fase = 2
 testo = "Requisiti funzionali specificati come user story con criteri di accettazione: l'inventario copre tutte le funzionalità di tutti gli incrementi, i criteri quelle dell'incremento corrente"
 quando = "sempre"
 natura = "progetto"
+per_incremento = true
 origine = "adattata"
 nota = "Si sceglie la user story con criteri dato/quando/allora perché diventa test eseguibile; l'inventario completo è ciò che permette di progettare gli schemi con tutte le funzionalità davanti."
 dove = "requisiti/storie*.toml"
 legge = ["stakeholder", "non_obiettivi", "aree"]
 dipende = ["2.13"]
-controllo = ["storie"]
+controllo = ["storie", "criteri"]
 
 [[voci]]
 id = "2.03"
@@ -422,6 +428,7 @@ fase = 2
 testo = "Ogni requisito necessario, non ambiguo, singolo, verificabile, coerente e fattibile"
 quando = "sempre"
 natura = "progetto"
+per_incremento = true
 origine = "checklist"
 dove = "registri.toml [[revisioni]] di tipo requisiti, svolta da un reviewer"
 dipende = ["2.02", "2.04", "2.05"]
@@ -455,6 +462,7 @@ fase = 2
 testo = "Requisiti validati con gli stakeholder tramite revisione, prototipo o walkthrough"
 quando = "sempre"
 natura = "progetto"
+per_incremento = true
 origine = "checklist"
 dove = "registri.toml [[revisioni]] di tipo validazione"
 dipende = ["2.07"]
@@ -468,7 +476,8 @@ quando = "sempre"
 natura = "progetto"
 origine = "adattata"
 nota = "La baseline è il tag del gate; la procedura è quella di references/gate.md, uguale per tutti i progetti."
-dove = "tag progettazione/fase-2"
+dove = "tag progettazione/gate-2-<data>"
+controllo = ["modifiche"]
 
 [[voci]]
 id = "2.12"
@@ -887,6 +896,7 @@ fase = 5
 testo = "Responsabilità interne dei componenti definite: alta coesione, basso accoppiamento, information hiding"
 quando = "sempre"
 natura = "progetto"
+per_incremento = true
 origine = "adattata"
 nota = "Si specifica ciò che l'archetipo non decide: la struttura ripetuta la fissa l'esemplare in costruzione."
 dove = "moduli/<modulo>.toml [[componenti]]"
@@ -900,6 +910,7 @@ fase = 5
 testo = "Pattern usati solo dove risolvono un problema presente, con il motivo scritto"
 quando = "sempre"
 natura = "progetto"
+per_incremento = true
 origine = "checklist"
 dove = "moduli/<modulo>.toml [[pattern]]"
 dipende = ["5.02"]
@@ -911,6 +922,7 @@ fase = 5
 testo = "Algoritmi e strutture dati scelti, con la complessità valutata sui volumi previsti"
 quando = "sempre"
 natura = "progetto"
+per_incremento = true
 origine = "checklist"
 dove = "moduli/<modulo>.toml [[algoritmi]]"
 legge = ["volumi", "regole"]
@@ -993,6 +1005,7 @@ fase = 5
 testo = "Contratti API formalizzati (OpenAPI o AsyncAPI): errori, paginazione, idempotenza, versioning, limiti di frequenza"
 quando = "sempre"
 natura = "progetto"
+per_incremento = true
 origine = "checklist"
 dove = "contracts/openapi.json, contracts/asyncapi.json"
 legge = ["storie", "moduli", "tabelle", "errori", "strategie"]
@@ -1029,6 +1042,7 @@ fase = 5
 testo = "Concorrenza e transazioni progettate: isolamento, race condition, saga o outbox se distribuite"
 quando = "sempre"
 natura = "progetto"
+per_incremento = true
 origine = "checklist"
 dove = "moduli/<modulo>.toml [[transazioni]]; strategia ST-concorrenza"
 legge = ["accessi", "regole", "strategie"]
@@ -1041,6 +1055,7 @@ fase = 5
 testo = "Testabilità garantita: dipendenze iniettabili, confini esterni isolati"
 quando = "sempre"
 natura = "progetto"
+per_incremento = true
 origine = "checklist"
 dove = "moduli/<modulo>.toml [[porte]]"
 legge = ["integrazioni", "moduli"]
@@ -1053,6 +1068,7 @@ fase = 5
 testo = "Requisiti di sicurezza verificati su un catalogo come OWASP ASVS"
 quando = "sempre"
 natura = "progetto"
+per_incremento = true
 origine = "checklist"
 dove = "moduli/<modulo>.toml [sicurezza]; registri.toml [[deperibili]]"
 legge = ["minacce", "moduli", "matrice"]
@@ -1065,6 +1081,7 @@ fase = 5
 testo = "Contratti abbastanza stabili da permettere lo sviluppo in parallelo"
 quando = "sempre"
 natura = "progetto"
+per_incremento = true
 origine = "adattata"
 nota = "Lo verifica la prova di decidibilità della fase 7; qui si chiude quando ogni contratto dell'incremento esiste e passa i controlli."
 dove = "contracts/; moduli/"
@@ -1077,6 +1094,7 @@ fase = 5
 testo = "Design revisionato da qualcuno che non l'ha scritto"
 quando = "sempre"
 natura = "progetto"
+per_incremento = true
 origine = "checklist"
 dove = "registri.toml [[revisioni]] di tipo dettaglio, svolta da un reviewer"
 dipende = ["5.13"]
@@ -1138,6 +1156,7 @@ fase = 6
 testo = "Wireframe e prototipi dei flussi prioritari"
 quando = "innesco ui"
 natura = "progetto"
+per_incremento = true
 origine = "checklist"
 dove = "docs/design/mockups/"
 legge = ["percorsi", "schermate"]
@@ -1161,6 +1180,7 @@ fase = 6
 testo = "Ogni schermata progettata in tutti gli stati: vuoto, caricamento, errore, parziale, successo, permessi insufficienti"
 quando = "innesco ui"
 natura = "progetto"
+per_incremento = true
 origine = "checklist"
 dove = "ux/ux.toml [[schermate]]"
 legge = ["storie", "rotte", "api", "matrice", "testi"]
@@ -1173,6 +1193,7 @@ fase = 6
 testo = "Criteri WCAG 2.2 di livello AA, o del livello richiesto, applicati al design"
 quando = "innesco ui"
 natura = "progetto"
+per_incremento = true
 origine = "checklist"
 dove = "registri.toml [[revisioni]] di tipo accessibilita, con frontend-craft"
 dipende = ["6.03", "6.04"]
@@ -1184,6 +1205,7 @@ fase = 6
 testo = "Messaggi d'errore e microcopy che dicono cosa è successo e cosa fare"
 quando = "innesco ui"
 natura = "progetto"
+per_incremento = true
 origine = "checklist"
 dove = "ux/testi.toml; il campo utente degli errori"
 legge = ["errori", "glossario"]
@@ -1196,6 +1218,7 @@ fase = 6
 testo = "Test di usabilità sui prototipi con utenti reali; problemi principali risolti"
 quando = "innesco ui e esposizione >= pubblico"
 natura = "esercizio"
+per_incremento = true
 origine = "checklist"
 dove = "registri.toml [[revisioni]] di tipo usabilita"
 dipende = ["6.03"]
@@ -1218,6 +1241,7 @@ fase = 6
 testo = "Revisione euristica di usabilità dei mockup, prima di quella con utenti reali"
 quando = "innesco ui"
 natura = "progetto"
+per_incremento = true
 origine = "metodo"
 dove = "registri.toml [[revisioni]] di tipo euristica, con frontend-craft"
 dipende = ["6.03"]
@@ -1233,6 +1257,7 @@ fase = 7
 testo = "Lavoro scomposto in task e ondate, con dipendenze e percorso critico"
 quando = "sempre"
 natura = "progetto"
+per_incremento = true
 origine = "adattata"
 nota = "La scomposizione è il piano di parallel-build: un task per modulo e lato, ondate fisse, proprietà dei percorsi disgiunta."
 dove = "piano/piano.toml"
@@ -1246,6 +1271,7 @@ fase = 7
 testo = "Stime prodotte con un metodo dichiarato e con l'incertezza esplicita"
 quando = "sempre"
 natura = "progetto"
+per_incremento = true
 origine = "adattata"
 nota = "In task per ondata, rientri seriali e sessioni: il numero di rientri seriali è il collo di bottiglia della costruzione."
 dove = "piano/piano.toml [stima]"
@@ -1269,6 +1295,7 @@ fase = 7
 testo = "Team e ownership dei moduli assegnati"
 quando = "sempre"
 natura = "progetto"
+per_incremento = true
 origine = "adattata"
 nota = "Il team sono gli agenti del piano; l'ownership è la proprietà dei percorsi per task, verificata dallo script."
 dove = "piano/piano.toml [[task]] campi agente e possiede"
@@ -1347,6 +1374,7 @@ fase = 7
 testo = "Registro dei rischi aggiornato"
 quando = "sempre"
 natura = "progetto"
+per_incremento = true
 origine = "checklist"
 dove = "registri.toml [[rischi]]"
 controllo = ["rischi"]
@@ -1357,6 +1385,7 @@ fase = 7
 testo = "Modalità di costruzione decisa: parallela con parallel-build, o seriale in una sessione"
 quando = "sempre"
 natura = "progetto"
+per_incremento = true
 origine = "metodo"
 dove = "stato.toml [scheda].costruzione"
 legge = ["moduli"]
@@ -1368,6 +1397,7 @@ fase = 7
 testo = "Revisione di prontezza senza P0 né P1"
 quando = "sempre"
 natura = "progetto"
+per_incremento = true
 origine = "metodo"
 dove = "registri.toml [[revisioni]] di tipo prontezza"
 dipende = ["7.01", "7.05"]
@@ -1379,6 +1409,7 @@ fase = 7
 testo = "Prova di decidibilità senza domande: un reviewer prepara la costruzione di ogni esemplare con i soli file del repo"
 quando = "sempre"
 natura = "progetto"
+per_incremento = true
 origine = "metodo"
 dove = "registri.toml [[revisioni]] di tipo decidibilita"
 dipende = ["7.13"]
@@ -1390,6 +1421,7 @@ fase = 7
 testo = "Riferimenti deperibili riverificati alla data del congelamento"
 quando = "sempre"
 natura = "progetto"
+per_incremento = true
 origine = "metodo"
 dove = "registri.toml [[deperibili]]"
 dipende = ["7.14"]
@@ -1401,6 +1433,7 @@ fase = 7
 testo = "Pre-mortem svolto: ogni causa plausibile corretta o accettata come rischio con il suo segnale"
 quando = "sempre"
 natura = "progetto"
+per_incremento = true
 origine = "metodo"
 dove = "registri.toml [[revisioni]] di tipo pre-mortem; [[rischi]]"
 dipende = ["7.15"]
@@ -1409,9 +1442,10 @@ controllo = ["revisione:pre-mortem", "rischi"]
 [[voci]]
 id = "7.17"
 fase = 7
-testo = "Progetto congelato: brief del gate letto, approvazione dell'utente, tag progettazione/incremento-N"
+testo = "Progetto congelato: brief del gate letto, approvazione dell'utente, tag progettazione/incremento-N-<data>"
 quando = "sempre"
 natura = "progetto"
+per_incremento = true
 origine = "metodo"
 dove = "stato.toml [congelamento]"
 dipende = ["7.16"]
@@ -1427,6 +1461,7 @@ fase = 8
 testo = "Ogni incremento del perimetro ha superato la DoD di incremento"
 quando = "sempre"
 natura = "progetto"
+per_incremento = true
 origine = "adattata"
 nota = "Ogni task la supera al rientro; l'incremento quando tutti i task sono rientrati."
 dove = ".build/registro.jsonl"
@@ -1437,6 +1472,7 @@ fase = 8
 testo = "Linter, formatter e analisi statica attivi in pipeline su tutto il codice"
 quando = "sempre"
 natura = "progetto"
+per_incremento = true
 origine = "checklist"
 dove = "CI"
 
@@ -1446,6 +1482,7 @@ fase = 8
 testo = "Nessun problema bloccante aperto da SAST e SCA"
 quando = "sempre"
 natura = "progetto"
+per_incremento = true
 origine = "checklist"
 dove = "comando supply_chain; report di CI"
 
@@ -1455,6 +1492,7 @@ fase = 8
 testo = "Licenze di tutte le dipendenze verificate e compatibili"
 quando = "sempre"
 natura = "progetto"
+per_incremento = true
 origine = "checklist"
 dove = "report di CI"
 
@@ -1464,6 +1502,7 @@ fase = 8
 testo = "SBOM (CycloneDX o SPDX) aggiornata all'ultima build"
 quando = "esposizione >= pubblico o innesco mercato-ue"
 natura = "esercizio"
+per_incremento = true
 origine = "checklist"
 dove = "artefatto di CI"
 
@@ -1473,6 +1512,7 @@ fase = 8
 testo = "Verifica automatica dei segreti attiva; nessun segreto nel repository"
 quando = "sempre"
 natura = "progetto"
+per_incremento = true
 origine = "checklist"
 dove = "CI"
 
@@ -1482,6 +1522,7 @@ fase = 8
 testo = "Build riproducibile da qualunque commit"
 quando = "sempre"
 natura = "progetto"
+per_incremento = true
 origine = "checklist"
 dove = "lockfile; CI"
 
@@ -1491,6 +1532,7 @@ fase = 8
 testo = "Feature flag temporanei rimossi o con una data di rimozione"
 quando = "sempre"
 natura = "progetto"
+per_incremento = true
 origine = "checklist"
 dove = "strategia ST-flag; codice"
 
@@ -1500,6 +1542,7 @@ fase = 8
 testo = "Registro del debito tecnico aggiornato e rivisto"
 quando = "sempre"
 natura = "progetto"
+per_incremento = true
 origine = "checklist"
 dove = "registri.toml [[debito]]"
 controllo = ["debito"]
@@ -1510,6 +1553,7 @@ fase = 8
 testo = "Documentazione tecnica allineata al codice"
 quando = "sempre"
 natura = "progetto"
+per_incremento = true
 origine = "checklist"
 dove = "docs/design/, README, CLAUDE.md"
 
@@ -1519,6 +1563,7 @@ fase = 8
 testo = "Oracoli scritti prima del codice da chi non costruisce, rossi per la ragione giusta"
 quando = "sempre"
 natura = "progetto"
+per_incremento = true
 origine = "metodo"
 dove = "tag build/oracoli"
 
@@ -1528,6 +1573,7 @@ fase = 8
 testo = "Esemplari approvati dall'utente e prova a secco superata prima dell'ondata di costruzione"
 quando = "sempre"
 natura = "progetto"
+per_incremento = true
 origine = "metodo"
 dove = "tag build/esemplari; .build/gate-esemplari.md"
 dipende = ["8.11"]
@@ -1538,6 +1584,7 @@ fase = 8
 testo = "Elenco dei moduli in attesa vuoto: nessun oracolo escluso dalla suite"
 quando = "sempre"
 natura = "progetto"
+per_incremento = true
 origine = "metodo"
 dove = "tests/in-attesa.txt"
 dipende = ["8.12"]
@@ -1552,6 +1599,7 @@ fase = 9
 testo = 'Strategia di integrazione esplicita, continua o per incrementi, senza "big bang"'
 quando = "sempre"
 natura = "progetto"
+per_incremento = true
 origine = "adattata"
 nota = "È il rientro seriale di parallel-build: un ramo alla volta, il branch d'integrazione sempre verde."
 dove = "references/rientro.md di parallel-build; .build/registro.jsonl"
@@ -1562,6 +1610,7 @@ fase = 9
 testo = "Test di integrazione con dipendenze reali o containerizzate verdi"
 quando = "sempre"
 natura = "progetto"
+per_incremento = true
 origine = "checklist"
 dove = "comando suite"
 
@@ -1571,6 +1620,7 @@ fase = 9
 testo = "Contract test tra moduli e verso l'API verdi"
 quando = "sempre"
 natura = "progetto"
+per_incremento = true
 origine = "adattata"
 nota = "In un monolite modulare i contratti sono le facciate e l'API, non servizi separati."
 dove = "comando suite"
@@ -1581,6 +1631,7 @@ fase = 9
 testo = "Integrazioni con sistemi terzi provate in sandbox, comprese le risposte d'errore"
 quando = "innesco integrazioni"
 natura = "progetto"
+per_incremento = true
 origine = "checklist"
 dove = "test d'integrazione; report di consegna"
 
@@ -1590,6 +1641,7 @@ fase = 9
 testo = "Differenze tra ambienti documentate e gestite in configurazione"
 quando = "sempre"
 natura = "progetto"
+per_incremento = true
 origine = "checklist"
 dove = "contracts/configurazione.toml; README"
 
@@ -1599,6 +1651,7 @@ fase = 9
 testo = "Migrazione dei dati provata su una copia realistica, con verifica di integrità e riconciliazione"
 quando = "innesco migrazione-dati"
 natura = "progetto"
+per_incremento = true
 origine = "checklist"
 dove = "verbale della prova"
 
@@ -1608,6 +1661,7 @@ fase = 9
 testo = "Installazione e avvio riusciti in un ambiente simile alla produzione"
 quando = "sempre"
 natura = "progetto"
+per_incremento = true
 origine = "checklist"
 dove = "README; registro"
 
@@ -1617,6 +1671,7 @@ fase = 9
 testo = "Percorsi critici end-to-end verdi sull'app integrata"
 quando = "sempre"
 natura = "progetto"
+per_incremento = true
 origine = "metodo"
 dove = "comando e2e; tag build/e2e"
 
@@ -1630,6 +1685,7 @@ fase = 10
 testo = "Revisioni o ispezioni svolte su requisiti, design e codice"
 quando = "sempre"
 natura = "progetto"
+per_incremento = true
 origine = "adattata"
 nota = "Requisiti e design le ha già in registri.toml; sul codice sono le tre lenti della revisione di parallel-build."
 dove = "registri.toml [[revisioni]]; tag build/revisione"
@@ -1640,6 +1696,7 @@ fase = 10
 testo = "Analisi statica completa, senza problemi bloccanti"
 quando = "sempre"
 natura = "progetto"
+per_incremento = true
 origine = "checklist"
 dove = "CI"
 
@@ -1649,6 +1706,7 @@ fase = 10
 testo = "Metodi formali applicati alle parti critiche, dove previsti"
 quando = "criticita >= regolamentata"
 natura = "progetto"
+per_incremento = true
 origine = "checklist"
 dove = "report di verifica"
 
@@ -1658,6 +1716,7 @@ fase = 10
 testo = "Casi di test funzionali progettati con tecniche sistematiche: classi di equivalenza, valori limite, tabelle di decisione, transizioni di stato"
 quando = "sempre"
 natura = "progetto"
+per_incremento = true
 origine = "checklist"
 dove = "oracoli; piano/test.toml"
 
@@ -1667,6 +1726,7 @@ fase = 10
 testo = "Test di sistema ed end-to-end sui flussi prioritari verdi"
 quando = "sempre"
 natura = "progetto"
+per_incremento = true
 origine = "checklist"
 dove = "comandi suite ed e2e"
 
@@ -1676,6 +1736,7 @@ fase = 10
 testo = "Regressione automatizzata verde"
 quando = "sempre"
 natura = "progetto"
+per_incremento = true
 origine = "checklist"
 dove = "CI"
 
@@ -1685,6 +1746,7 @@ fase = 10
 testo = "Prestazioni verificate contro gli scenari della fase 2: carico, stress, durata, picchi"
 quando = "esposizione >= pubblico o criticita >= alta"
 natura = "esercizio"
+per_incremento = true
 origine = "checklist"
 dove = "report di prestazioni"
 
@@ -1694,6 +1756,7 @@ fase = 10
 testo = "Sicurezza verificata con SAST, DAST e analisi delle dipendenze; fuzzing e penetration test dove previsti"
 quando = "sempre"
 natura = "progetto"
+per_incremento = true
 origine = "checklist"
 dove = "report di sicurezza; lente di sicurezza della revisione"
 
@@ -1703,6 +1766,7 @@ fase = 10
 testo = "Failover e ripristino da backup provati davvero"
 quando = "esposizione >= pubblico o criticita >= media"
 natura = "esercizio"
+per_incremento = true
 origine = "checklist"
 dove = "verbale della prova di ripristino"
 
@@ -1712,6 +1776,7 @@ fase = 10
 testo = "Compatibilità, accessibilità, installazione e aggiornamento verificati"
 quando = "sempre"
 natura = "progetto"
+per_incremento = true
 origine = "checklist"
 dove = "lente interfaccia della revisione; test"
 
@@ -1721,6 +1786,7 @@ fase = 10
 testo = "Efficacia dei test valutata oltre la copertura, per esempio con mutation testing sulle parti critiche"
 quando = "sempre"
 natura = "progetto"
+per_incremento = true
 origine = "checklist"
 dove = "comando mutazioni sui moduli ad alto rischio"
 
@@ -1730,6 +1796,7 @@ fase = 10
 testo = "Difetti residui non bloccanti accettati esplicitamente"
 quando = "sempre"
 natura = "progetto"
+per_incremento = true
 origine = "checklist"
 dove = ".build/report.md"
 
@@ -1739,6 +1806,7 @@ fase = 10
 testo = "Cause radice dei difetti ricorrenti analizzate"
 quando = "sempre"
 natura = "progetto"
+per_incremento = true
 origine = "checklist"
 dove = "interruttore sistemico e retrospettiva dal registro"
 
@@ -1752,6 +1820,7 @@ fase = 11
 testo = "Test di accettazione utente (UAT) svolti sui criteri della fase 2, esiti registrati"
 quando = "sempre"
 natura = "progetto"
+per_incremento = true
 origine = "checklist"
 dove = "matrice di tracciabilità; verbale UAT"
 
@@ -1761,6 +1830,7 @@ fase = 11
 testo = "Accettazione operativa (OAT) svolta da chi gestirà il sistema: backup, monitoraggio, ripristino, runbook"
 quando = "esposizione >= pubblico"
 natura = "esercizio"
+per_incremento = true
 origine = "checklist"
 dove = "verbale OAT"
 
@@ -1770,6 +1840,7 @@ fase = 11
 testo = "Alfa, beta o pilota con utenti reali; feedback gestito"
 quando = "esposizione >= pubblico"
 natura = "esercizio"
+per_incremento = true
 origine = "checklist"
 dove = "report del pilota"
 
@@ -1779,6 +1850,7 @@ fase = 11
 testo = "Conformità verificata: privacy, accessibilità, sicurezza, contratti, norme di settore"
 quando = "innesco dati-personali o innesco commissionato o esposizione >= pubblico o criticita >= regolamentata"
 natura = "esercizio"
+per_incremento = true
 origine = "checklist"
 dove = "evidenze di conformità; compliance-docs"
 
@@ -1788,6 +1860,7 @@ fase = 11
 testo = "Valutazione di conformità o certificazione ottenuta, dove richiesta"
 quando = "criticita >= regolamentata o innesco mercato-ue"
 natura = "esercizio"
+per_incremento = true
 origine = "checklist"
 dove = "evidenze di conformità"
 
@@ -1797,6 +1870,7 @@ fase = 11
 testo = "Tracciabilità chiusa: ogni requisito ha almeno un test e un esito"
 quando = "sempre"
 natura = "progetto"
+per_incremento = true
 origine = "checklist"
 dove = "viste/tracciabilita.md con gli esiti della costruzione"
 
@@ -1806,6 +1880,7 @@ fase = 11
 testo = "Gli obiettivi misurabili della fase 1 hanno un modo di essere misurati in esercizio"
 quando = "sempre"
 natura = "progetto"
+per_incremento = true
 origine = "checklist"
 dove = "il campo misura degli obiettivi"
 
@@ -1815,6 +1890,7 @@ fase = 11
 testo = "Verbale di accettazione firmato"
 quando = "sempre"
 natura = "progetto"
+per_incremento = true
 origine = "adattata"
 nota = "Per un progetto personale è l'approvazione dell'utente nel registro del gate 11."
 dove = "stato.toml, registro della fase 11"
@@ -1829,6 +1905,7 @@ fase = 12
 testo = "Pipeline di rilascio automatizzata, con artefatti immutabili e firmati e provenienza verificabile"
 quando = "esposizione >= pubblico o innesco mercato-ue"
 natura = "esercizio"
+per_incremento = true
 origine = "checklist"
 dove = "CI/CD"
 
@@ -1838,6 +1915,7 @@ fase = 12
 testo = "Strategia di rilascio scelta (blue/green, canary, rolling) con criteri di arresto"
 quando = "esposizione >= pubblico"
 natura = "esercizio"
+per_incremento = true
 origine = "checklist"
 dove = "strategia ST-rilascio"
 
@@ -1847,6 +1925,7 @@ fase = 12
 testo = "Rollback provato, migrazioni di schema comprese"
 quando = "esposizione >= pubblico o criticita >= alta"
 natura = "esercizio"
+per_incremento = true
 origine = "checklist"
 dove = "verbale della prova; runbook"
 
@@ -1856,6 +1935,7 @@ fase = 12
 testo = "Migrazione dei dati e cut-over pianificati e provati"
 quando = "innesco migrazione-dati"
 natura = "progetto"
+per_incremento = true
 origine = "checklist"
 dove = "piano di cut-over"
 
@@ -1865,6 +1945,7 @@ fase = 12
 testo = "Monitoraggio e alert attivi prima del go-live"
 quando = "esposizione >= pubblico"
 natura = "esercizio"
+per_incremento = true
 origine = "checklist"
 dove = "strategia ST-osservabilita; configurazione degli alert"
 
@@ -1874,6 +1955,7 @@ fase = 12
 testo = "Runbook, reperibilità e catena di escalation pronti"
 quando = "esposizione >= pubblico"
 natura = "esercizio"
+per_incremento = true
 origine = "checklist"
 dove = "runbook"
 
@@ -1883,6 +1965,7 @@ fase = 12
 testo = "Utenti e supporto formati; documentazione utente pubblicata"
 quando = "esposizione >= pubblico"
 natura = "esercizio"
+per_incremento = true
 origine = "checklist"
 dove = "documentazione utente"
 
@@ -1892,6 +1975,7 @@ fase = 12
 testo = "Note di rilascio e comunicazione agli stakeholder inviate"
 quando = "esposizione >= pubblico"
 natura = "esercizio"
+per_incremento = true
 origine = "checklist"
 dove = "note di rilascio"
 
@@ -1901,6 +1985,7 @@ fase = 12
 testo = "Periodo di hypercare definito, con i responsabili"
 quando = "esposizione >= pubblico"
 natura = "esercizio"
+per_incremento = true
 origine = "checklist"
 dove = "piano di hypercare"
 
@@ -1910,6 +1995,7 @@ fase = 12
 testo = "Metriche stabili e nessun incidente bloccante a fine hypercare"
 quando = "esposizione >= pubblico"
 natura = "esercizio"
+per_incremento = true
 origine = "checklist"
 dove = "report di fine hypercare"
 dipende = ["12.09"]
@@ -1920,6 +2006,7 @@ fase = 12
 testo = "README e runbook coprono avvio, test, deploy, rollback e ripristino da backup"
 quando = "sempre"
 natura = "progetto"
+per_incremento = true
 origine = "metodo"
 dove = "README; runbook"
 
@@ -2186,6 +2273,7 @@ quando = "sempre"
 id = "T.04"
 testo = "Modifiche ai requisiti passate dal controllo delle modifiche, con analisi d'impatto"
 quando = "sempre"
+controllo = ["modifiche"]
 
 [[trasversali]]
 id = "T.05"

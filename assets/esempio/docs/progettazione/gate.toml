@@ -6,25 +6,25 @@
 [[chiusure]]
 voce = "0.01"
 esito = "fatto"
-evidenza = ["tag:progettazione/fase-0"]
+evidenza = ["tag:progettazione/gate-0-2026-10-05"]
 data = 2026-10-05
 
 [[chiusure]]
 voce = "0.02"
 esito = "fatto"
-evidenza = ["tag:progettazione/fase-0"]
+evidenza = ["tag:progettazione/gate-0-2026-10-05"]
 data = 2026-10-05
 
 [[chiusure]]
 voce = "0.03"
 esito = "fatto"
-evidenza = ["tag:progettazione/fase-0"]
+evidenza = ["tag:progettazione/gate-0-2026-10-05"]
 data = 2026-10-05
 
 [[chiusure]]
 voce = "0.04"
 esito = "fatto"
-evidenza = ["tag:progettazione/fase-0"]
+evidenza = ["tag:progettazione/gate-0-2026-10-05"]
 data = 2026-10-05
 
 [[chiusure]]
@@ -119,6 +119,7 @@ data = 2026-10-10
 
 [[chiusure]]
 voce = "2.02"
+incremento = 1
 esito = "fatto"
 evidenza = ["requisiti/storie.toml"]
 data = 2026-10-10
@@ -149,6 +150,7 @@ data = 2026-10-10
 
 [[chiusure]]
 voce = "2.07"
+incremento = 1
 esito = "fatto"
 evidenza = ["REV-1"]
 data = 2026-10-10
@@ -167,6 +169,7 @@ data = 2026-10-10
 
 [[chiusure]]
 voce = "2.10"
+incremento = 1
 esito = "fatto"
 evidenza = ["REV-2"]
 data = 2026-10-10
@@ -174,7 +177,7 @@ data = 2026-10-10
 [[chiusure]]
 voce = "2.11"
 esito = "fatto"
-evidenza = ["tag:progettazione/fase-2"]
+evidenza = ["tag:progettazione/gate-2-2026-10-10"]
 data = 2026-10-10
 
 [[chiusure]]
@@ -383,18 +386,21 @@ data = 2026-10-19
 
 [[chiusure]]
 voce = "5.02"
+incremento = 1
 esito = "fatto"
 evidenza = ["moduli/accessi.toml", "moduli/clienti.toml", "moduli/veicoli.toml", "moduli/interventi.toml", "moduli/prezzi.toml", "moduli/fatture.toml"]
 data = 2026-10-19
 
 [[chiusure]]
 voce = "5.03"
+incremento = 1
 esito = "fatto"
 evidenza = ["moduli/prezzi.toml", "moduli/accessi.toml"]
 data = 2026-10-19
 
 [[chiusure]]
 voce = "5.04"
+incremento = 1
 esito = "fatto"
 evidenza = ["moduli/prezzi.toml", "moduli/fatture.toml", "moduli/veicoli.toml"]
 data = 2026-10-19
@@ -437,6 +443,7 @@ data = 2026-10-19
 
 [[chiusure]]
 voce = "5.07"
+incremento = 1
 esito = "fatto"
 evidenza = ["contracts/openapi.json", "viste/api.md"]
 data = 2026-10-19
@@ -455,30 +462,35 @@ data = 2026-10-19
 
 [[chiusure]]
 voce = "5.10"
+incremento = 1
 esito = "fatto"
 evidenza = ["moduli/interventi.toml", "moduli/fatture.toml", "ST-concorrenza"]
 data = 2026-10-19
 
 [[chiusure]]
 voce = "5.11"
+incremento = 1
 esito = "fatto"
 evidenza = ["moduli/accessi.toml", "moduli/clienti.toml", "moduli/veicoli.toml", "moduli/interventi.toml", "moduli/prezzi.toml", "moduli/fatture.toml"]
 data = 2026-10-19
 
 [[chiusure]]
 voce = "5.12"
+incremento = 1
 esito = "fatto"
 evidenza = ["moduli/accessi.toml", "moduli/clienti.toml", "moduli/veicoli.toml", "moduli/interventi.toml", "moduli/prezzi.toml", "moduli/fatture.toml", "DEP-4"]
 data = 2026-10-19
 
 [[chiusure]]
 voce = "5.13"
+incremento = 1
 esito = "fatto"
 evidenza = ["contracts/schema.toml", "contracts/openapi.json", "contracts/autorizzazioni.toml", "contracts/errori.toml"]
 data = 2026-10-19
 
 [[chiusure]]
 voce = "5.14"
+incremento = 1
 esito = "fatto"
 evidenza = ["REV-6"]
 data = 2026-10-19
@@ -509,6 +521,7 @@ data = 2026-10-19
 
 [[chiusure]]
 voce = "6.03"
+incremento = 1
 esito = "fatto"
 evidenza = ["docs/design/mockups/accesso.html", "docs/design/mockups/interventi.html", "docs/design/mockups/intervento.html", "docs/design/mockups/area-cliente.html", "docs/design/mockups/fattura.html"]
 data = 2026-10-19
@@ -521,18 +534,21 @@ data = 2026-10-19
 
 [[chiusure]]
 voce = "6.05"
+incremento = 1
 esito = "fatto"
 evidenza = ["ux/ux.toml#schermate"]
 data = 2026-10-19
 
 [[chiusure]]
 voce = "6.06"
+incremento = 1
 esito = "fatto"
 evidenza = ["REV-8"]
 data = 2026-10-19
 
 [[chiusure]]
 voce = "6.07"
+incremento = 1
 esito = "fatto"
 evidenza = ["ux/testi.toml"]
 data = 2026-10-19
@@ -545,18 +561,21 @@ data = 2026-10-19
 
 [[chiusure]]
 voce = "6.10"
+incremento = 1
 esito = "fatto"
 evidenza = ["REV-7"]
 data = 2026-10-19
 
 [[chiusure]]
 voce = "7.01"
+incremento = 1
 esito = "fatto"
 evidenza = ["piano/piano.toml"]
 data = 2026-10-22
 
 [[chiusure]]
 voce = "7.02"
+incremento = 1
 esito = "fatto"
 evidenza = ["piano/piano.toml#stima"]
 data = 2026-10-22
@@ -569,6 +588,7 @@ data = 2026-10-22
 
 [[chiusure]]
 voce = "7.04"
+incremento = 1
 esito = "fatto"
 evidenza = ["piano/piano.toml#task"]
 data = 2026-10-22
@@ -599,42 +619,49 @@ data = 2026-10-22
 
 [[chiusure]]
 voce = "7.11"
+incremento = 1
 esito = "fatto"
 evidenza = ["registri.toml#rischi"]
 data = 2026-10-22
 
 [[chiusure]]
 voce = "7.12"
+incremento = 1
 esito = "fatto"
 evidenza = ["stato.toml#scheda"]
 data = 2026-10-22
 
 [[chiusure]]
 voce = "7.13"
+incremento = 1
 esito = "fatto"
 evidenza = ["REV-9"]
 data = 2026-10-22
 
 [[chiusure]]
 voce = "7.14"
+incremento = 1
 esito = "fatto"
 evidenza = ["REV-10"]
 data = 2026-10-22
 
 [[chiusure]]
 voce = "7.15"
+incremento = 1
 esito = "fatto"
 evidenza = ["DEP-1", "DEP-2", "DEP-3", "DEP-4", "DEP-5", "DEP-6"]
 data = 2026-10-22
 
 [[chiusure]]
 voce = "7.16"
+incremento = 1
 esito = "fatto"
 evidenza = ["REV-11"]
 data = 2026-10-22
 
 [[chiusure]]
 voce = "7.17"
+incremento = 1
 esito = "fatto"
 evidenza = ["stato.toml#congelamento"]
 data = 2026-10-22

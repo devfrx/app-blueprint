@@ -25,7 +25,8 @@ PREFISSI = {
     "RK": "rischi", "R": "regole", "RNF": "rnf", "RD": "requisiti_dati",
     "PC": "percorsi", "CO": "conflitti", "DR": "driver", "ST": "strategie",
     "MI": "minacce", "FL": "flussi", "AC": "accessi", "DEB": "debito",
-    "DEP": "deperibili", "Q": "domande", "REV": "revisioni", "ADR": "adr",
+    "DEP": "deperibili", "Q": "domande", "REV": "revisioni", "MOD": "modifiche",
+    "ADR": "adr",
 }
 # I riferimenti a elementi con un id libero si scrivono "tipo:id".
 TIPIZZATI = {
@@ -239,6 +240,7 @@ RIFERIMENTI = {
     "rischi": {"traccia": None},
     "domande": {"punto": "voci", "bloccata_da": "domande"},
     "revisioni": {"traccia": None},
+    "modifiche": {"impatto": None, "riapre": "voci"},
     "rnf": {"fonte": "stakeholder", "assunzione": None, "indirizzato_da": None},
     "requisiti_dati": {"concetto": "glossario", "fonte": "stakeholder"},
     "percorsi": {"storie": "storie"},
@@ -368,7 +370,7 @@ def carica(radice, catalogo=None):
     progetto.chiusure = [c for c in gate.get("chiusure", []) if isinstance(c, dict)]
 
     registri = _leggi_toml(progetto, f"{p}/registri.toml") or {}
-    for chiave in ("rischi", "assunzioni", "domande", "debito", "deperibili", "revisioni"):
+    for chiave in ("rischi", "assunzioni", "domande", "debito", "deperibili", "revisioni", "modifiche"):
         _elenco(progetto, registri, chiave, chiave, f"{p}/registri.toml")
 
     prodotto = _leggi_toml(progetto, f"{p}/prodotto/prodotto.toml") or {}

@@ -47,9 +47,10 @@ CAMPI = {
     "domande": (("domanda", "punto"), {}),
     "debito": (("descrizione", "motivo", "segnale", "rientro"), {}),
     "deperibili": (("cosa", "fonte", "verificato_il"), {}),
-    "revisioni": (("tipo", "oggetto", "revisore", "data", "esito"),
+    "revisioni": (("tipo", "oggetto", "revisore", "data", "incremento", "esito"),
                   {"tipo": {"requisiti", "validazione", "walkthrough", "dominio", "architettura", "dettaglio",
                             "accessibilita", "euristica", "usabilita", "prontezza", "decidibilita", "pre-mortem"}}),
+    "modifiche": (("descrizione", "motivo", "data", "esito"), {"esito": {"proposta", "approvata", "respinta"}}),
     "obiettivi": (("testo", "metrica", "valore"), {}),
     "stakeholder": (("descrizione", "categorie", "interesse", "influenza", "usa"),
                     {"interesse": {"alto", "medio", "basso"}, "influenza": {"alta", "media", "bassa"}}),
@@ -232,14 +233,38 @@ def c_stato(ctx, voce):
     if voce == "7.12" and scheda.get("costruzione") not in ("parallela", "seriale"):
         reperti.append(_r("errore", dove, "[scheda].costruzione: 'parallela' o 'seriale'", "stato"))
     fasi_note = {f["numero"] for f in ctx.catalogo.get("fasi", [])}
+    corrente, viste = p.incremento_corrente(), set()
     for riga in s.get("registro", []):
-        if riga.get("fase") not in fasi_note:
-            reperti.append(_r("errore", dove, f"registro: fase '{riga.get('fase')}' sconosciuta", "stato"))
+        fase, inc = riga.get("fase"), riga.get("incremento", 1)
+        if fase not in fasi_note:
+            reperti.append(_r("errore", dove, f"registro: fase '{fase}' sconosciuta", "stato"))
+        if not (isinstance(inc, int) and not isinstance(inc, bool) and 1 <= inc <= corrente):
+            reperti.append(_r("errore", dove, f"registro, fase {fase}: incremento '{inc}' fuori da 1–{corrente}", "stato"))
+        elif (fase, inc) in viste:
+            reperti.append(_r("errore", dove, f"registro, fase {fase}: due righe per l'incremento {inc}", "stato"))
+        viste.add((fase, inc))
         if riga.get("stato") not in {"da-fare", "in-corso", "superato", "riaperto", "fuori-catena"}:
-            reperti.append(_r("errore", dove, f"registro, fase {riga.get('fase')}: stato '{riga.get('stato')}' non ammesso", "stato"))
+            reperti.append(_r("errore", dove, f"registro, fase {fase}: stato '{riga.get('stato')}' non ammesso", "stato"))
         if riga.get("stato") == "superato" and not (_pieno(riga.get("approvato_da")) and _pieno(riga.get("data"))):
-            reperti.append(_r("errore", dove, f"registro, fase {riga.get('fase')}: superato senza approvato_da e data", "stato"))
+            reperti.append(_r("errore", dove, f"registro, fase {fase}: superato senza approvato_da e data", "stato"))
     return reperti
+
+
+def righe_correnti(ctx):
+    """fase -> la riga del registro che vale ora. Una fase con voci per incremento
+    ha una riga per incremento, e vale quella del corrente (assente: da fare); le
+    altre fasi valgono con la riga più recente."""
+    p = ctx.progetto
+    corrente = p.incremento_corrente()
+    ripetute = {st["fase"] for st in stati_voci(ctx).values() if st["per_incremento"]}
+    righe = {}
+    for riga in p.stato.get("registro", []):
+        fase, inc = riga.get("fase"), riga.get("incremento", 1)
+        if not isinstance(inc, int) or inc > corrente or (fase in ripetute and inc != corrente):
+            continue
+        if fase not in righe or inc >= righe[fase].get("incremento", 1):
+            righe[fase] = riga
+    return righe
 
 
 def c_visione(ctx, voce):
@@ -327,11 +352,12 @@ def _valori_priorita(p):
 
 
 def c_storie(ctx, voce):
+    """L'inventario: priorità dal metodo dichiarato, attori, incremento di ogni storia."""
     p, reperti = ctx.progetto, _presenza("storie")(ctx, voce)
     nome, valori = _valori_priorita(p)
     if not valori:
         reperti.append(_r("errore", "requisiti.toml", "metodo_priorita = { nome, valori } mancante", "storie"))
-    attori, corrente = p.attori(), p.incremento_corrente()
+    attori = p.attori()
     for s in p.tutti("storie"):
         d, dove = s.dati, f"{s.sorgente} → {s.id}"
         if valori and d.get("priorita") not in valori:
@@ -341,17 +367,25 @@ def c_storie(ctx, voce):
         inc = d.get("incremento")
         if not (isinstance(inc, int) and not isinstance(inc, bool) and inc >= 1):
             reperti.append(_r("errore", dove, "incremento è un intero da 1", "storie"))
-            continue
+    return reperti
+
+
+def c_criteri(ctx, voce):
+    """Le storie dell'incremento corrente hanno i criteri, e ogni criterio scritto è completo."""
+    p, reperti = ctx.progetto, []
+    corrente = p.incremento_corrente()
+    for s in p.tutti("storie"):
+        d, dove = s.dati, f"{s.sorgente} → {s.id}"
         criteri = d.get("criteri") or []
-        if inc == corrente:
+        if d.get("incremento") == corrente:
             if not criteri:
-                reperti.append(_r("errore", dove, "storia dell'incremento corrente senza criteri dato/quando/allora", "storie"))
+                reperti.append(_r("errore", dove, "storia dell'incremento corrente senza criteri dato/quando/allora", "criteri"))
             elif len(criteri) < 2:
-                reperti.append(_r("avviso", dove, "un solo criterio: manca la variante o il caso d'errore?", "storie"))
+                reperti.append(_r("avviso", dove, "un solo criterio: manca la variante o il caso d'errore?", "criteri"))
         for n, c in enumerate(criteri, 1):
             mancano = [k for k in ("dato", "quando", "allora") if not (isinstance(c, dict) and _pieno(c.get(k)))]
             if mancano:
-                reperti.append(_r("errore", dove, f"criterio {n}: manca {', '.join(mancano)}", "storie"))
+                reperti.append(_r("errore", dove, f"criterio {n}: manca {', '.join(mancano)}", "criteri"))
     return reperti
 
 
@@ -406,8 +440,15 @@ def c_conformita(ctx, voce):
 
 
 def c_revisione(tipo):
+    """Una revisione del tipo esiste; per una voce che si ripete, nell'incremento corrente."""
     def controllo(ctx, voce):
         revisioni = [e for e in ctx.progetto.tutti("revisioni") if e.dati.get("tipo") == tipo]
+        if voce is not None and per_incremento(ctx, voce):
+            corrente = ctx.progetto.incremento_corrente()
+            revisioni = [e for e in revisioni if e.dati.get("incremento") == corrente]
+            if not revisioni:
+                return [_r("errore", "[[revisioni]]", f"nessuna revisione di tipo '{tipo}' nell'incremento {corrente}",
+                           f"revisione:{tipo}")]
         if not revisioni:
             return [_r("errore", "[[revisioni]]", f"nessuna revisione di tipo '{tipo}'", f"revisione:{tipo}")]
         ultima = max(revisioni, key=lambda e: str(e.dati.get("data")))
@@ -1098,8 +1139,17 @@ def c_debito(ctx, voce):
 
 
 def c_piano(ctx, voce):
+    """Il piano dell'incremento corrente. Uno di un incremento passato è storia: non
+    si valida finché la voce 7.01 non lo riscrive, e non può chiuderla."""
     import piano
-    return piano.valida(ctx.progetto)
+    p = ctx.progetto
+    inc = (p.piano.get("progetto") or {}).get("incremento") if isinstance(p.piano, dict) else None
+    if inc != p.incremento_corrente():
+        if voce is None:
+            return []
+        return [_r("errore", piano.DOVE, f"[progetto].incremento = {inc!r}: il piano si scrive per l'incremento "
+                   f"corrente ({p.incremento_corrente()})", "piano")]
+    return piano.valida(p)
 
 
 def c_viste(ctx, voce):
@@ -1108,26 +1158,61 @@ def c_viste(ctx, voce):
 
 
 def c_gate(ctx, voce):
-    reperti = []
-    for riga in ctx.progetto.stato.get("registro", []):
-        if riga.get("stato") == "superato":
-            aperte = [v for v, st in stati_voci(ctx).items() if st["fase"] == riga.get("fase")
-                      and st["applicabilita"] == condizioni.APPLICABILE and not st["chiusa"]
-                      and st.get("skill") != "parallel-build"]
-            if aperte and riga.get("fase", 0) <= 7:
-                reperti.append(_r("errore", f"registro, fase {riga.get('fase')}", f"superato con voci aperte: {aperte}", "gate"))
+    """Il registro dice il vero: una fase superata, nella riga che vale ora, non ha
+    voci applicabili aperte. Una modifica approvata o un nuovo incremento che
+    riaprono voci di una fase superata chiedono di riaprirla."""
+    reperti, stati = [], stati_voci(ctx)
+    for fase, riga in sorted(righe_correnti(ctx).items(), key=lambda x: str(x[0])):
+        if riga.get("stato") != "superato":
+            continue
+        aperte = sorted((i for i, st in stati.items() if st["fase"] == fase
+                         and st["applicabilita"] == condizioni.APPLICABILE and not st["chiusa"]), key=condizioni.chiave_id)
+        if aperte:
+            reperti.append(_r("errore", f"{PROGETTAZIONE}/stato.toml", f"registro, fase {fase}: superato con voci "
+                              f"aperte: {aperte}; una modifica le riapre (MOD-n, poi progetto.py modifica MOD-n)",
+                              "gate"))
     return reperti
 
 
+def tag_congelamento(incremento, data):
+    return f"progettazione/incremento-{incremento}-{data.isoformat()}"
+
+
 def c_congelamento(ctx, voce):
+    """[congelamento] certifica l'incremento corrente: data, approvazione, tag che
+    li nomina, revisione di prontezza e prova di decidibilità dell'incremento."""
     p, reperti = ctx.progetto, []
     c = p.stato.get("congelamento")
     dove = f"{PROGETTAZIONE}/stato.toml [congelamento]"
     if not isinstance(c, dict):
         return [_r("errore", dove, "manca", "congelamento")]
-    for campo in ("data", "tag", "revisione", "prova"):
+    for campo in ("incremento", "data", "approvato_da", "tag", "revisione", "prova"):
         if not _pieno(c.get(campo)):
             reperti.append(_r("errore", dove, f"manca '{campo}'", "congelamento"))
+    corrente = p.incremento_corrente()
+    if c.get("incremento") != corrente:
+        reperti.append(_r("errore", dove, f"incremento {c.get('incremento')!r}: il corrente è {corrente}", "congelamento"))
+    if isinstance(c.get("data"), datetime.date) and c.get("tag") != tag_congelamento(corrente, c["data"]):
+        reperti.append(_r("errore", dove, f"tag '{c.get('tag')}': per questo congelamento è "
+                          f"'{tag_congelamento(corrente, c['data'])}'", "congelamento"))
+    for campo, tipo in (("revisione", "prontezza"), ("prova", "decidibilita")):
+        r = p.trova("revisioni", c.get(campo)) if isinstance(c.get(campo), str) else None
+        if r is None or r.dati.get("tipo") != tipo or r.dati.get("incremento") != corrente:
+            reperti.append(_r("errore", dove, f"'{campo}' è l'id della revisione di tipo '{tipo}' dell'incremento "
+                              f"{corrente}", "congelamento"))
+    return reperti
+
+
+def c_modifiche(ctx, voce):
+    """Una modifica approvata dice chi l'ha approvata e quali voci riapre: è la
+    gestione delle modifiche (2.11, T.04) resa verificabile."""
+    reperti = []
+    for m in ctx.progetto.tutti("modifiche"):
+        if m.dati.get("esito") != "approvata":
+            continue
+        for campo in ("approvato_da", "impatto", "riapre"):
+            if not _pieno(m.dati.get(campo)):
+                reperti.append(_r("errore", m.id, f"modifica approvata senza '{campo}'", "modifiche"))
     return reperti
 
 
@@ -1144,6 +1229,7 @@ CONTROLLI = {
     "stima": c_stima,
     "fonti": c_fonti,
     "storie": c_storie,
+    "criteri": c_criteri,
     "trasversali": c_trasversali,
     "qualita": c_qualita,
     "rnf": c_rnf,
@@ -1196,6 +1282,7 @@ CONTROLLI = {
     "piano": c_piano,
     "viste": c_viste,
     "gate": c_gate,
+    "modifiche": c_modifiche,
     "congelamento": c_congelamento,
 }
 
@@ -1208,8 +1295,20 @@ def controllo(nome):
 
 # --- voci, chiusure, gate -------------------------------------------------------------
 
+def per_incremento(ctx, ident):
+    voce = next((v for v in ctx.catalogo.get("voci", []) if v["id"] == ident), None)
+    return bool(voce and voce.get("per_incremento"))
+
+
 def stati_voci(ctx):
-    """id -> {fase, applicabilita, chiusa, chiusura, skill, voce} per tutte le voci del catalogo."""
+    """id -> {fase, applicabilita, chiusa, chiusura, riaperta_da, per_incremento, skill, voce}
+    per tutte le voci del catalogo.
+
+    La chiusura che vale è, per una voce che si ripete, quella dell'incremento
+    corrente; per le altre, l'unica. Una modifica approvata che elenca la voce in
+    'riapre' annulla una chiusura con data anteriore alla sua; il congelamento lo
+    annulla qualunque modifica approvata dopo, perché certifica il progetto di quel
+    giorno. Una modifica dello stesso giorno di una chiusura si intende recepita."""
     cache = ctx.__dict__.setdefault("_stati_voci", None)
     if cache is not None:
         return cache
@@ -1222,17 +1321,29 @@ def stati_voci(ctx):
     if scheda["criticita"] not in condizioni.CRITICITA:
         scheda["criticita"] = "bassa"
     fasi_skill = {f["numero"]: f["skill"] for f in ctx.catalogo.get("fasi", [])}
-    chiusure = {}
+    corrente = p.incremento_corrente()
+    per_voce = {}
     for c in p.chiusure:
-        chiusure[c.get("voce")] = c
+        per_voce.setdefault(c.get("voce"), []).append(c)
+    modifiche = [m for m in p.tutti("modifiche")
+                 if m.dati.get("esito") == "approvata" and isinstance(m.dati.get("data"), datetime.date)]
     risultato = {}
     noti = set(ctx.catalogo.get("inneschi", {}))
     for voce in ctx.catalogo.get("voci", []):
-        applicabilita = condizioni.stato_voce(voce, scheda, inneschi_noti=noti)
-        chiusura = chiusure.get(voce["id"])
+        ripete = bool(voce.get("per_incremento"))
+        candidate = per_voce.get(voce["id"], [])
+        if ripete:
+            candidate = [c for c in candidate if c.get("incremento") == corrente]
+        chiusura = candidate[-1] if candidate else None
+        riaperta_da = None
+        if chiusura is not None and isinstance(chiusura.get("data"), datetime.date):
+            congela = "congelamento" in voce.get("controllo", [])
+            riaperta_da = next((m.id for m in modifiche if chiusura["data"] < m.dati["data"]
+                                and (congela or voce["id"] in _valori(m.dati.get("riapre")))), None)
         risultato[voce["id"]] = {
-            "fase": voce["fase"], "applicabilita": applicabilita, "chiusura": chiusura,
-            "chiusa": chiusura is not None and chiusura.get("esito") in ("fatto", "non-applicabile"),
+            "fase": voce["fase"], "applicabilita": condizioni.stato_voce(voce, scheda, inneschi_noti=noti),
+            "chiusura": chiusura, "riaperta_da": riaperta_da, "per_incremento": ripete,
+            "chiusa": chiusura is not None and chiusura.get("esito") in ("fatto", "non-applicabile") and riaperta_da is None,
             "skill": voce.get("skill", fasi_skill.get(voce["fase"])), "voce": voce,
         }
     ctx.__dict__["_stati_voci"] = risultato
@@ -1240,51 +1351,74 @@ def stati_voci(ctx):
 
 
 def chiusure(ctx):
-    """Valida le chiusure di gate.toml: voce esistente, esito, evidenze che esistono,
-    motivazioni ed eventuali approvazioni, controlli della voce che passano."""
+    """Valida le chiusure di gate.toml. Di tutte si controlla la forma; di quelle che
+    valgono ora anche la sostanza. Le chiusure di incrementi passati, o annullate da
+    una modifica, sono storia."""
+    p, reperti, stati, viste = ctx.progetto, [], stati_voci(ctx), set()
+    for c in p.chiusure:
+        st = stati.get(c.get("voce"))
+        if st is not None and isinstance(c.get("incremento", 0), int):
+            chiave = (c.get("voce"), c.get("incremento") if st["per_incremento"] else None)
+            if chiave in viste:
+                reperti.append(_r("errore", f"{PROGETTAZIONE}/gate.toml", f"voce {chiave[0]} chiusa due volte" +
+                                  (f" nell'incremento {chiave[1]}" if chiave[1] else ""), "chiusure"))
+            viste.add(chiave)
+        reperti += valida_chiusura(ctx, c, completa=st is not None and st["chiusura"] is c and st["chiusa"])
+    return reperti
+
+
+def valida_chiusura(ctx, c, completa=True, scritta=True):
+    """I reperti di una chiusura: voce esistente, esito, data, incremento per le voci
+    che si ripetono; con completa, anche evidenze che esistono, motivo ed eventuale
+    approvazione di un'esclusione, e i controlli della voce, i cui errori diventano
+    errori della chiusura. scritta=False: la chiusura si sta ancora scrivendo."""
     p, reperti = ctx.progetto, []
     dove = f"{PROGETTAZIONE}/gate.toml"
-    stati = stati_voci(ctx)
-    criticita_alta = condizioni.CRITICITA.index(p.scheda.get("criticita", "bassa")) >= condizioni.CRITICITA.index("alta") \
-        if p.scheda.get("criticita") in condizioni.CRITICITA else False
-    viste = set()
-    for c in p.chiusure:
-        ident = c.get("voce")
-        if ident in viste:
-            reperti.append(_r("errore", dove, f"voce {ident} chiusa due volte", "chiusure"))
-        viste.add(ident)
-        st = stati.get(ident)
-        if st is None:
-            reperti.append(_r("errore", dove, f"voce '{ident}' sconosciuta", "chiusure"))
+    ident = c.get("voce")
+    st = stati_voci(ctx).get(ident)
+    if st is None:
+        return [_r("errore", dove, f"voce '{ident}' sconosciuta", "chiusure")]
+    corrente = p.incremento_corrente()
+    inc = c.get("incremento")
+    if st["per_incremento"]:
+        if not (isinstance(inc, int) and not isinstance(inc, bool) and 1 <= inc <= corrente):
+            return [_r("errore", dove, f"voce {ident}: si richiude a ogni incremento, e la chiusura porta "
+                       f"'incremento' (da 1 a {corrente})", "chiusure")]
+    elif inc is not None:
+        reperti.append(_r("avviso", dove, f"voce {ident}: non si ripete per incremento, 'incremento' è superfluo", "chiusure"))
+    esito = c.get("esito")
+    if esito not in ("fatto", "non-applicabile"):
+        return reperti + [_r("errore", dove, f"voce {ident}: esito 'fatto' o 'non-applicabile'", "chiusure")]
+    if not isinstance(c.get("data"), datetime.date):
+        reperti.append(_r("errore", dove, f"voce {ident}: manca la data", "chiusure"))
+    if not completa:
+        return reperti
+    if st["applicabilita"] != condizioni.APPLICABILE:
+        reperti.append(_r("avviso", dove, f"voce {ident} chiusa ma {st['applicabilita']} per la scheda", "chiusure"))
+    if esito == "non-applicabile":
+        criticita = p.scheda.get("criticita")
+        alta = criticita in condizioni.CRITICITA and \
+            condizioni.CRITICITA.index(criticita) >= condizioni.CRITICITA.index("alta")
+        if not _pieno(c.get("motivo")):
+            reperti.append(_r("errore", dove, f"voce {ident}: un'esclusione ha il motivo", "chiusure"))
+        if alta and not _pieno(c.get("approvato")):
+            reperti.append(_r("errore", dove, f"voce {ident}: da criticità alta un'esclusione è approvata (approvato)", "chiusure"))
+        return reperti
+    evidenze = _valori(c.get("evidenza"))
+    if not evidenze:
+        reperti.append(_r("errore", dove, f"voce {ident}: 'fatto' senza evidenza", "chiusure"))
+    for ev in evidenze:
+        if not _evidenza_esiste(p, ev):
+            reperti.append(_r("errore", dove, f"voce {ident}: evidenza '{ev}' non trovata", "chiusure"))
+    for nome in st["voce"].get("controllo", []):
+        funzione = controllo(nome)
+        if funzione is None:
+            reperti.append(_r("errore", "catalogo", f"voce {ident}: controllo '{nome}' sconosciuto", "chiusure"))
             continue
-        esito = c.get("esito")
-        if esito not in ("fatto", "non-applicabile"):
-            reperti.append(_r("errore", dove, f"voce {ident}: esito 'fatto' o 'non-applicabile'", "chiusure"))
-            continue
-        if not isinstance(c.get("data"), datetime.date):
-            reperti.append(_r("errore", dove, f"voce {ident}: manca la data", "chiusure"))
-        if st["applicabilita"] != condizioni.APPLICABILE:
-            reperti.append(_r("avviso", dove, f"voce {ident} chiusa ma {st['applicabilita']} per la scheda", "chiusure"))
-        if esito == "non-applicabile":
-            if not _pieno(c.get("motivo")):
-                reperti.append(_r("errore", dove, f"voce {ident}: un'esclusione ha il motivo", "chiusure"))
-            if criticita_alta and not _pieno(c.get("approvato")):
-                reperti.append(_r("errore", dove, f"voce {ident}: da criticità alta un'esclusione è approvata (approvato)", "chiusure"))
-            continue
-        evidenze = _valori(c.get("evidenza"))
-        if not evidenze:
-            reperti.append(_r("errore", dove, f"voce {ident}: 'fatto' senza evidenza", "chiusure"))
-        for ev in evidenze:
-            if not _evidenza_esiste(p, ev):
-                reperti.append(_r("errore", dove, f"voce {ident}: evidenza '{ev}' non trovata", "chiusure"))
-        for nome in st["voce"].get("controllo", []):
-            funzione = controllo(nome)
-            if funzione is None:
-                reperti.append(_r("errore", "catalogo", f"voce {ident}: controllo '{nome}' sconosciuto", "chiusure"))
-                continue
-            for r in funzione(ctx, ident):
-                if r.livello == "errore":
-                    reperti.append(_r("errore", r.dove, f"[voce {ident} chiusa] {r.messaggio}", r.controllo))
+        for r in funzione(ctx, ident):
+            if r.livello == "errore":
+                reperti.append(_r("errore", r.dove, f"[voce {ident}{' chiusa' if scritta else ''}] {r.messaggio}",
+                                  r.controllo))
     return reperti
 
 
@@ -1319,8 +1453,8 @@ def congelamento(ctx):
     reperti += c_domande(ctx, None)
     reperti += c_deperibili(ctx, None)
     reperti += c_debito(ctx, None)
-    reperti += c_revisione("prontezza")(ctx, None)
-    reperti += c_revisione("decidibilita")(ctx, None)
+    reperti += c_revisione("prontezza")(ctx, "7.13")
+    reperti += c_revisione("decidibilita")(ctx, "7.14")
     reperti += c_viste(ctx, None)
     return reperti
 
@@ -1352,7 +1486,8 @@ def frontiera(ctx, limite=5):
 def verifica(ctx, fase_gate=None, al_congelamento=False):
     """Tutti i controlli che valgono sempre, più quelli del gate o del congelamento richiesti."""
     p = ctx.progetto
-    reperti = list(p.reperti) + struttura(p) + c_stato(ctx, None) + chiusure(ctx)
+    reperti = list(p.reperti) + struttura(p) + c_stato(ctx, None) + c_gate(ctx, None) + c_modifiche(ctx, None)
+    reperti += chiusure(ctx)
     if p.piano:
         reperti += c_piano(ctx, None)
     reperti += c_viste(ctx, None)
@@ -1360,10 +1495,26 @@ def verifica(ctx, fase_gate=None, al_congelamento=False):
         reperti += gate(ctx, fase_gate)
     if al_congelamento:
         reperti += congelamento(ctx)
-    visti, unici = set(), []
+    return _accorpa(reperti)
+
+
+RE_PREFISSO_VOCE = re.compile(r"^\[voce (\S+) chiusa\] ")
+
+
+def _accorpa(reperti):
+    """Un reperto per difetto: lo stesso messaggio arrivato da più voci chiuse, o anche
+    da un controllo diretto, diventa uno solo che nomina le voci."""
+    gruppi = {}
     for r in reperti:
-        chiave = (r.livello, r.dove, r.messaggio)
-        if chiave not in visti:
-            visti.add(chiave)
-            unici.append(r)
+        m = RE_PREFISSO_VOCE.match(r.messaggio)
+        chiave = (r.livello, r.dove, RE_PREFISSO_VOCE.sub("", r.messaggio))
+        voci, primo = gruppi.setdefault(chiave, ([], r))
+        if m and m.group(1) not in voci:
+            voci.append(m.group(1))
+    unici = []
+    for (livello, dove, messaggio), (voci, primo) in gruppi.items():
+        if voci:
+            etichetta = f"[voce {voci[0]} chiusa]" if len(voci) == 1 else f"[voci {', '.join(voci)} chiuse]"
+            messaggio = f"{etichetta} {messaggio}"
+        unici.append(Reperto(livello, dove, messaggio, primo.controllo))
     return unici

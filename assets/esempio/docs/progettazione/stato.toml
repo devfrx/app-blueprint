@@ -25,6 +25,7 @@ fase = 0
 stato = "superato"
 approvato_da = "responsabile"
 data = 2026-10-05
+tag = "progettazione/gate-0-2026-10-05"
 note = "Repo, agenti e stato pronti."
 
 [[registro]]
@@ -32,20 +33,24 @@ fase = 1
 stato = "superato"
 approvato_da = "responsabile"
 data = 2026-10-07
+tag = "progettazione/gate-1-2026-10-07"
 note = "Go. Trasversali: RK-1…RK-3 aperti; nessun ADR oltre ADR-0001."
 
 [[registro]]
 fase = 2
+incremento = 1
 stato = "superato"
 approvato_da = "responsabile"
 data = 2026-10-10
-note = "Baseline progettazione/fase-2; 21 storie, 17 nell'incremento 1."
+tag = "progettazione/gate-2-2026-10-10"
+note = "Baseline progettazione/gate-2-2026-10-10; 21 storie, 17 nell'incremento 1."
 
 [[registro]]
 fase = 3
 stato = "superato"
 approvato_da = "responsabile"
 data = 2026-10-13
+tag = "progettazione/gate-3-2026-10-13"
 note = "Modello provato su tutte le storie (REV-3)."
 
 [[registro]]
@@ -53,29 +58,37 @@ fase = 4
 stato = "superato"
 approvato_da = "responsabile"
 data = 2026-10-15
+tag = "progettazione/gate-4-2026-10-15"
 note = "ADR-0002…0006; RK-2 chiuso dallo spike; RK-4 e RK-5 accettati."
 
 [[registro]]
 fase = 5
+incremento = 1
 stato = "superato"
 approvato_da = "responsabile"
 data = 2026-10-19
+tag = "progettazione/gate-5-2026-10-19"
 note = "Contratti dell'incremento 1 completi (REV-6)."
 
 [[registro]]
 fase = 6
+incremento = 1
 stato = "superato"
 approvato_da = "responsabile"
 data = 2026-10-19
+tag = "progettazione/gate-6-2026-10-19"
 note = "Usabilità con utenti reali rinviata al pubblico (6.08, debito di pubblicazione)."
 
 [[registro]]
 fase = 7
+incremento = 1
 stato = "in-corso"
 note = "Progetto congelato il 2026-10-22; il gate si chiude quando lo scheletro di parallel-build gira (7.09, 7.10)."
 
 [congelamento]
+incremento = 1
 data = 2026-10-22
-tag = "progettazione/incremento-1"
-revisione = "Nessun P0 o P1 aperto; 9 findings P2 e P3 corretti (REV-9)."
-prova = "Nessuna domanda su clienti, interventi e prezzi (REV-10)."
+approvato_da = "responsabile"
+tag = "progettazione/incremento-1-2026-10-22"
+revisione = "REV-9"
+prova = "REV-10"

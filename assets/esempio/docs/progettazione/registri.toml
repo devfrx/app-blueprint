@@ -114,6 +114,7 @@ verificato_il = 2026-10-22
 [[revisioni]]
 id = "REV-1"
 tipo = "requisiti"
+incremento = 1
 oggetto = "Storie, RNF e requisiti sui dati, sui criteri della ISO/IEC/IEEE 29148"
 revisore = "reviewer"
 data = 2026-10-09
@@ -122,6 +123,7 @@ esito = "12 findings: 2 criteri senza caso d'errore, 1 RNF senza misura, 9 di fo
 [[revisioni]]
 id = "REV-2"
 tipo = "validazione"
+incremento = 1
 oggetto = "Requisiti dell'incremento 1, con il walkthrough dei percorsi critici"
 revisore = "responsabile"
 data = 2026-10-10
@@ -130,6 +132,7 @@ esito = "Approvati; aggiunta ACC-7 (sblocco), CO-1 risolto."
 [[revisioni]]
 id = "REV-3"
 tipo = "walkthrough"
+incremento = 1
 oggetto = "Il modello concettuale provato su tutte le storie, compresi gli incrementi futuri"
 revisore = "sessione"
 data = 2026-10-12
@@ -138,6 +141,7 @@ esito = "VEI-2 ha richiesto scadenza_revisione e promemoria_inviato_il; nessuna 
 [[revisioni]]
 id = "REV-4"
 tipo = "dominio"
+incremento = 1
 oggetto = "Modello di dominio, glossario, macchine a stati"
 revisore = "responsabile"
 data = 2026-10-13
@@ -146,6 +150,7 @@ esito = "Riconosciuto; rinominato 'commessa' in 'intervento' ovunque."
 [[revisioni]]
 id = "REV-5"
 tipo = "architettura"
+incremento = 1
 oggetto = "Valutazione dell'architettura contro gli scenari di qualità"
 revisore = "reviewer"
 data = 2026-10-15
@@ -154,6 +159,7 @@ esito = "Nessun rischio non accettato; vedi architettura/valutazione.md."
 [[revisioni]]
 id = "REV-6"
 tipo = "dettaglio"
+incremento = 1
 oggetto = "Progetto di dettaglio dei moduli, schema, contratti"
 revisore = "reviewer"
 data = 2026-10-19
@@ -162,6 +168,7 @@ esito = "7 findings: un indice senza accesso, una transazione senza idempotenza,
 [[revisioni]]
 id = "REV-7"
 tipo = "euristica"
+incremento = 1
 oggetto = "Mockup dei percorsi critici, con frontend-craft"
 revisore = "reviewer"
 data = 2026-10-18
@@ -170,6 +177,7 @@ esito = "3 problemi: azioni del preventivo poco distinguibili, stato vuoto senza
 [[revisioni]]
 id = "REV-8"
 tipo = "accessibilita"
+incremento = 1
 oggetto = "Mockup e contratto UI sui criteri WCAG 2.2 AA"
 revisore = "reviewer"
 data = 2026-10-19
@@ -178,6 +186,7 @@ esito = "Nomi accessibili completati per 4 azioni; area minima dei bottoni porta
 [[revisioni]]
 id = "REV-9"
 tipo = "prontezza"
+incremento = 1
 oggetto = "Tutta la progettazione, con la checklist del catalogo e un reviewer per modulo ad alto rischio"
 revisore = "reviewer"
 data = 2026-10-21
@@ -188,6 +197,7 @@ p1 = 0
 [[revisioni]]
 id = "REV-10"
 tipo = "decidibilita"
+incremento = 1
 oggetto = "Costruzione degli esemplari clienti e interventi e del motore prezzi, con i soli file del repo"
 revisore = "reviewer"
 data = 2026-10-21
@@ -197,6 +207,7 @@ domande = 0
 [[revisioni]]
 id = "REV-11"
 tipo = "pre-mortem"
+incremento = 1
 oggetto = "Immaginando la costruzione fallita"
 revisore = "responsabile"
 data = 2026-10-22

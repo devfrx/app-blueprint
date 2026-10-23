@@ -8,6 +8,7 @@
 [progetto]
 nome = "Officina"
 versione_metodo = "3.0.0"
+incremento = 1
 branch_integrazione = "main"
 percorsi_e2e = ["tests/e2e/**"]
 # Nessun task li possiede: li crea e li congela lo scheletro. Toccarli durante la

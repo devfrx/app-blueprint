@@ -17,7 +17,7 @@ TIPI_INDICE = (
     "integrazioni", "confini", "flussi", "minacce", "volumi", "accessi", "ristrutturazione", "tabelle",
     "api", "facciata", "eventi", "errori", "matrice", "sequenze", "personas", "sezioni", "rotte",
     "schermate", "livelli", "incrementi", "task", "rischi", "assunzioni", "domande", "debito",
-    "deperibili", "revisioni", "adr",
+    "deperibili", "revisioni", "modifiche", "adr",
 )
 
 
@@ -60,7 +60,9 @@ def checklist(progetto, catalogo):
     righe = [INTESTAZIONE, "# Checklist dei gate", ""]
     scheda = progetto.scheda
     righe += [f"Esposizione **{scheda.get('esposizione')}**, criticità **{scheda.get('criticita')}**, "
-              f"inneschi: {', '.join(scheda.get('inneschi', [])) or 'nessuno'}.", ""]
+              f"inneschi: {', '.join(scheda.get('inneschi', [])) or 'nessuno'}. "
+              f"Incremento corrente: **{progetto.incremento_corrente()}**; ↻ segna le voci che si richiudono "
+              "a ogni incremento, e per loro vale la chiusura dell'incremento corrente.", ""]
     for fase in catalogo.get("fasi", []):
         numero = fase["numero"]
         voci = [(i, st) for i, st in stati.items() if st["fase"] == numero]
@@ -76,9 +78,12 @@ def checklist(progetto, catalogo):
                 c = st["chiusura"]
                 stato = "fatta" if c.get("esito") == "fatto" else "esclusa"
                 nota = ", ".join(_valori(c.get("evidenza"))) or c.get("motivo", "")
+            elif st["riaperta_da"]:
+                stato, nota = "riaperta", f"da {st['riaperta_da']}"
             else:
                 stato, nota = "aperta", ""
-            righe.append(f"| {ident} | {stato} | {_cella(st['voce']['testo'])} | {_cella(nota)} |")
+            segno = " ↻" if st["per_incremento"] else ""
+            righe.append(f"| {ident}{segno} | {stato} | {_cella(st['voce']['testo'])} | {_cella(nota)} |")
         righe.append("")
     noti = set(catalogo.get("inneschi", {}))
     profilo = {"esposizione": scheda.get("esposizione", "personale"), "criticita": scheda.get("criticita", "bassa"),

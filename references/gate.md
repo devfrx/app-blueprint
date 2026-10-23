@@ -58,7 +58,7 @@ Il registro non può mentire: una fase superata con voci aperte è un errore di 
 Le revisioni stanno in `[[revisioni]]` di `registri.toml`, con tipo, oggetto, revisore, data, incremento ed esito; quella di prontezza porta anche `p0` e `p1`, la prova di decidibilità `domande`. Chi le fa:
 
 - un `reviewer`, sotto-agente che non ha scritto ciò che rivede, per requisiti (2.07), walkthrough del modello (3.09), architettura (4.15), dettaglio (5.14), revisione euristica (6.10), accessibilità (6.06), prontezza (7.13) e decidibilità (7.14). Il brief gli dà il tipo, la checklist della reference della fase, la scala P0–P3 e cosa leggere, per id;
-- l'utente e gli stakeholder per la validazione dei requisiti (2.10), l'approvazione del modello (3.10) e l'usabilità con utenti reali (6.08);
+- l'utente e gli stakeholder per la validazione dei requisiti (2.10), l'approvazione del modello (3.10), l'usabilità con utenti reali (6.08) e, in costruzione, l'accettazione (11.01, 11.08) e quella operativa (11.02);
 - l'utente con la sessione per il pre-mortem (7.16).
 
 Scala dei findings: **P0** rende la costruzione impossibile o sbagliata; **P1** è una lacuna che un costruttore colmerebbe indovinando; **P2** un'incoerenza che non cambia ciò che si costruisce; **P3** rifinitura. I findings si correggono dove stanno, non in un documento a parte; la revisione registra l'esito in una riga. I `reviewer` lavorano in un worktree e vedono solo ciò che è committato: si committa prima di lanciarli.

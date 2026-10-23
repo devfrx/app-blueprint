@@ -60,7 +60,7 @@ Il campo `traccia` dice da cosa nasce un elemento: storie, regole, RNF, strategi
 
 ## Incremento di un elemento
 
-Si progetta con tutte le funzionalità davanti: l'inventario delle storie copre tutti gli incrementi, e il modello di dominio, i dati e l'architettura le spiegano tutte. Solo le storie dichiarano il loro `incremento`; per ogni altro elemento lo calcola lo script, come il minimo tra quelli delle storie nella sua traccia, ereditandolo dal contenitore se non ne ha una. Senza storie nella traccia vale 1: è trasversale.
+Si progetta con tutte le funzionalità davanti: l'inventario delle storie copre tutti gli incrementi, e il modello di dominio, i dati e l'architettura le spiegano tutte. Solo le storie dichiarano il loro `incremento`; per ogni altro elemento lo calcola lo script, come il minimo tra quelli di ciò che lo giustifica: la sua `traccia`, e i campi che dicono perché esiste (le `storie` di una schermata o di un'operazione, il `da` di una tabella o di una colonna, gli `accessi` di un indice). Ciò che un elemento usa non conta: un algoritmo per una storia futura non si costruisce prima perché legge un'entità che esiste già. Senza giustificazione l'elemento eredita l'incremento dal contenitore, e altrimenti vale 1: è trasversale.
 
 Così una colonna che serve solo a una storia del secondo incremento esiste già nello schema, marcata dall'incremento 2: il fascio di un task dell'incremento 1 la elenca tra ciò che non si costruisce ora, e l'incremento successivo la trova progettata invece di doverla inventare.
 

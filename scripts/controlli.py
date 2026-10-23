@@ -976,10 +976,12 @@ def c_api(ctx, voce):
             elif not set(paginazione) <= nomi:
                 reperti.append(_r("errore", op.id, f"lista senza i parametri di paginazione {paginazione}", "api"))
     coperte = {s for op in p.tutti("api") for s in _valori(op.dati.get("x-storie"))}
+    # una storia servita solo da schermate statiche (un'informativa) non ha operazioni
+    coperte |= {s for sc in p.tutti("schermate") for s in _valori(sc.dati.get("storie"))}
     corrente = p.incremento_corrente()
     for s in p.tutti("storie"):
         if s.dati.get("incremento") == corrente and s.id not in coperte:
-            reperti.append(_r("avviso", s.id, "storia dell'incremento corrente senza operazioni API", "api"))
+            reperti.append(_r("avviso", s.id, "storia dell'incremento corrente senza operazioni API né schermate", "api"))
     return reperti
 
 
@@ -1359,10 +1361,11 @@ def stati_voci(ctx):
     return risultato
 
 
-def chiusure(ctx):
+def chiusure(ctx, fase_avvisi=None):
     """Valida le chiusure di gate.toml. Di tutte si controlla la forma; di quelle che
     valgono ora anche la sostanza. Le chiusure di incrementi passati, o annullate da
-    una modifica, sono storia."""
+    una modifica, sono storia. Gli avvisi dei controlli di una voce chiusa si
+    riportano solo per la fase di fase_avvisi: si leggono al gate, non a ogni verifica."""
     p, reperti, stati, viste = ctx.progetto, [], stati_voci(ctx), set()
     for c in p.chiusure:
         st = stati.get(c.get("voce"))
@@ -1372,15 +1375,17 @@ def chiusure(ctx):
                 reperti.append(_r("errore", f"{PROGETTAZIONE}/gate.toml", f"voce {chiave[0]} chiusa due volte" +
                                   (f" nell'incremento {chiave[1]}" if chiave[1] else ""), "chiusure"))
             viste.add(chiave)
-        reperti += valida_chiusura(ctx, c, completa=st is not None and st["chiusura"] is c and st["chiusa"])
+        reperti += valida_chiusura(ctx, c, completa=st is not None and st["chiusura"] is c and st["chiusa"],
+                                   avvisi=st is not None and st["fase"] == fase_avvisi)
     return reperti
 
 
-def valida_chiusura(ctx, c, completa=True, scritta=True):
+def valida_chiusura(ctx, c, completa=True, scritta=True, avvisi=False):
     """I reperti di una chiusura: voce esistente, esito, data, incremento per le voci
     che si ripetono; con completa, anche evidenze che esistono, motivo ed eventuale
     approvazione di un'esclusione, e i controlli della voce, i cui errori diventano
-    errori della chiusura. scritta=False: la chiusura si sta ancora scrivendo."""
+    errori della chiusura; con avvisi, anche i loro avvisi. scritta=False: la chiusura
+    si sta ancora scrivendo."""
     p, reperti = ctx.progetto, []
     dove = f"{PROGETTAZIONE}/gate.toml"
     ident = c.get("voce")
@@ -1425,8 +1430,8 @@ def valida_chiusura(ctx, c, completa=True, scritta=True):
             reperti.append(_r("errore", "catalogo", f"voce {ident}: controllo '{nome}' sconosciuto", "chiusure"))
             continue
         for r in funzione(ctx, ident):
-            if r.livello == "errore":
-                reperti.append(_r("errore", r.dove, f"[voce {ident}{' chiusa' if scritta else ''}] {r.messaggio}",
+            if r.livello == "errore" or avvisi:
+                reperti.append(_r(r.livello, r.dove, f"[voce {ident}{' chiusa' if scritta else ''}] {r.messaggio}",
                                   r.controllo))
     return reperti
 
@@ -1498,7 +1503,7 @@ def verifica(ctx, fase_gate=None, al_congelamento=False):
     """Tutti i controlli che valgono sempre, più quelli del gate o del congelamento richiesti."""
     p = ctx.progetto
     reperti = list(p.reperti) + struttura(p) + c_stato(ctx, None) + c_gate(ctx, None) + c_modifiche(ctx, None)
-    reperti += chiusure(ctx)
+    reperti += chiusure(ctx, fase_avvisi=fase_gate)
     if p.piano:
         reperti += c_piano(ctx, None)
     reperti += c_viste(ctx, None)

@@ -17,7 +17,7 @@ Un punto è il lavoro su una voce. Ha un inizio e una fine espliciti, sempre:
 
 1. **Inizio**: `progetto.py apri <voce>`. Registra il punto in `stato.toml`, porta la fase a `in-corso` (o `riaperto`) e stampa "Inizio punto …" con il fascio della voce: dove vive l'evidenza, i controlli che dovranno passare, le sorgenti da leggere.
 2. **Lavoro**: si segue la sezione della voce nella reference della fase, si decide con l'utente (`decisioni.md`), si scrivono le sorgenti.
-3. **Fine**: `progetto.py chiudi <voce> --evidenza …`. Prima di scrivere esegue i controlli della voce e verifica che le evidenze esistano: se qualcosa non passa non scrive nulla ed elenca cosa correggere. Poi registra la chiusura, rigenera le viste, stampa "Fine punto …" e la frontiera.
+3. **Fine**: `progetto.py chiudi <voce> --evidenza …`. Prima di scrivere esegue i controlli della voce e verifica che le evidenze esistano: se qualcosa non passa non scrive nulla ed elenca cosa correggere. Poi registra la chiusura, rigenera le viste, stampa gli avvisi dei controlli (non bloccano, ma si leggono adesso), "Fine punto …" e la frontiera.
 4. **Commit**.
 
 Regole:
@@ -43,7 +43,7 @@ Lo script verifica che percorsi e id esistano, non che dicano il vero: quello lo
 - **Inizio**: quando si apre il suo primo punto. La fase 6 corre intrecciata alle fasi 2–5: le sue voci entrano nella frontiera dalla fase 2, perché la UX scopre requisiti e i requisiti cambiano la UX.
 - **Fine**, in quest'ordine:
   1. tutte le voci applicabili chiuse: `progetto.py checklist --fase N`;
-  2. `progetto.py verifica --gate N` senza errori;
+  2. `progetto.py verifica --gate N` senza errori, e con i suoi avvisi letti: sono anche quelli dei controlli delle voci della fase, che la verifica ordinaria non ripete;
   3. controlli trasversali passati in rassegna: `progetto.py checklist --trasversali`, una riga d'esito per voce nella nota del registro;
   4. il brief del gate presentato all'utente;
   5. l'approvazione esplicita dell'utente, e solo allora `progetto.py approva N --da <chi approva> --note "<trasversali, in breve>"`;

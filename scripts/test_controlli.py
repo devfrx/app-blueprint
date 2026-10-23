@@ -207,6 +207,16 @@ class Chiusure(Base):
         self.assertErrore(reperti, "superato con voci aperte: ['3.06']")
 
 
+class AvvisiAlGate(Base):
+    def test_gli_avvisi_delle_voci_chiuse_si_leggono_al_gate(self):
+        criterio = ('  { dato = "un indirizzo inesistente", quando = "lo apre", '
+                    'allora = "vede la pagina \'non trovata\' con il link alla pagina iniziale" },\n')
+        self.sostituisci(f"{P}/requisiti/storie.toml", criterio, "")
+        avvisi = [r.testo() for r in self.verifica(fase_gate=2) if r.livello == "avviso"]
+        self.assertTrue(any("ACC-6" in a and "un solo criterio" in a for a in avvisi), avvisi)
+        self.assertEqual([r.testo() for r in self.verifica() if r.livello == "avviso"], [])
+
+
 class Congelamento(Base):
     def test_domanda_aperta(self):
         self.aggiungi(f"{P}/registri.toml", '\n[[domande]]\nid = "Q-1"\ndomanda = "Il VPS regge?"\npunto = "4.12"\n')

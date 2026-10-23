@@ -269,12 +269,15 @@ def cmd_chiudi(args):
     chiusura["data"] = _oggi(args)
     chiusura["nota"] = args.nota
     chiusura = {k: v for k, v in chiusura.items() if v is not None}
-    errori = [r for r in controlli.valida_chiusura(ctx, chiusura, scritta=False) if r.livello == "errore"]
+    reperti = controlli.valida_chiusura(ctx, chiusura, scritta=False, avvisi=True)
+    errori = [r for r in reperti if r.livello == "errore"]
     if errori:
         for r in errori:
             print(r.testo())
         print(f"\nLa voce {ident} non si chiude: {len(errori)} errori.")
         return 1
+    for r in reperti:
+        print(r.testo())
     ripete = st["per_incremento"]
     _scrivi(progetto.radice / modello.PROGETTAZIONE / "gate.toml", "[[chiusure]]",
             lambda d: d.get("voce") == ident and (not ripete or d.get("incremento") == chiusura.get("incremento")),

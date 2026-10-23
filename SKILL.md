@@ -11,7 +11,7 @@ Il problema che risolve è doppio. Il parallelismo non lo danno gli agenti, lo d
 
 **Catena.** `app-blueprint` esegue le fasi 0–7 fino al congelamento; `parallel-build` esegue ambienti e scheletro (7.09, 7.10) e le fasi 8–12, sullo stesso registro e con gli stessi comandi; le fasi 13–15 sono fuori catena. `decision-map` entra per la nebbia vera, in qualunque punto.
 
-**Prerequisiti.** Python 3.11 o successivo (solo libreria standard). Skill su cui il metodo si appoggia, senza ripeterle: `decision-principles` (come si decide e si delega), `lean-code`, `lean-docs`, `frontend-craft` (tutto ciò che è interfaccia), `design-docs` (formato degli ADR e dei mockup), `dev-communication`, `compliance-docs` (con dati personali o mercato UE), `session-resume` e `session-handoff`, `decision-map`, `parallel-build`. Leggile se non sono già in contesto.
+**Prerequisiti.** Python 3.11 o successivo (solo libreria standard). Skill su cui il metodo si appoggia, senza ripeterle, ciascuna letta quando serve e non all'avvio: `decision-principles` alla prima decisione o delega; `dev-communication` nelle conversazioni sulle scelte; `design-docs` al primo ADR o mockup; `frontend-craft` alla fase 6; `compliance-docs` alla 2.06, con dati personali o mercato UE; `lean-code` agli spike e `lean-docs` ai testi che restano; `session-resume` e `session-handoff` all'inizio e alla fine di una sessione; `decision-map` per la nebbia; `parallel-build` al congelamento.
 
 ## Le regole che governano tutto
 

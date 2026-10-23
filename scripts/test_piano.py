@@ -40,7 +40,7 @@ class Esempio(Base):
 
     def test_conteggi(self):
         c = vp.conteggi(progetto())
-        self.assertEqual(c["task"], {"oracoli": 8, "motore": 1, "esemplari": 2, "costruzione": 6})
+        self.assertEqual(c["task"], {"oracoli": 8, "motore": 1, "esemplari": 2, "costruzione": 5})
         self.assertEqual(c["storie"], 17)
 
 
@@ -88,7 +88,7 @@ class Ownership(Base):
 
     def test_costruttore_che_possiede_test_e2e(self):
         p = progetto()
-        task(p, "C-veicoli-fe")["possiede"].append("tests/e2e/extra/**")
+        task(p, "C-fatture-fe")["possiede"].append("tests/e2e/extra/**")
         self.assertErrore(p, "tocca i test e2e")
 
     def test_intoccabile(self):
@@ -125,17 +125,17 @@ class OndateEDipendenze(Base):
 
     def test_dipendenza_dalla_stessa_ondata(self):
         p = progetto()
-        task(p, "C-veicoli-fe")["dipende_da"].append("C-veicoli-be")
+        task(p, "C-fatture-fe")["dipende_da"].append("C-fatture-be")
         self.assertErrore(p, "non sta in un'ondata precedente")
 
     def test_dipendenza_inesistente(self):
         p = progetto()
-        task(p, "C-veicoli-fe")["dipende_da"].append("C-fantasma")
+        task(p, "C-fatture-fe")["dipende_da"].append("C-fantasma")
         self.assertErrore(p, "che non esiste")
 
     def test_ondata_sconosciuta(self):
         p = progetto()
-        task(p, "C-veicoli-fe")["ondata"] = "e2e"
+        task(p, "C-fatture-fe")["ondata"] = "e2e"
         self.assertErrore(p, "ondata deve essere")
 
 
@@ -185,7 +185,7 @@ class MotoreEdEsemplari(Base):
 class Copertura(Base):
     def test_modulo_senza_costruzione(self):
         p = progetto()
-        p.piano["task"] = [t for t in p.piano["task"] if t["id"] not in ("C-veicoli-be", "C-veicoli-fe")]
+        p.piano["task"] = [t for t in p.piano["task"] if t["id"] != "C-veicoli-be"]
         self.assertErrore(p, "'veicoli': nessun task di costruzione")
 
     def test_storia_di_un_altro_modulo_nel_task_di_oracoli(self):
@@ -202,6 +202,19 @@ class Copertura(Base):
         p = progetto()
         task(p, "O-clienti")["storie"].append("CLI-2")
         self.assertErrore(p, "la storia 'CLI-2' non è dell'incremento corrente")
+
+    def test_schermate_senza_chi_ne_costruisce_il_frontend(self):
+        p = progetto()
+        p.piano["task"] = [t for t in p.piano["task"] if t["id"] != "C-fatture-fe"]
+        self.assertErrore(p, "modulo 'fatture': ha schermate dell'incremento (fattura) e nessun task ne costruisce il frontend")
+
+    def test_frontend_senza_schermate(self):
+        p = progetto()
+        nuovo = copy.deepcopy(task(p, "C-fatture-fe"))
+        nuovo.update({"id": "C-veicoli-fe", "modulo": "veicoli", "possiede": ["resources/js/moduli/veicoli/**"]})
+        p.piano["task"].append(nuovo)
+        self.assertEqual(errori(p), [])
+        self.assertTrue(any("'veicoli': un task ne costruisce il frontend" in a for a in avvisi(p)))
 
     def test_e2e_senza_storie(self):
         p = progetto()

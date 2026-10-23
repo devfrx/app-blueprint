@@ -183,6 +183,27 @@ class ControlliDelleVoci(Base):
         (self.radice / f"{P}/architettura/architettura.toml").write_text(testo, encoding="utf-8")
         self.assertErrore(self.verifica(), "ST-cache")
 
+    def test_operazione_senza_regola_della_matrice(self):
+        self.sostituisci("contracts/openapi.json", '"x-autorizzazione": "veicolo.crea",\n', "")
+        reperti = self.verifica()
+        self.assertErrore(reperti, "associaVeicolo", "x-autorizzazione: la regola della matrice")
+
+    def test_regola_tolta_dalla_matrice(self):
+        self.sostituisci("contracts/autorizzazioni.toml", 'risorsa = "veicolo"\nazione = "crea"', 'risorsa = "veicolo"\nazione = "aggiungi"')
+        reperti = self.verifica(fase_gate=5)
+        self.assertErrore(reperti, "associaVeicolo", "'x-autorizzazione': riferimento 'veicolo.crea' non risolto")
+        self.assertTrue(any("veicolo.aggiungi" in r.dove and "nessuna operazione la applica" in r.messaggio
+                            for r in reperti if r.livello == "avviso"))
+
+    def test_azione_offerta_a_chi_la_matrice_non_consente(self):
+        self.sostituisci(f"{P}/ux/ux.toml", '{ nome = "Emetti fattura", ruoli = ["responsabile"]',
+                         '{ nome = "Emetti fattura", ruoli = ["operatore", "responsabile"]')
+        self.assertErrore(self.verifica(), "azione 'Emetti fattura': offerta a ['operatore']", "fattura.emetti")
+
+    def test_schermata_senza_modulo(self):
+        self.sostituisci(f"{P}/ux/ux.toml", 'id = "fattura"\nmodulo = "fatture"\n', 'id = "fattura"\n')
+        self.assertErrore(self.verifica(), "fattura", "manca 'modulo'")
+
     def test_api_senza_esempio(self):
         self.sostituisci("contracts/openapi.json", '"example": "(PDF della fattura 42/2026)"', '"description": "pdf"')
         self.assertErrore(self.verifica(), "pdfFattura:", "risposta 200 senza esempio")

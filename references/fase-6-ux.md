@@ -22,9 +22,10 @@ Con `frontend-craft`: brief, ipotesi concreta di direzione visiva, conferma dell
 
 Una voce per schermata in `[[schermate]]`, ed è un contratto quanto un'API:
 
+- il `modulo` che la possiede: il suo frontend la costruisce, anche quando mostra dati o azioni di altri moduli, che chiama attraverso il contratto API. Una schermata, un proprietario: così nessuna finisce in due task, e nessun costruttore decide chi monta il bottone di un altro;
 - `scopo`, `ruoli`, le `storie` che serve, il `pattern` se ne segue uno;
 - i `dati`, cioè le operazioni API che la alimentano;
-- le `azioni`, ciascuna con i ruoli, l'operazione e il **nome accessibile**: oracoli e test end-to-end, scritti prima del codice, cercano gli elementi per ruolo e per nome, quindi il nome si fissa qui. Un test che non trova il bottone segnala anche un problema di accessibilità;
+- le `azioni`, ciascuna con i ruoli, l'operazione e il **nome accessibile**: oracoli e test end-to-end, scritti prima del codice, cercano gli elementi per ruolo e per nome, quindi il nome si fissa qui. Un test che non trova il bottone segnala anche un problema di accessibilità. I ruoli di un'azione stanno dentro quelli che la regola della sua operazione consente: un bottone offerto a chi riceverebbe un rifiuto è un errore;
 - i `testi`, per chiave;
 - gli `stati`: caricamento, vuoto, errore, parziale, successo, permesso negato. Ciascuno descritto, o `non-applicabile:` con il motivo. Lo script pretende tutti e sei: lo stato vuoto e quello d'errore sono i primi che una costruzione dimentica.
 

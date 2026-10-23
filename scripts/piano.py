@@ -15,7 +15,8 @@ Controlli:
   5. ownership: percorsi nella sintassi ammessa; nessuna sovrapposizione tra task
      della stessa ondata; nessun task possiede intoccabili; chi scrive codice non
      possiede oracoli né test end-to-end; gli autori di test possiedono solo test
-  6. copertura: ogni modulo dell'incremento ha oracoli e chi lo costruisce; ogni
+  6. copertura: ogni modulo dell'incremento ha oracoli e chi lo costruisce, e chi
+     ne costruisce il frontend se possiede schermate dell'incremento; ogni
      storia dell'incremento ha un task di oracoli del modulo che la orchestra; ogni
      percorso critico ha un task end-to-end che cita tutte le sue storie
      dell'incremento. Un archetipo il cui esemplare è stato costruito in un
@@ -112,12 +113,24 @@ def moduli_in_scope(progetto):
             if s.dati.get("modulo"):
                 in_scope.add(s.dati["modulo"])
             in_scope.update(_valori(s.dati.get("tocca")))
+    in_scope.update(schermate_dell_incremento(progetto))
     for tipo in TIPI_DEL_MODULO:
         for el in progetto.tutti(tipo):
             modulo = progetto.modulo_di(el)
             if modulo and progetto.incremento_di(el) == corrente:
                 in_scope.add(modulo)
     return in_scope
+
+
+def schermate_dell_incremento(progetto):
+    """modulo -> le sue schermate toccate da una storia dell'incremento corrente: le
+    costruisce, o le cambia, il frontend del modulo che le possiede."""
+    correnti = set(storie_in_scope(progetto))
+    risultato = {}
+    for s in progetto.tutti("schermate"):
+        if s.dati.get("modulo") and set(_valori(s.dati.get("storie"))) & correnti:
+            risultato.setdefault(s.dati["modulo"], []).append(s.id)
+    return risultato
 
 
 def storie_in_scope(progetto):
@@ -265,6 +278,7 @@ def valida(progetto):
     per_ondata = {o: [] for o in ONDATE}
     storie_con_oracoli, storie_e2e = set(), {}
     con_oracoli, costruiti, esemplari_con_task, motori_con_task = set(), set(), set(), set()
+    lati_costruiti = {}
 
     for ident, t in task.items():
         ondata = t.get("ondata")
@@ -359,6 +373,8 @@ def valida(progetto):
         if e2e:
             storie_e2e[ident] = set(storie_task)
 
+        if modulo and ondata in SCRIVONO_CODICE:
+            lati_costruiti.setdefault(modulo, set()).update(_lati(t, ondata))
         if modulo and ondata == "oracoli":
             con_oracoli.add(modulo)
         elif modulo and ondata == "motore":
@@ -384,6 +400,15 @@ def valida(progetto):
             errori.append(f"modulo '{m_id}': è un motore e nessun task lo costruisce nell'ondata 'motore'")
         elif m_id not in motori and m_id not in esemplari and m_id not in costruiti:
             errori.append(f"modulo '{m_id}': nessun task di costruzione")
+    con_schermate = schermate_dell_incremento(progetto)
+    for m_id in sorted(set(con_schermate) & set(moduli)):
+        if "frontend" not in lati_costruiti.get(m_id, set()):
+            errori.append(f"modulo '{m_id}': ha schermate dell'incremento ({', '.join(con_schermate[m_id])}) e nessun "
+                          "task ne costruisce il frontend")
+    for m_id in sorted(lati_costruiti):
+        if "frontend" in lati_costruiti[m_id] and m_id not in con_schermate:
+            avvisi.append(f"modulo '{m_id}': un task ne costruisce il frontend, ma il modulo non possiede schermate "
+                          "dell'incremento")
     for es in esemplari:
         if es not in esemplari_con_task:
             errori.append(f"esemplare '{es}': nessun task nell'ondata 'esemplari'")

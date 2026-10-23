@@ -68,7 +68,7 @@ Tipi concreti del database scelto, vincoli, e gli `indici` derivati dagli access
 
 ## Contratti
 
-**5.07 API.** `contracts/openapi.json` (o AsyncAPI per gli eventi esposti), nella versione decisa nello stack. Ogni operazione ha `operationId`, `x-modulo`, `x-storie`, `x-errori` con i codici del catalogo, almeno una risposta 4xx, ed esempi realistici per ogni risposta, errori compresi: gli esempi diventano i mock, e un mock che mostra solo dati felici fa costruire un'interfaccia senza stati vuoti e d'errore. Ogni lista porta `x-lista` e i parametri di paginazione dichiarati in `info.x-paginazione`; ogni operazione che farebbe danni se ripetuta dichiara l'idempotenza; versionamento e limiti di frequenza seguono le strategie. Le operazioni senza accesso sono dichiarate pubbliche, e sono le sole fuori dalla matrice. Lo script avvisa per ogni storia dell'incremento senza operazioni.
+**5.07 API.** `contracts/openapi.json` (o AsyncAPI per gli eventi esposti), nella versione decisa nello stack. Ogni operazione ha `operationId`, `x-modulo`, `x-storie`, `x-errori` con i codici del catalogo, almeno una risposta 4xx, ed esempi realistici per ogni risposta, errori compresi: gli esempi diventano i mock, e un mock che mostra solo dati felici fa costruire un'interfaccia senza stati vuoti e d'errore. Ogni lista porta `x-lista` e i parametri di paginazione dichiarati in `info.x-paginazione`; ogni operazione che farebbe danni se ripetuta dichiara l'idempotenza; versionamento e limiti di frequenza seguono le strategie. Le operazioni senza accesso sono dichiarate pubbliche con `security: []`, e sono le sole fuori dalla matrice: ogni altra nomina in `x-autorizzazione` la regola `risorsa.azione` che la consente, e lo script lo pretende. Senza quel legame la corrispondenza tra operazioni e regole la inventerebbe chi costruisce. Lo script avvisa per ogni storia dell'incremento senza operazioni.
 
 **5.09 Errori.** `contracts/errori.toml`: un `codice` per errore con la `categoria` (cosa si recupera, cosa si propaga), lo stato `http`, se è `recuperabile`, il livello di `log`, e con un'interfaccia la chiave del testo che l'utente vede; più `[[validazioni]]`, una regola per campo con l'errore che produce. È la fonte unica per backend e frontend. `ST-errori` dice il formato della risposta: se lo stack non ne ha uno, uno standard come Problem Details evita di inventarlo (`FONTI.md`).
 
@@ -76,7 +76,7 @@ Tipi concreti del database scelto, vincoli, e gli `indici` derivati dagli access
 
 - **negazione per default**: `predefinito = "nega"`;
 - **i ruoli sono gli attori**, gli stakeholder con `usa = true`, né uno di più né uno di meno;
-- **una regola per risorsa e azione**, con i ruoli che `consenti` e la `traccia` verso la storia o la minaccia che la chiede;
+- **una regola per risorsa e azione**, con i ruoli che `consenti` e la `traccia` verso la storia o la minaccia che la chiede; una risorsa è un'entità, o una voce di `risorse` per ciò che entità non è, come la sessione. Ogni regola la applica almeno un'operazione (`x-autorizzazione`), altrimenti è un avviso;
 - **le condizioni di proprietà esplicite**, nominate in `[condizioni]` e legate al ruolo a cui si applicano: "il cliente legge i *propri* interventi" è la regola che, dimenticata, lascia leggere quelli altrui cambiando un id nell'URL, il difetto d'accesso più comune;
 - **il controllo vive nel backend**: nascondere un bottone è esperienza d'uso, non autorizzazione.
 

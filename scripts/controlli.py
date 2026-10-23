@@ -136,7 +136,7 @@ CAMPI = {
     "personas": (("attore", "descrizione", "obiettivi"), {}),
     "sezioni": (("nome", "ruoli"), {}),
     "rotte": (("percorso", "schermata", "ruoli"), {}),
-    "schermate": (("scopo", "ruoli", "storie", "stati"), {}),
+    "schermate": (("modulo", "scopo", "ruoli", "storie", "stati"), {}),
     "testi": (("chiave", "testo"), {}),
     "task": (("ondata", "agente", "possiede", "criteri"), {}),
     "incrementi": (("numero", "obiettivo", "rilascio"), {"rilascio": {"locale", "staging", "produzione"}}),
@@ -997,6 +997,12 @@ def c_api(ctx, voce):
     paginazione = _valori((spec.get("info") or {}).get("x-paginazione"))
     for op in p.tutti("api"):
         d = op.dati
+        if operazione_pubblica(spec, d):
+            if d.get("x-autorizzazione"):
+                reperti.append(_r("errore", op.id, "operazione pubblica (security vuota) con x-autorizzazione", "api"))
+        elif not d.get("x-autorizzazione"):
+            reperti.append(_r("errore", op.id, "x-autorizzazione: la regola della matrice (risorsa.azione) che la "
+                              "consente; senza, l'autorizzazione la inventerebbe chi costruisce", "api"))
         risposte = d.get("responses") or {}
         if not any(str(c).startswith("4") for c in risposte):
             reperti.append(_r("errore", op.id, "nessuna risposta d'errore 4xx", "api"))
@@ -1020,6 +1026,11 @@ def c_api(ctx, voce):
         if s.dati.get("incremento") == corrente and s.id not in coperte:
             reperti.append(_r("avviso", s.id, "storia dell'incremento corrente senza operazioni API né schermate", "api"))
     return reperti
+
+
+def operazione_pubblica(spec, op):
+    """Pubblica: security vuota sull'operazione, o nessuna security né lì né globale."""
+    return not op.get("security", (spec or {}).get("security"))
 
 
 def c_sequenze(ctx, voce):
@@ -1074,6 +1085,10 @@ def c_matrice(ctx, voce):
                 reperti.append(_r("errore", r.id, f"condizione '{condizione}' non definita in [condizioni]", "matrice"))
         if not _valori(r.dati.get("traccia")):
             reperti.append(_r("avviso", r.id, "regola senza traccia: quale storia o minaccia la chiede?", "matrice"))
+    applicate = {op.dati.get("x-autorizzazione") for op in p.tutti("api")}
+    for r in p.tutti("matrice"):
+        if r.id not in applicate:
+            reperti.append(_r("avviso", r.id, "nessuna operazione la applica (x-autorizzazione)", "matrice"))
     return reperti
 
 
@@ -1148,6 +1163,12 @@ def c_schermate(ctx, voce):
                     reperti.append(_r("errore", s.id, f"azione {n}: manca '{campo}'", "schermate"))
             if a.get("operazione") and not p.risolvi(a["operazione"], "api"):
                 reperti.append(_r("errore", s.id, f"azione {n}: operazione '{a['operazione']}' inesistente", "schermate"))
+            elif a.get("operazione"):
+                regola = p.trova("matrice", p.trova("api", a["operazione"]).dati.get("x-autorizzazione") or "")
+                fuori = sorted(set(_valori(a.get("ruoli"))) - set(_valori(regola.dati.get("consenti")))) if regola else []
+                if fuori:
+                    reperti.append(_r("errore", s.id, f"azione '{a.get('nome')}': offerta a {fuori}, che la regola "
+                                      f"{regola.id} non consente", "schermate"))
     coperte = {x for s in p.tutti("schermate") for x in _valori(s.dati.get("storie"))}
     for st in p.tutti("storie"):
         if st.dati.get("incremento") == p.incremento_corrente() and st.id not in coperte:

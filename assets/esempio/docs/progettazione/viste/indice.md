@@ -477,6 +477,7 @@ Una riga per elemento: id, descrizione, incremento in cui serve, sorgente. Il de
 | intervento.leggi |  | 1 | contracts/autorizzazioni.toml |
 | preventivo.approva |  | 1 | contracts/autorizzazioni.toml |
 | preventivo.modifica |  | 1 | contracts/autorizzazioni.toml |
+| sessione.chiudi |  | 1 | contracts/autorizzazioni.toml |
 | veicolo.crea |  | 1 | contracts/autorizzazioni.toml |
 | veicolo.leggi |  | 1 | contracts/autorizzazioni.toml |
 | voce_listino.leggi |  | 1 | contracts/autorizzazioni.toml |
@@ -573,7 +574,6 @@ Una riga per elemento: id, descrizione, incremento in cui serve, sorgente. Il de
 | C-fatture-be |  | 1 | docs/progettazione/piano/piano.toml |
 | C-fatture-fe |  | 1 | docs/progettazione/piano/piano.toml |
 | C-veicoli-be |  | 1 | docs/progettazione/piano/piano.toml |
-| C-veicoli-fe |  | 1 | docs/progettazione/piano/piano.toml |
 | E-clienti |  | 1 | docs/progettazione/piano/piano.toml |
 | E-interventi |  | 1 | docs/progettazione/piano/piano.toml |
 | M-prezzi |  | 1 | docs/progettazione/piano/piano.toml |

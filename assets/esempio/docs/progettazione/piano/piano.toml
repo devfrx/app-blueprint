@@ -41,7 +41,7 @@ criteri_alto_frontend = []
 [oracoli]
 accessi = ["tests/Oracoli/Accessi/**", "tests/frontend/accessi/**"]
 clienti = ["tests/Oracoli/Clienti/**", "tests/frontend/clienti/**"]
-veicoli = ["tests/Oracoli/Veicoli/**", "tests/frontend/veicoli/**"]
+veicoli = ["tests/Oracoli/Veicoli/**"]
 interventi = ["tests/Oracoli/Interventi/**", "tests/frontend/interventi/**"]
 fatture = ["tests/Oracoli/Fatture/**", "tests/frontend/fatture/**"]
 prezzi = ["tests/Oracoli/Prezzi/**"]
@@ -68,12 +68,10 @@ obiettivo = "Ricerca dei clienti, esportazione CSV, promemoria di revisione, lis
 rilascio = "produzione"
 mvp = false
 
+# I conteggi non si copiano qui: li calcola progetto.py verifica --json.
 [stima]
-metodo = "Conteggio dei task per ondata e dei rientri seriali dal piano; sessioni stimate dall'esperienza del registro di costruzione."
-task = "8 oracoli, 1 motore, 2 esemplari, 6 costruzione"
-rientri_seriali = "17"
-sessioni = "3: scheletro e oracoli, esemplari e gate degli esemplari, costruzione e chiusura"
-incertezza = "±1 sessione: dipende dai rientri respinti e dalle escalation."
+metodo = "Sui conteggi di verifica --json: i rientri, uno alla volta, sono la parte seriale; ogni ondata dura quanto il suo task più grande, e i task di costruzione sono un modulo e un lato ciascuno."
+incertezza = "Ogni rientro respinto ne aggiunge uno, ogni escalation ferma i task che tocca: si misurano dal registro di costruzione, non si prevedono."
 
 # --- ondata oracoli: test rossi prima del codice ----------------------------------
 
@@ -101,7 +99,7 @@ ondata = "oracoli"
 agente = "test-author"
 modulo = "veicoli"
 storie = ["VEI-1"]
-possiede = ["tests/Oracoli/Veicoli/**", "tests/frontend/veicoli/**"]
+possiede = ["tests/Oracoli/Veicoli/**"]
 criteri = ["lint"]
 
 [[task]]
@@ -206,15 +204,6 @@ modulo = "veicoli"
 possiede = ["app/Moduli/Veicoli/**"]
 dipende_da = ["O-veicoli", "E-clienti"]
 criteri = ["modulo_backend", "fitness", "lint"]
-
-[[task]]
-id = "C-veicoli-fe"
-ondata = "costruzione"
-agente = "frontend-builder"
-modulo = "veicoli"
-possiede = ["resources/js/moduli/veicoli/**"]
-dipende_da = ["O-veicoli", "E-clienti"]
-criteri = ["modulo_frontend", "fitness", "lint", "typecheck"]
 
 [[task]]
 id = "C-fatture-be"

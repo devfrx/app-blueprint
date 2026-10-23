@@ -3,7 +3,7 @@
   "info": {
     "title": "Officina",
     "version": "1.0.0",
-    "description": "API dell'app web: unico consumatore il frontend (ST-versionamento). Errori in Problem Details (ST-errori). Le operazioni con security vuota sono pubbliche; tutte le altre passano dalla matrice delle autorizzazioni.",
+    "description": "API dell'app web: unico consumatore il frontend (ST-versionamento). Errori in Problem Details (ST-errori). Le operazioni con security vuota sono pubbliche; tutte le altre nominano in x-autorizzazione la regola della matrice che le consente.",
     "x-paginazione": [
       "cursore",
       "limite"
@@ -138,6 +138,7 @@
         "operationId": "esci",
         "summary": "Esce",
         "x-modulo": "accessi",
+        "x-autorizzazione": "sessione.chiudi",
         "x-storie": [
           "ACC-1"
         ],
@@ -494,6 +495,7 @@
         "operationId": "creaAccount",
         "summary": "Crea un account e invia l'invito",
         "x-modulo": "accessi",
+        "x-autorizzazione": "account.crea",
         "x-storie": [
           "ACC-2"
         ],
@@ -611,6 +613,7 @@
         "operationId": "elencoAccount",
         "summary": "Elenca gli account",
         "x-modulo": "accessi",
+        "x-autorizzazione": "account.leggi",
         "x-storie": [
           "ACC-2",
           "ACC-7"
@@ -707,6 +710,7 @@
         "operationId": "sbloccaAccount",
         "summary": "Sblocca un account",
         "x-modulo": "accessi",
+        "x-autorizzazione": "account.sblocca",
         "x-storie": [
           "ACC-7"
         ],
@@ -774,6 +778,7 @@
         "operationId": "registraCliente",
         "summary": "Registra un cliente",
         "x-modulo": "clienti",
+        "x-autorizzazione": "cliente.crea",
         "x-storie": [
           "CLI-1"
         ],
@@ -887,6 +892,7 @@
         "operationId": "elencoClienti",
         "summary": "Elenca i clienti",
         "x-modulo": "clienti",
+        "x-autorizzazione": "cliente.leggi",
         "x-storie": [
           "CLI-1"
         ],
@@ -983,6 +989,7 @@
         "operationId": "cercaClienti",
         "summary": "Cerca i clienti per nome",
         "x-modulo": "clienti",
+        "x-autorizzazione": "cliente.cerca",
         "x-storie": [
           "CLI-2"
         ],
@@ -1108,6 +1115,7 @@
         "operationId": "dettaglioCliente",
         "summary": "Legge un cliente",
         "x-modulo": "clienti",
+        "x-autorizzazione": "cliente.leggi",
         "x-storie": [
           "CLI-1",
           "VEI-1"
@@ -1190,6 +1198,7 @@
         "operationId": "associaVeicolo",
         "summary": "Associa un veicolo al cliente",
         "x-modulo": "veicoli",
+        "x-autorizzazione": "veicolo.crea",
         "x-storie": [
           "VEI-1"
         ],
@@ -1339,6 +1348,7 @@
         "operationId": "elencoVeicoliCliente",
         "summary": "Elenca i veicoli di un cliente",
         "x-modulo": "veicoli",
+        "x-autorizzazione": "veicolo.leggi",
         "x-storie": [
           "VEI-1"
         ],
@@ -1462,6 +1472,7 @@
         "operationId": "apriIntervento",
         "summary": "Apre un intervento",
         "x-modulo": "interventi",
+        "x-autorizzazione": "intervento.crea",
         "x-storie": [
           "INT-1"
         ],
@@ -1616,6 +1627,7 @@
         "operationId": "elencoInterventiAperti",
         "summary": "Elenca gli interventi aperti",
         "x-modulo": "interventi",
+        "x-autorizzazione": "intervento.elenca",
         "x-storie": [
           "INT-6"
         ],
@@ -1713,6 +1725,7 @@
         "operationId": "dettaglioIntervento",
         "summary": "Legge un intervento; per il cliente solo il proprio, altrimenti non-trovato",
         "x-modulo": "interventi",
+        "x-autorizzazione": "intervento.leggi",
         "x-storie": [
           "INT-3",
           "INT-5"
@@ -1825,6 +1838,7 @@
         "operationId": "aggiungiRigaPreventivo",
         "summary": "Aggiunge una riga dal listino",
         "x-modulo": "interventi",
+        "x-autorizzazione": "preventivo.modifica",
         "x-storie": [
           "INT-5"
         ],
@@ -1997,6 +2011,7 @@
         "operationId": "approvaPreventivo",
         "summary": "Approva il preventivo",
         "x-modulo": "interventi",
+        "x-autorizzazione": "preventivo.approva",
         "x-storie": [
           "INT-2"
         ],
@@ -2157,6 +2172,7 @@
         "operationId": "chiudiIntervento",
         "summary": "Chiude l'intervento",
         "x-modulo": "interventi",
+        "x-autorizzazione": "intervento.chiudi",
         "x-storie": [
           "INT-4"
         ],
@@ -2317,6 +2333,7 @@
         "operationId": "emettiFattura",
         "summary": "Emette la fattura di un intervento chiuso",
         "x-modulo": "fatture",
+        "x-autorizzazione": "fattura.emetti",
         "x-storie": [
           "FAT-1"
         ],
@@ -2440,6 +2457,7 @@
         "operationId": "dettaglioFattura",
         "summary": "Legge una fattura",
         "x-modulo": "fatture",
+        "x-autorizzazione": "fattura.leggi",
         "x-storie": [
           "FAT-3"
         ],
@@ -2535,6 +2553,7 @@
         "operationId": "pdfFattura",
         "summary": "Scarica il PDF di una fattura",
         "x-modulo": "fatture",
+        "x-autorizzazione": "fattura.leggi",
         "x-storie": [
           "FAT-3"
         ],
@@ -2611,6 +2630,7 @@
         "operationId": "esportaFatture",
         "summary": "Esporta in CSV le fatture di un mese",
         "x-modulo": "fatture",
+        "x-autorizzazione": "fattura.esporta",
         "x-storie": [
           "FAT-2"
         ],
@@ -2687,6 +2707,7 @@
         "operationId": "elencoVociListino",
         "summary": "Elenca le voci di listino",
         "x-modulo": "prezzi",
+        "x-autorizzazione": "voce_listino.leggi",
         "x-storie": [
           "INT-5"
         ],
@@ -2783,6 +2804,7 @@
         "operationId": "aggiornaVoceListino",
         "summary": "Aggiorna una voce di listino",
         "x-modulo": "prezzi",
+        "x-autorizzazione": "voce_listino.modifica",
         "x-storie": [
           "PRZ-1"
         ],

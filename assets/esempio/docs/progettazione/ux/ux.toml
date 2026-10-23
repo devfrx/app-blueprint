@@ -1,7 +1,9 @@
 # UX — personas, architettura dell'informazione, una voce per schermata.
 # Ogni schermata è progettata nei sei stati; "non-applicabile: motivo" quando uno
 # stato non può verificarsi. I nomi accessibili sono quelli che gli oracoli e i test
-# end-to-end cercano per ruolo e nome.
+# end-to-end cercano per ruolo e nome. Ogni schermata ha un modulo che la possiede:
+# il suo frontend la costruisce, anche quando mostra dati o azioni di altri moduli,
+# che chiama attraverso il contratto API.
 
 [[personas]]
 id = "giulia"
@@ -108,6 +110,7 @@ ruoli = ["cliente"]
 
 [[schermate]]
 id = "accesso"
+modulo = "accessi"
 pattern = "modulo"
 scopo = "Accedere con email e password, e con il codice per il responsabile."
 ruoli = ["operatore", "responsabile", "cliente"]
@@ -123,6 +126,7 @@ azioni = [
 
 [[schermate]]
 id = "attivazione"
+modulo = "accessi"
 pattern = "modulo"
 scopo = "Scegliere la password e attivare l'account dall'invito."
 ruoli = ["operatore", "responsabile", "cliente"]
@@ -136,6 +140,7 @@ azioni = [
 
 [[schermate]]
 id = "recupero-password"
+modulo = "accessi"
 pattern = "modulo"
 scopo = "Chiedere il link di recupero e impostare una nuova password."
 ruoli = ["operatore", "responsabile", "cliente"]
@@ -149,6 +154,7 @@ azioni = [
 
 [[schermate]]
 id = "informativa"
+modulo = "accessi"
 pattern = "pagina"
 scopo = "Leggere l'informativa privacy senza accedere."
 ruoli = ["operatore", "responsabile", "cliente"]
@@ -159,6 +165,7 @@ azioni = []
 
 [[schermate]]
 id = "non-trovato"
+modulo = "accessi"
 pattern = "pagina"
 scopo = "Dire che la pagina non esiste e riportare alla pagina iniziale."
 ruoli = ["operatore", "responsabile", "cliente"]
@@ -171,6 +178,7 @@ azioni = [
 
 [[schermate]]
 id = "interventi-aperti"
+modulo = "interventi"
 pattern = "elenco"
 scopo = "Vedere gli interventi non chiusi, i più vecchi per primi."
 ruoli = ["operatore", "responsabile"]
@@ -185,6 +193,7 @@ azioni = [
 
 [[schermate]]
 id = "intervento"
+modulo = "interventi"
 pattern = "dettaglio"
 scopo = "Seguire un intervento: preventivo, approvazione, chiusura, fattura."
 ruoli = ["operatore", "responsabile"]
@@ -202,6 +211,7 @@ azioni = [
 
 [[schermate]]
 id = "clienti"
+modulo = "clienti"
 pattern = "elenco"
 scopo = "Trovare un cliente o registrarne uno nuovo."
 ruoli = ["operatore", "responsabile"]
@@ -215,6 +225,7 @@ azioni = [
 
 [[schermate]]
 id = "cliente-scheda"
+modulo = "clienti"
 pattern = "dettaglio"
 scopo = "Dati del cliente, i suoi veicoli, l'apertura di un intervento."
 ruoli = ["operatore", "responsabile"]
@@ -229,6 +240,7 @@ azioni = [
 
 [[schermate]]
 id = "fattura"
+modulo = "fatture"
 pattern = "dettaglio"
 scopo = "Vedere una fattura emessa e scaricarne il PDF."
 ruoli = ["responsabile"]
@@ -243,6 +255,7 @@ azioni = [
 
 [[schermate]]
 id = "esportazione-fatture"
+modulo = "fatture"
 pattern = "modulo"
 scopo = "Esportare in CSV le fatture di un mese per il commercialista."
 ruoli = ["responsabile"]
@@ -256,6 +269,7 @@ azioni = [
 
 [[schermate]]
 id = "account"
+modulo = "accessi"
 pattern = "elenco"
 scopo = "Creare gli account degli operatori e sbloccare quelli bloccati."
 ruoli = ["responsabile"]
@@ -270,6 +284,7 @@ azioni = [
 
 [[schermate]]
 id = "listino"
+modulo = "prezzi"
 pattern = "elenco"
 scopo = "Aggiornare prezzi e descrizioni del listino."
 ruoli = ["responsabile"]
@@ -283,6 +298,7 @@ azioni = [
 
 [[schermate]]
 id = "area-cliente-intervento"
+modulo = "interventi"
 pattern = "dettaglio"
 scopo = "Il cliente vede stato, preventivo e data prevista del proprio intervento."
 ruoli = ["cliente"]

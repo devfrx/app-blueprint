@@ -30,6 +30,7 @@ lean-docs (scripts/misura.py --modello), se la policy del progetto lo consente.
 import argparse
 import datetime
 import json
+import re
 import sys
 from pathlib import Path
 
@@ -52,6 +53,8 @@ SORGENTI_SENZA_ESEMPIO = {"domande": f"{modello.PROGETTAZIONE}/registri.toml",
 BUDGET_STATO = 6_000
 BUDGET_SORGENTE = 40_000
 BUDGET_FASCIO = 60_000
+# Ciò che apri stampa per intero; oltre, l'indice degli id da leggere per parti.
+BUDGET_APRI = 15_000
 
 
 class ErroreUso(Exception):
@@ -273,7 +276,12 @@ def cmd_apri(args):
     if attese:
         print(f"[avviso] dipende da voci ancora aperte: {', '.join(attese)}")
     print()
-    print(fascio_voce(progetto, catalogo, ident))
+    fascio = fascio_voce(progetto, catalogo, ident)
+    if len(fascio) > BUDGET_APRI:
+        print(f"[fascio di {_misura(fascio)}, oltre {BUDGET_APRI}: qui solo gli id. Il contenuto si legge per parti, "
+              f"con progetto.py fascio {ident} --modulo <modulo> o mostra <id>]")
+        fascio = fascio_voce(progetto, catalogo, ident, compatto=True)
+    print(fascio)
     return 0
 
 
@@ -601,7 +609,7 @@ def rendi(progetto, el, completo=True):
             if completo:
                 righe.append(valore.strip())
             continue
-        if el.tipo == "api" and chiave not in ("x-modulo", "x-storie", "x-errori", "summary"):
+        if el.tipo == "api" and chiave not in ("x-modulo", "x-storie", "x-errori", "x-autorizzazione", "summary"):
             continue
         righe.append(_rendi_campo(chiave, valore))
     if el.tipo == "api" and completo:
@@ -668,7 +676,7 @@ def _misura(testo):
 def cmd_fascio(args):
     progetto, catalogo = _carica(args)
     if args.task:
-        testo = fascio_task(progetto, args.task)
+        testo = fascio_task(progetto, catalogo, args.task)
     elif args.voce:
         testo = fascio_voce(progetto, catalogo, args.voce, args.modulo)
     else:
@@ -680,40 +688,77 @@ def cmd_fascio(args):
     return 0
 
 
-def fascio_voce(progetto, catalogo, ident, modulo=None):
+def fascio_voce(progetto, catalogo, ident, modulo=None, compatto=False):
+    """Ciò che serve leggere per lavorare una voce: i tipi che legge, ristretti al modulo
+    se dato. Per una voce che si ripete per incremento le storie sono quelle
+    dell'incremento corrente, e gli elementi di incrementi futuri si omettono.
+    compatto: solo gli id, per un fascio che non sta nel budget di apri."""
     voce = next((v for v in catalogo.get("voci", []) if v["id"] == ident), None)
     if voce is None:
         raise ErroreUso(f"voce '{ident}' sconosciuta")
+    corrente = progetto.incremento_corrente()
     righe = [f"## Voce {ident} — {voce['testo']}", f"Dove: {voce.get('dove', '')}"]
     if voce.get("nota"):
         righe.append(f"Nota: {voce['nota']}")
     if voce.get("controllo"):
         righe.append(f"Controlli per chiuderla: {', '.join(voce['controllo'])}")
     for tipo in voce.get("legge", []):
-        elementi = progetto.tutti(tipo)
         if tipo == "scheda":
             righe += ["", "## scheda", _rendi_campo("scheda", progetto.scheda)]
             continue
+        elementi = progetto.tutti(tipo)
         if modulo:
             elementi = [e for e in elementi if _legato_al_modulo(progetto, e, modulo)]
-        righe += ["", f"## {tipo} ({len(elementi)})"]
-        for el in sorted(elementi, key=lambda e: viste._chiave_naturale(e.id)):
-            righe.append(rendi(progetto, el, completo=False))
+        omessi = 0
+        if voce.get("per_incremento"):
+            tenuti = [e for e in elementi if (progetto.incremento_di(e) == corrente if tipo == "storie"
+                                              else progetto.incremento_di(e) <= corrente)]
+            omessi, elementi = len(elementi) - len(tenuti), tenuti
+        elementi = sorted(elementi, key=lambda e: viste._chiave_naturale(e.id))
+        nota = f"; {omessi} di altri incrementi omessi" if omessi else ""
+        if compatto:
+            righe += ["", f"## {tipo} ({len(elementi)}{nota}): " + ", ".join(e.id for e in elementi)]
+            continue
+        righe += ["", f"## {tipo} ({len(elementi)}{nota})"]
+        righe += [rendi(progetto, el, completo=False) for el in elementi]
     testo = "\n".join(righe)
     return testo + f"\n\n— {_misura(testo)}"
 
 
-def fascio_task(progetto, ident):
+# I riferimenti che un fascio riporta per esteso quando li cita: ciò che un costruttore
+# non deve indovinare (regole, RNF, minacce, accessi, requisiti sui dati, driver,
+# assunzioni, vincoli). Le strategie hanno la loro sezione.
+RE_CITATO = re.compile(r"\b(?:R|RNF|MI|AC|RD|DR|A|V)-\d+\b")
+
+
+def _lati_del_task(d):
+    """Il lato che il task costruisce: un costruttore il suo; gli autori dei test e la
+    sessione tutto il modulo."""
+    return {"backend-builder": {"backend"}, "frontend-builder": {"frontend"}}.get(d.get("agente"), {"backend", "frontend"})
+
+
+def fascio_task(progetto, catalogo, ident):
     """Ciò che un task deve leggere, assemblato dalle sorgenti: è la parte specifica del
-    brief di parallel-build. Le regole comuni e la procedura sono di parallel-build."""
+    brief di parallel-build. Contiene ciò che serve all'incremento corrente e al lato del
+    task; ciò che è progettato per incrementi futuri lo elenca a parte, da non costruire.
+    Le regole comuni e la procedura sono di parallel-build."""
     t = progetto.trova("task", ident)
     if t is None:
         raise ErroreUso(f"task '{ident}' sconosciuto")
     d = t.dati
     modulo = d.get("modulo")
     corrente = progetto.incremento_corrente()
-    righe = [f"# Fascio del task {ident}", "", rendi(progetto, t)]
+    lati = _lati_del_task(d)
     futuri = []
+    righe = [f"# Fascio del task {ident}", "", rendi(progetto, t)]
+
+    def attuale(el, nome):
+        inc = progetto.incremento_di(el)
+        if inc > corrente:
+            futuri.append(f"{nome} {modello.citabile(el)} (incremento {inc})")
+            return False
+        return True
+
     storie_ids = set(modello._valori(d.get("storie")))
     if modulo:
         storie_ids |= {s.id for s in progetto.tutti("storie")
@@ -722,54 +767,94 @@ def fascio_task(progetto, ident):
         if m:
             righe += ["", "## Modulo", rendi(progetto, m)]
         det = progetto.trova("dettaglio", modulo)
-        if det:
+        if det and "backend" in lati:
             righe += ["", "## Progetto di dettaglio", _rendi_dettaglio(progetto, det, corrente, futuri)]
     storie = [progetto.trova("storie", s) for s in sorted(storie_ids, key=viste._chiave_naturale)]
     storie = [s for s in storie if s]
     if storie:
         righe += ["", "## Storie"] + [rendi(progetto, s) for s in storie]
-    entita_ids = {e.id for e in progetto.tutti("entita") if modulo and e.dati.get("modulo") == modulo}
-    entita_ids |= {x for s in storie for x in modello._valori(s.dati.get("entita"))} if not modulo else set()
-    if entita_ids:
-        righe += ["", "## Entità"] + [rendi(progetto, progetto.trova("entita", e)) for e in sorted(entita_ids)]
-        macchine = [m for m in progetto.tutti("macchine") if m.dati.get("entita") in entita_ids]
+
+    entita_ids = ({e.id for e in progetto.tutti("entita") if e.dati.get("modulo") == modulo} if modulo
+                  else {x for s in storie for x in modello._valori(s.dati.get("entita"))})
+    entita = [progetto.trova("entita", e) for e in sorted(entita_ids)]
+    entita = [e for e in entita if e and attuale(e, "entità")]
+    if entita:
+        righe += ["", "## Entità"] + [_rendi_entita(progetto, e, corrente, futuri) for e in entita]
+        macchine = [x for x in progetto.tutti("macchine") if x.dati.get("entita") in entita_ids]
         if macchine:
             righe += ["", "## Macchine a stati (le transizioni non elencate sono vietate)"]
-            righe += [rendi(progetto, m) for m in macchine]
-        regole = [r for r in progetto.tutti("regole") if set(modello._valori(r.dati.get("entita"))) & entita_ids]
+            righe += [rendi(progetto, x) for x in macchine]
+        regole = [r for r in progetto.tutti("regole")
+                  if set(modello._valori(r.dati.get("entita"))) & entita_ids and attuale(r, "regola")]
         if regole:
             righe += ["", "## Regole"] + [rendi(progetto, r) for r in regole]
+
+    operazioni, schermate = [], []
     if modulo:
-        tabelle = [x for x in progetto.tutti("tabelle") if x.dati.get("modulo") == modulo and progetto.incremento_di(x) <= corrente]
-        if tabelle:
-            righe += ["", "## Tabelle (contracts/schema.toml), solo ciò che serve a questo incremento"]
-            righe += [_rendi_tabella(progetto, x, corrente, futuri) for x in tabelle]
-        for e in progetto.tutti("attributi"):
-            contenitore = progetto.trova("entita", e.contenitore)
-            if contenitore and contenitore.dati.get("modulo") == modulo and progetto.incremento_di(e) > corrente:
-                futuri.append(f"attributo {e.id} (incremento {progetto.incremento_di(e)})")
-        operazioni = [o for o in progetto.tutti("api") if o.dati.get("x-modulo") == modulo and progetto.incremento_di(o) <= corrente]
+        operazioni = [o for o in progetto.tutti("api") if o.dati.get("x-modulo") == modulo and attuale(o, "operazione")]
+        if "backend" in lati:
+            tabelle = [x for x in progetto.tutti("tabelle") if x.dati.get("modulo") == modulo and attuale(x, "tabella")]
+            if tabelle:
+                righe += ["", "## Tabelle (contracts/schema.toml), solo ciò che serve a questo incremento"]
+                righe += [_rendi_tabella(progetto, x, corrente, futuri) for x in tabelle]
         if operazioni:
             righe += ["", "## Operazioni API (contracts/openapi.json)"] + [rendi(progetto, o) for o in operazioni]
-        usati = sorted(x.dati.get("a_monte") for x in progetto.tutti("dipendenze") if x.dati.get("a_valle") == modulo)
-        facciate = [f for f in progetto.tutti("facciata") if f.contenitore in usati]
-        if facciate:
-            righe += ["", "## Facciate di altri moduli che puoi usare (negli stub dello scheletro; la semantica è questa)"]
-            righe += [rendi(progetto, f) for f in facciate]
-        eventi = [e for e in progetto.tutti("eventi") if modulo in modello._valori(e.dati.get("consumatori"))]
-        if eventi:
-            righe += ["", "## Eventi che consumi"] + [rendi(progetto, e) for e in eventi]
-        regole_matrice = [r for r in progetto.tutti("matrice") if _legato_al_modulo(progetto, r, modulo)]
+        if "backend" in lati:
+            usati = sorted(x.dati.get("a_monte") for x in progetto.tutti("dipendenze") if x.dati.get("a_valle") == modulo)
+            facciate = [f for f in progetto.tutti("facciata") if f.contenitore in usati and attuale(f, "facciata")]
+            if facciate:
+                righe += ["", "## Facciate di altri moduli che puoi usare (negli stub dello scheletro; la semantica è questa)"]
+                righe += [rendi(progetto, f) for f in facciate]
+            eventi = [e for e in progetto.tutti("eventi")
+                      if modulo in modello._valori(e.dati.get("consumatori")) and attuale(e, "evento")]
+            if eventi:
+                righe += ["", "## Eventi che consumi"] + [rendi(progetto, e) for e in eventi]
+            integrazioni = [i for i in progetto.tutti("integrazioni") if i.dati.get("modulo") == modulo]
+            if integrazioni:
+                righe += ["", "## Integrazioni (timeout, tentativi, idempotenza, guasto)"]
+                righe += [rendi(progetto, i) for i in integrazioni]
+    if "frontend" in lati:
+        if modulo:
+            proprie = [s for s in progetto.tutti("schermate") if s.dati.get("modulo") == modulo]
+        else:
+            proprie = [s for s in progetto.tutti("schermate") if set(modello._valori(s.dati.get("storie"))) & storie_ids]
+        schermate = [s for s in proprie if attuale(s, "schermata")]
+    chiamate = {o for s in schermate for o in modello._valori(s.dati.get("dati"))
+                + [a.get("operazione") for a in s.dati.get("azioni") or [] if isinstance(a, dict) and a.get("operazione")]}
+    # le operazioni di altri moduli che le schermate del modulo chiamano: un test
+    # end-to-end passa dall'interfaccia, e non le chiama
+    altrui = [progetto.trova("api", o) for o in sorted(chiamate)] if modulo else []
+    altrui = [o for o in altrui if o and o.dati.get("x-modulo") != modulo and progetto.incremento_di(o) <= corrente]
+    if schermate:
+        righe += ["", "## Schermate (con i nomi accessibili che gli oracoli cercano)"]
+        righe += [_rendi_schermata(progetto, s, corrente, futuri) for s in schermate]
+    if altrui:
+        righe += ["", "## Operazioni di altri moduli che le schermate chiamano (dal client generato dal contratto)"]
+        righe += [rendi(progetto, o) for o in altrui]
+    if modulo:
+        regole_matrice = {o.dati.get("x-autorizzazione") for o in operazioni + altrui}
+        regole_matrice = [r for r in progetto.tutti("matrice")
+                          if (r.id in regole_matrice or progetto.modulo_di(r) == modulo) and attuale(r, "regola della matrice")]
         if regole_matrice:
             righe += ["", "## Matrice delle autorizzazioni (negazione per default)"] + [rendi(progetto, r) for r in regole_matrice]
-        codici = {c for o in operazioni for c in modello._valori(o.dati.get("x-errori"))}
-        codici |= {c for f in progetto.tutti("facciata") if f.contenitore == modulo for c in modello._valori(f.dati.get("errori"))}
-        if codici:
-            righe += ["", "## Errori del catalogo"] + [rendi(progetto, progetto.trova("errori", c)) for c in sorted(codici)
-                                                      if progetto.trova("errori", c)]
-    schermate = [s for s in progetto.tutti("schermate") if set(modello._valori(s.dati.get("storie"))) & storie_ids]
-    if schermate and d.get("agente") in ("frontend-builder", "test-author", "sessione"):
-        righe += ["", "## Schermate (con i nomi accessibili che gli oracoli cercano)"] + [rendi(progetto, s) for s in schermate]
+        validazioni = [v for v in progetto.tutti("validazioni")
+                       if (a := progetto.trova(*progetto.risolvi(v.dati.get("campo"), "attributi") or ("", "")))
+                       and progetto.modulo_di(a) == modulo and attuale(a, "validazione di")]
+        if validazioni:
+            righe += ["", "## Validazioni (contracts/errori.toml)"] + [rendi(progetto, v) for v in validazioni]
+        codici = {c for o in operazioni + altrui for c in modello._valori(o.dati.get("x-errori"))}
+        codici |= {v.dati.get("errore") for v in validazioni}
+        if "backend" in lati:
+            codici |= {c for f in progetto.tutti("facciata") if f.contenitore == modulo
+                       for c in modello._valori(f.dati.get("errori"))}
+        errori = [progetto.trova("errori", c) for c in sorted(c for c in codici if c)]
+        if any(errori):
+            righe += ["", "## Errori del catalogo"] + [rendi(progetto, e) for e in errori if e]
+        cambiate = modifiche_dell_incremento(progetto, catalogo, TIPI_DI_UN_MODULO, modulo)
+        if cambiate:
+            righe += ["", "## Modifiche di questo incremento: cambiano ciò che è già costruito"]
+            righe += [rendi(progetto, m) for m in cambiate]
+    if schermate:
         chiavi = {k for s in schermate for k in modello._valori(s.dati.get("testi"))}
         testi = [progetto.trova("testi", k) for k in sorted(chiavi)]
         if any(testi):
@@ -786,17 +871,25 @@ def fascio_task(progetto, ident):
         livelli = progetto.tutti("livelli")
         if livelli:
             righe += ["", "## Strategia di test"] + [rendi(progetto, x) for x in livelli]
-    citate = sorted({v for riga in righe for v in modello.RE_STRATEGIA.findall(riga)})
-    strategie = [progetto.trova("strategie", c) for c in citate]
+    testo = "\n".join(righe)
+    resi = {r.split()[2] for r in testo.splitlines() if r.startswith("### ")}
+    citati = sorted({c for c in RE_CITATO.findall(testo) if c not in resi}, key=viste._chiave_naturale)
+    citati = [progetto.trova(*progetto.risolvi(c)) for c in citati if progetto.risolvi(c)]
+    if citati:
+        righe += ["", "## Riferimenti citati"] + [rendi(progetto, c, completo=False) for c in citati]
+    strategie = [progetto.trova("strategie", c) for c in sorted(set(modello.RE_STRATEGIA.findall("\n".join(righe))))]
     if any(strategie):
         righe += ["", "## Strategie trasversali citate"] + [rendi(progetto, x) for x in strategie if x]
     if futuri:
         righe += ["", "## Progettato per incrementi futuri: non costruire ora",
                   "Esiste nel progetto perché gli schemi reggano le funzionalità future; "
-                  "lo costruirà l'incremento indicato."] + [f"- {f}" for f in sorted(futuri)]
+                  "lo costruirà l'incremento indicato."] + [f"- {f}" for f in sorted(set(futuri))]
     testo = "\n".join(righe)
     return testo + f"\n\n— {_misura(testo)}"
 
+
+# I tipi che appartengono a un modulo: una modifica che ne tocca uno riguarda i suoi task.
+TIPI_DI_UN_MODULO = modulo_piano.TIPI_DEL_MODULO + ("dettaglio", "integrazioni", "validazioni")
 
 DETTAGLIO = (("facciata", "operazione", "operazione di facciata"), ("eventi", "nome", "evento"),
              ("componenti", "nome", "componente"), ("pattern", "nome", "pattern"),
@@ -804,46 +897,70 @@ DETTAGLIO = (("facciata", "operazione", "operazione di facciata"), ("eventi", "n
              ("porte", "nome", "porta"))
 
 
+def _attuali(progetto, voci, tipo, id_di, corrente, futuri, nome):
+    """Gli elementi annidati di un contenitore fino all'incremento corrente; quelli di un
+    incremento futuro finiscono nell'elenco del progettato per dopo."""
+    tenuti = []
+    for x in voci or []:
+        el = progetto.trova(tipo, id_di(x)) if isinstance(x, dict) else None
+        if el and progetto.incremento_di(el) > corrente:
+            futuri.append(f"{nome} {el.id} (incremento {progetto.incremento_di(el)})")
+        else:
+            tenuti.append(x)
+    return tenuti
+
+
+def _rendi_filtrato(progetto, el, dati):
+    return rendi(progetto, modello.Elemento(el.tipo, el.id, dati, el.sorgente, el.contenitore))
+
+
 def _rendi_dettaglio(progetto, det, corrente, futuri):
-    """Il dettaglio di un modulo con i soli elementi dell'incremento corrente; quelli
-    tracciati a storie future finiscono nell'elenco del progettato per dopo."""
+    """Il dettaglio di un modulo con i soli elementi dell'incremento corrente."""
     dati = dict(det.dati)
     for chiave, campo, nome in DETTAGLIO:
-        tenuti = []
-        for x in dati.get(chiave, []) or []:
-            el = progetto.trova(chiave, f"{det.id}.{x.get(campo)}") if isinstance(x, dict) else None
-            if el and progetto.incremento_di(el) > corrente:
-                futuri.append(f"{nome} {el.id} (incremento {progetto.incremento_di(el)})")
-            else:
-                tenuti.append(x)
         if chiave in dati:
-            dati[chiave] = tenuti
-    return rendi(progetto, modello.Elemento(det.tipo, det.id, dati, det.sorgente, det.contenitore))
+            dati[chiave] = _attuali(progetto, dati[chiave], chiave, lambda x, c=campo: f"{det.id}.{x.get(c)}",
+                                    corrente, futuri, nome)
+    return _rendi_filtrato(progetto, det, dati)
 
 
 def _rendi_tabella(progetto, tabella, corrente, futuri):
-    """Una tabella con le sole colonne e i soli indici dell'incremento corrente; il
-    resto finisce nell'elenco del progettato per gli incrementi futuri."""
+    """Una tabella con le sole colonne e i soli indici dell'incremento corrente."""
     dati = dict(tabella.dati)
-    tenute = []
-    for c in dati.get("colonne", []):
-        col = progetto.trova("colonne", f"{tabella.id}.{c.get('nome')}") if isinstance(c, dict) else None
-        if col and progetto.incremento_di(col) > corrente:
-            futuri.append(f"colonna {col.id} (incremento {progetto.incremento_di(col)})")
-        else:
-            tenute.append(c)
-    dati["colonne"] = tenute
-    indici = []
-    for i in dati.get("indici", []) or []:
-        ind = progetto.trova("indici", i.get("nome")) if isinstance(i, dict) else None
-        if ind and progetto.incremento_di(ind) > corrente:
-            futuri.append(f"indice {ind.id} (incremento {progetto.incremento_di(ind)})")
-        else:
-            indici.append(i)
+    dati["colonne"] = _attuali(progetto, dati.get("colonne"), "colonne", lambda x: f"{tabella.id}.{x.get('nome')}",
+                               corrente, futuri, "colonna")
     if "indici" in dati:
-        dati["indici"] = indici
-    copia = modello.Elemento(tabella.tipo, tabella.id, dati, tabella.sorgente, tabella.contenitore)
-    return rendi(progetto, copia)
+        dati["indici"] = _attuali(progetto, dati["indici"], "indici", lambda x: x.get("nome"), corrente, futuri, "indice")
+    return _rendi_filtrato(progetto, tabella, dati)
+
+
+def _rendi_entita(progetto, entita, corrente, futuri):
+    """Un'entità con i soli attributi dell'incremento corrente."""
+    dati = dict(entita.dati)
+    if "attributi" in dati:
+        dati["attributi"] = _attuali(progetto, dati["attributi"], "attributi", lambda x: f"{entita.id}.{x.get('nome')}",
+                                     corrente, futuri, "attributo")
+    return _rendi_filtrato(progetto, entita, dati)
+
+
+def _rendi_schermata(progetto, schermata, corrente, futuri):
+    """Una schermata con le sole storie, i soli dati e le sole azioni dell'incremento
+    corrente: ciò che chiama un'operazione futura si costruirà con lei."""
+    def presente(tipo, ident):
+        el = progetto.trova(tipo, ident) if ident else None
+        if el and progetto.incremento_di(el) > corrente:
+            futuri.append(f"{'storia' if tipo == 'storie' else 'operazione'} {ident} nella schermata {schermata.id} "
+                          f"(incremento {progetto.incremento_di(el)})")
+            return False
+        return True
+    dati = dict(schermata.dati)
+    dati["storie"] = [s for s in modello._valori(dati.get("storie")) if presente("storie", s)]
+    if "dati" in dati:
+        dati["dati"] = [o for o in modello._valori(dati["dati"]) if presente("api", o)]
+    if "azioni" in dati:
+        dati["azioni"] = [a for a in dati["azioni"] or []
+                          if not isinstance(a, dict) or presente("api", a.get("operazione"))]
+    return _rendi_filtrato(progetto, schermata, dati)
 
 
 def cmd_schema(args):

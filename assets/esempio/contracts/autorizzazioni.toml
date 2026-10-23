@@ -6,16 +6,25 @@
 # altro. Ciò che non è consentito qui è vietato. I ruoli sono gli stakeholder che
 # usano il prodotto, né uno di più né uno di meno. Le operazioni senza accesso
 # (accesso, recupero della password, attivazione dall'invito, informativa) non
-# stanno qui: il contratto API le dichiara pubbliche.
+# stanno qui: il contratto API le dichiara pubbliche. Ogni altra operazione nomina
+# in x-autorizzazione la regola che la consente.
 #
-# Una regola per risorsa e azione: id "risorsa.azione". Una condizione vale per il
-# ruolo a cui la si lega in "condizioni", e il suo significato sta in [condizioni].
+# Una regola per risorsa e azione: id "risorsa.azione". Una risorsa è un'entità o
+# una voce di "risorse". Una condizione vale per il ruolo a cui la si lega in
+# "condizioni", e il suo significato sta in [condizioni].
 
 predefinito = "nega"
 ruoli = ["operatore", "responsabile", "cliente"]
+risorse = ["sessione"]
 
 [condizioni]
 proprietario = "Il cliente è il proprietario del veicolo dell'intervento: interventi chiede a veicoli l'account del proprietario. Dimenticarla lascia leggere i dati altrui cambiando un id nell'URL."
+
+[[regole]]
+risorsa = "sessione"
+azione = "chiudi"
+consenti = ["operatore", "responsabile", "cliente"]
+traccia = ["ACC-1"]
 
 [[regole]]
 risorsa = "account"

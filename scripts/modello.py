@@ -327,7 +327,7 @@ RIFERIMENTI = {
     "validazioni": {"campo": "attributi", "errore": "errori"},
     "variabili": {"ambienti": "ambienti"},
     "matrice": {"consenti": "stakeholder", "traccia": None},
-    "api": {"x-modulo": "moduli", "x-storie": "storie", "x-errori": "errori"},
+    "api": {"x-modulo": "moduli", "x-storie": "storie", "x-errori": "errori", "x-autorizzazione": "matrice"},
     "facciata": {"errori": "errori", "traccia": None},
     "eventi": {"consumatori": "moduli", "traccia": None},
     "componenti": {"traccia": None},
@@ -338,7 +338,7 @@ RIFERIMENTI = {
     "personas": {"attore": "stakeholder"},
     "sezioni": {"ruoli": "stakeholder"},
     "rotte": {"schermata": "schermate", "ruoli": "stakeholder"},
-    "schermate": {"ruoli": "stakeholder", "storie": "storie", "dati": "api", "testi": "testi"},
+    "schermate": {"modulo": "moduli", "ruoli": "stakeholder", "storie": "storie", "dati": "api", "testi": "testi"},
     "task": {"modulo": "moduli", "storie": "storie", "dipende_da": "task"},
     "livelli": {},
 }

@@ -123,6 +123,49 @@ class Lettura(Base):
         self.assertNotIn("PromemoriaRevisione", prima)
         self.assertLess(len(testo), cli.BUDGET_FASCIO)
 
+    def test_il_fascio_filtra_matrice_e_schermate_per_incremento(self):
+        _, testo = self.esegui("fascio", "--task", "O-clienti")
+        prima, dopo = testo.split("non costruire ora", 1)
+        for futuro in ("cliente.cerca", "cercaClienti", "ix_clienti_cognome"):
+            self.assertNotIn(futuro, prima)
+        self.assertIn("regola della matrice matrice:cliente.cerca (incremento 2)", dopo)
+        self.assertIn("operazione cercaClienti nella schermata clienti (incremento 2)", dopo)
+
+    def test_il_fascio_segue_il_lato_del_task(self):
+        _, backend = self.esegui("fascio", "--task", "C-accessi-be")
+        _, frontend = self.esegui("fascio", "--task", "C-accessi-fe")
+        self.assertIn("## Integrazioni", backend)
+        self.assertIn('timeout', backend.split("## Integrazioni", 1)[1])
+        self.assertNotIn("## Schermate", backend)
+        for sezione in ("## Integrazioni", "## Tabelle", "## Progetto di dettaglio"):
+            self.assertNotIn(sezione, frontend)
+        self.assertIn("### schermate accesso", frontend)
+        self.assertNotIn("### schermate interventi-aperti", frontend)
+
+    def test_il_fascio_porta_le_operazioni_che_le_schermate_chiamano(self):
+        _, testo = self.esegui("fascio", "--task", "E-clienti")
+        altrui = testo.split("## Operazioni di altri moduli che le schermate chiamano", 1)[1].split("\n## ", 1)[0]
+        self.assertIn("### api associaVeicolo", altrui)
+        self.assertIn("### matrice veicolo.crea", testo)
+        self.assertIn("## Validazioni", testo)
+        self.assertIn("## Riferimenti citati", testo)
+
+    def test_fascio_di_una_voce_per_incremento(self):
+        _, testo = self.esegui("fascio", "5.07")
+        self.assertIn("## storie (17; 4 di altri incrementi omessi)", testo)
+
+    def test_apri_un_fascio_grande_stampa_gli_id(self):
+        self.togli_chiusura("4.12")
+        self.sostituisci(f"{P}/stato.toml", 'fase = 4\nstato = "superato"', 'fase = 4\nstato = "in-corso"')
+        vecchio, cli.BUDGET_APRI = cli.BUDGET_APRI, 500
+        try:
+            esito, testo = self.esegui("apri", "4.12")
+        finally:
+            cli.BUDGET_APRI = vecchio
+        self.assertEqual(esito, 0, testo)
+        self.assertIn("qui solo gli id", testo)
+        self.assertRegex(testo, r"## rnf \(\d+\): RNF-1, RNF-2")
+
     def test_verifica_json(self):
         esito, testo = self.esegui("verifica", "--json")
         self.assertEqual(esito, 0)

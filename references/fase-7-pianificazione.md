@@ -50,13 +50,13 @@ Indice: Incrementi e modalità · Il piano · Strategia di test e DoD · Qualit�
 
 **I task:**
 
-- **un task, un modulo, un lato**: backend e frontend di un modulo sono due task, con due cartelle; è la misura che un agente tiene in contesto senza degradare. Esemplari e motore non hanno task di costruzione;
+- **un task, un modulo, un lato**: backend e frontend di un modulo sono due task, con due cartelle; è la misura che un agente tiene in contesto senza degradare. Esemplari e motore non hanno task di costruzione. Un modulo che possiede schermate dell'incremento ha chi ne costruisce il frontend; uno che non ne possiede non ha un task frontend (avviso);
 - **i criteri sono chiavi di `[comandi]`**: ogni task che scrive codice esegue `fitness` e i test del proprio lato del modulo; un modulo ad alto rischio anche i comandi di `[rischio]` del suo lato;
 - **`storie` crea la tracciabilità**: ogni storia dell'incremento ha un task di oracoli del modulo che la orchestra; il task di un modulo che la storia tocca può citarla, per ciò che la storia gli chiede; ogni percorso critico ha un task end-to-end, senza `modulo`, che cita tutte le sue storie dell'incremento, accesso compreso;
 - **un task dipende solo da task di ondate precedenti**: dentro un'ondata i task partono insieme, ed è ciò che rende il grafo aciclico per costruzione. Se due task di costruzione sembrano dipendere l'uno dall'altro, il piano è sbagliato: un modulo usa l'altro tramite la facciata finta dello scheletro, e un frontend lavora contro il mock generato dalla specifica;
 - **la concorrenza**: oltre il limite di sotto-agenti concorrenti (`FONTI.md`) l'ondata procede a lotti, ed è spesso il segnale che serve un incremento in più.
 
-Il brief di ogni task lo costruisce `parallel-build`: la sua procedura più `progetto.py fascio --task <id>`, che assembla dalle sorgenti esattamente ciò che il task deve leggere, ed elenca a parte ciò che è progettato per incrementi futuri e non si costruisce ora. Per questo il piano non ha un campo `legge`.
+Il brief di ogni task lo costruisce `parallel-build`: la sua procedura più `progetto.py fascio --task <id>`, che assembla dalle sorgenti esattamente ciò che il task deve leggere, per il suo lato — un costruttore backend non riceve le schermate, uno frontend non riceve tabelle e integrazioni — con le operazioni di altri moduli che le schermate chiamano, le regole della matrice, le validazioni, le modifiche dell'incremento che toccano il modulo e il testo dei riferimenti citati. Elenca a parte ciò che è progettato per incrementi futuri e non si costruisce ora. Per questo il piano non ha un campo `legge`.
 
 **7.02** `[stima]`: il `metodo` e l'`incertezza`, sui conteggi che `progetto.py verifica --json` stampa (task per ondata, rientri seriali, moduli, storie). I rientri sono uno alla volta: la parte seriale della costruzione si stima da loro.
 

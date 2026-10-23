@@ -90,6 +90,7 @@ Non-obiettivi:
 - **FAT-3** Il responsabile scarica il PDF di una fattura per il commercialista — attore responsabile, priorità must, incremento 1.
   - *Dato* la fattura 42/2026, *quando* il responsabile ne scarica il PDF, *allora* riceve un PDF con numero, data, righe, imponibile, IVA e totale uguali alla fattura.
   - *Dato* la stessa fattura, *quando* un operatore prova a scaricarla, *allora* riceve non-autorizzato.
+- **FAT-4** Il cliente paga la fattura online dall'area cliente — attore cliente, priorità wont, incremento .
 
 ### Interventi e preventivi
 

@@ -99,7 +99,7 @@ gate = "Il progetto è congelato con il piano validato, e un walking skeleton gi
 numero = 8
 nome = "Implementazione"
 skill = "parallel-build"
-gate = "Ogni task del perimetro ha superato la DoD di incremento e i controlli sull'intera base di codice sono verdi."
+gate = "Ogni task del perimetro è rientrato superando la DoD di task, e i controlli sull'intera base di codice sono verdi."
 
 [[fasi]]
 numero = 9
@@ -444,7 +444,7 @@ natura = "progetto"
 per_incremento = true
 origine = "checklist"
 dove = "registri.toml [[revisioni]] di tipo requisiti, svolta da un reviewer"
-dipende = ["2.02", "2.04", "2.05"]
+dipende = ["2.02", "2.04", "2.05", "2.06", "2.08", "2.09", "2.14", "2.15"]
 controllo = ["revisione:requisiti"]
 
 [[voci]]
@@ -492,6 +492,7 @@ natura = "progetto"
 origine = "adattata"
 nota = "La procedura è quella di references/gate.md, uguale per tutti i progetti, e il suo registro è [[modifiche]]; la baseline è il tag che approva 2 crea, quindi non è l'evidenza della voce."
 dove = "registri.toml [[modifiche]]"
+dipende = ["2.10"]
 controllo = ["modifiche"]
 
 [[voci]]
@@ -503,6 +504,7 @@ natura = "progetto"
 origine = "adattata"
 nota = "Non si scrive: è una vista generata dalle tracce, quindi non può divergere dalle sorgenti."
 dove = "viste/tracciabilita.md"
+dipende = ["2.02"]
 controllo = ["viste"]
 
 [[voci]]
@@ -540,6 +542,19 @@ produce = ["percorsi"]
 legge = ["storie"]
 dipende = ["2.02"]
 controllo = ["percorsi"]
+
+[[voci]]
+id = "2.16"
+fase = 2
+testo = "Con categorie particolari di dati: valutazione d'impatto sulla protezione dei dati (DPIA) svolta, o la sua non necessità motivata, con la base giuridica e le misure per quelle categorie"
+quando = "innesco dati-particolari"
+natura = "progetto"
+origine = "metodo"
+nota = "Attiva l'innesco dati-particolari, che altrimenti non cambierebbe nulla; il documento lo prepara compliance-docs, e un professionista lo rivede prima del lancio."
+dove = "il documento di conformità di compliance-docs, citato da un vincolo di conformità"
+legge = ["vincoli", "requisiti_dati"]
+dipende = ["2.06"]
+controllo = ["conformita"]
 
 # ---------------------------------------------------------------------------
 # 3. Analisi e modellazione del dominio
@@ -908,6 +923,19 @@ dove = "registri.toml [[rischi]] di tipo tecnico"
 dipende = ["4.15", "4.16"]
 controllo = ["rischi"]
 
+[[voci]]
+id = "4.20"
+fase = 4
+testo = "API usata da terzi governata: versionamento e deprecazione con preavviso, limiti di frequenza e quote, autenticazione dei terzi, documentazione e ambiente di prova"
+quando = "innesco api-pubblica"
+natura = "progetto"
+origine = "metodo"
+nota = "Un'API di terzi non si cambia come quella del proprio frontend: ogni rottura è una migrazione di qualcun altro."
+dove = "strategia ST-api-pubblica"
+legge = ["strategie", "rnf"]
+dipende = ["4.04"]
+controllo = ["strategie"]
+
 # ---------------------------------------------------------------------------
 # 5. Progettazione di dettaglio
 # ---------------------------------------------------------------------------
@@ -1173,6 +1201,19 @@ produce = ["variabili", "segreti"]
 legge = ["strategie", "ambienti", "integrazioni"]
 controllo = ["configurazione"]
 
+[[voci]]
+id = "5.17"
+fase = 5
+testo = "Funzionalità di IA specificate: modello e versione, compito e limiti, valutazione su un insieme di casi con soglie d'accettazione, comportamento su errore o rifiuto, trasparenza verso l'utente e supervisione umana"
+quando = "innesco ia"
+natura = "progetto"
+origine = "metodo"
+nota = "Un modello non è una funzione deterministica: il suo criterio d'accettazione è una soglia su un insieme di casi, e la sua versione è un deperibile."
+dove = "strategia ST-ia; registri.toml [[deperibili]]"
+legge = ["strategie", "storie", "rnf"]
+dipende = ["5.01"]
+controllo = ["strategie", "deperibili"]
+
 # ---------------------------------------------------------------------------
 # 6. Progettazione UX/UI — intrecciata alle fasi 2–5
 # ---------------------------------------------------------------------------
@@ -1378,8 +1419,8 @@ testo = "DoD di incremento adottata e condivisa"
 quando = "sempre"
 natura = "progetto"
 origine = "adattata"
-nota = "È la sezione D del catalogo, filtrata dal profilo: progetto.py checklist --dod. parallel-build la applica a ogni rientro."
-dove = "progetto.py checklist --dod"
+nota = "È la sezione D del catalogo, filtrata dal profilo: progetto.py checklist --dod. Una voce che non serve si esclude con progetto.py chiudi D.n --non-applicabile --motivo. parallel-build la applica a ogni rientro."
+dove = "progetto.py checklist --dod, con le esclusioni in gate.toml"
 
 [[voci]]
 id = "7.07"
@@ -1524,8 +1565,9 @@ quando = "sempre"
 natura = "progetto"
 per_incremento = true
 origine = "adattata"
-nota = "Ogni task la supera al rientro; l'incremento quando tutti i task sono rientrati."
-dove = ".build/registro.jsonl"
+nota = "Nel metodo l'unità di lavoro è il task: ciascuno supera la DoD di livello task al rientro. Qui si verificano le voci di livello incremento che la costruzione chiude (regressione, flag, deployabilità); la revisione del codice la completano le lenti della 10.01, l'accettazione è la 11.08."
+dove = "tag build/incremento-<n>/costruzione"
+dipende = ["8.13"]
 
 [[voci]]
 id = "8.02"
@@ -1536,6 +1578,7 @@ natura = "progetto"
 per_incremento = true
 origine = "checklist"
 dove = "CI"
+dipende = ["8.13"]
 
 [[voci]]
 id = "8.03"
@@ -1546,6 +1589,7 @@ natura = "progetto"
 per_incremento = true
 origine = "checklist"
 dove = "comando supply_chain; report di CI"
+dipende = ["8.13"]
 
 [[voci]]
 id = "8.04"
@@ -1556,6 +1600,7 @@ natura = "progetto"
 per_incremento = true
 origine = "checklist"
 dove = "report di CI"
+dipende = ["8.13"]
 
 [[voci]]
 id = "8.05"
@@ -1566,6 +1611,7 @@ natura = "esercizio"
 per_incremento = true
 origine = "checklist"
 dove = "artefatto di CI"
+dipende = ["8.13"]
 
 [[voci]]
 id = "8.06"
@@ -1576,6 +1622,7 @@ natura = "progetto"
 per_incremento = true
 origine = "checklist"
 dove = "CI"
+dipende = ["8.13"]
 
 [[voci]]
 id = "8.07"
@@ -1586,6 +1633,7 @@ natura = "progetto"
 per_incremento = true
 origine = "checklist"
 dove = "lockfile; CI"
+dipende = ["8.13"]
 
 [[voci]]
 id = "8.08"
@@ -1596,6 +1644,7 @@ natura = "progetto"
 per_incremento = true
 origine = "checklist"
 dove = "strategia ST-flag; codice"
+dipende = ["8.13"]
 
 [[voci]]
 id = "8.09"
@@ -1606,6 +1655,7 @@ natura = "progetto"
 per_incremento = true
 origine = "checklist"
 dove = "registri.toml [[debito]]"
+dipende = ["8.13"]
 controllo = ["debito"]
 
 [[voci]]
@@ -1617,6 +1667,7 @@ natura = "progetto"
 per_incremento = true
 origine = "checklist"
 dove = "docs/design/, README, CLAUDE.md"
+dipende = ["8.13"]
 
 [[voci]]
 id = "8.11"
@@ -1626,7 +1677,7 @@ quando = "sempre"
 natura = "progetto"
 per_incremento = true
 origine = "metodo"
-dove = "tag build/oracoli"
+dove = "tag build/incremento-<n>/oracoli"
 
 [[voci]]
 id = "8.12"
@@ -1636,7 +1687,7 @@ quando = "sempre"
 natura = "progetto"
 per_incremento = true
 origine = "metodo"
-dove = "tag build/esemplari; .build/gate-esemplari.md"
+dove = "tag build/incremento-<n>/esemplari; docs/consegna/incremento-<n>/esemplari.md"
 dipende = ["8.11"]
 
 [[voci]]
@@ -1663,7 +1714,7 @@ natura = "progetto"
 per_incremento = true
 origine = "adattata"
 nota = "È il rientro seriale di parallel-build: un ramo alla volta, il branch d'integrazione sempre verde."
-dove = "references/rientro.md di parallel-build; .build/registro.jsonl"
+dove = "references/rientro.md di parallel-build; tag build/incremento-<n>/costruzione"
 
 [[voci]]
 id = "9.02"
@@ -1734,7 +1785,7 @@ quando = "sempre"
 natura = "progetto"
 per_incremento = true
 origine = "metodo"
-dove = "comando e2e; tag build/e2e"
+dove = "comando e2e; tag build/incremento-<n>/e2e"
 
 # ---------------------------------------------------------------------------
 # 10. Verifica — parallel-build
@@ -1749,7 +1800,7 @@ natura = "progetto"
 per_incremento = true
 origine = "adattata"
 nota = "Requisiti e design le ha già in registri.toml; sul codice sono le tre lenti della revisione di parallel-build."
-dove = "registri.toml [[revisioni]]; tag build/revisione"
+dove = "registri.toml [[revisioni]]; tag build/incremento-<n>/revisione"
 
 [[voci]]
 id = "10.02"
@@ -1859,7 +1910,7 @@ quando = "sempre"
 natura = "progetto"
 per_incremento = true
 origine = "checklist"
-dove = ".build/report.md"
+dove = "registri.toml: i difetti residui come [[debito]] o [[rischi]] accettati dall'utente"
 
 [[voci]]
 id = "10.13"
@@ -1933,7 +1984,7 @@ quando = "sempre"
 natura = "progetto"
 per_incremento = true
 origine = "checklist"
-dove = "viste/tracciabilita.md con gli esiti della costruzione"
+dove = "viste/tracciabilita.md per la catena storia → test; il rapporto della suite per gli esiti"
 
 [[voci]]
 id = "11.07"

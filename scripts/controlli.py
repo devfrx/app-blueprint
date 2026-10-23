@@ -12,7 +12,8 @@ import re
 from dataclasses import dataclass, field
 
 import condizioni
-from modello import ADR, CONTRATTI, MOCKUP, PREFISSI, PROGETTAZIONE, RE_PREFISSATO, RE_SLUG, Reperto, _valori
+from modello import (ADR, CAMPI_DI_TRACCIA, CONTRATTI, MOCKUP, PREFISSI, PROGETTAZIONE, RE_PREFISSATO, RE_SLUG,
+                     Reperto, _valori)
 
 CARATTERISTICHE = ("idoneita-funzionale", "efficienza-prestazionale", "compatibilita",
                    "capacita-di-interazione", "affidabilita", "sicurezza", "manutenibilita",
@@ -21,6 +22,18 @@ STATI_SCHERMATA = ("caricamento", "vuoto", "errore", "parziale", "successo", "pe
 TRASVERSALI = ("autenticazione", "account-e-profilo", "utenti-e-ruoli", "amministrazione", "audit",
                "notifiche", "ricerca", "import-export", "privacy", "pagine-di-servizio", "onboarding-e-aiuto")
 SEZIONI_VISIONE = ("## Problema", "## Contesto", "## Perimetro")
+SEZIONI_ADR = ("## Context", "## Decision", "## Consequences")
+# La scheda del progetto: i campi che la verifica pretende e i valori ammessi.
+CAMPI_SCHEDA = ("progetto", "responsabile", "esposizione", "criticita", "processo", "avvio", "verdetto", "incremento")
+AMMESSI_SCHEDA = {
+    "esposizione": set(condizioni.ESPOSIZIONI), "criticita": set(condizioni.CRITICITA),
+    "processo": {"cascata", "v", "iterativo", "agile", "ibrido"},
+    "verdetto": {"nebbia", "fuori-metodo", "incremento-unico", "incrementi"},
+    "costruzione": {"parallela", "seriale"},
+}
+ASSI_FATTIBILITA = ("tecnica", "economica", "operativa", "legale", "temporale")
+CAMPI_STIMA = ("ordine", "incertezza", "base")
+CAMPI_CONGELAMENTO = ("incremento", "data", "approvato_da", "tag", "revisione", "prova")
 # Le strategie che ogni voce richiede: il tema è l'id senza "ST-".
 STRATEGIE_PER_VOCE = {
     "4.04": ("versionamento",),
@@ -33,8 +46,15 @@ STRATEGIE_PER_VOCE = {
     "6.09": ("i18n",),
     "7.07": ("qualita-codice",),
     "7.08": ("ci-cd",),
+    "4.20": ("api-pubblica",),
+    "5.17": ("ia",),
 }
 STRATEGIE_PER_INNESCO = {"denaro": "denaro", "multitenant": "multi-tenancy"}
+# Gli esiti di una chiusura: fatto, con l'evidenza; non applicabile, con il motivo per
+# cui la voce non serve al progetto; non verificabile, per una voce della costruzione
+# che serve ma che questo ambiente non permette di provare, con ciò che servirebbe e
+# l'accettazione dell'utente.
+ESITI = ("fatto", "non-applicabile", "non-verificabile")
 # Quanto prima del congelamento si possono aver riaperto le fonti dei deperibili:
 # abbastanza per il giro tra pre-mortem e approvazione, abbastanza poco perché una
 # versione fuori supporto o un advisory nuovi non sfuggano.
@@ -80,7 +100,7 @@ CAMPI = {
     "requisiti_dati": (("concetto", "volume", "crescita", "conservazione", "fonte"), {}),
     "percorsi": (("nome", "storie"), {}),
     "conflitti": (("tra", "oggetto", "risoluzione"), {}),
-    "storie": (("titolo", "attore", "priorita", "incremento", "fonte"), {}),
+    "storie": (("titolo", "attore", "priorita", "fonte"), {}),
     "glossario": (("termine", "definizione"), {}),
     "regole": (("tipo", "testo"), {"tipo": {"regola", "invariante", "eccezione"}}),
     "sottodomini": (("tipo", "descrizione"), {"tipo": {"core", "supporto", "generico"}}),
@@ -111,7 +131,8 @@ CAMPI = {
     "accessi": (("operazione", "tipo", "frequenza", "per", "cammino", "traccia"),
                 {"tipo": {"interattiva", "batch"}, "per": {"ora", "giorno", "settimana", "mese", "anno"}}),
     "ristrutturazione": (("tipo", "oggetto", "decisione", "motivo"),
-                         {"tipo": {"ridondanza", "generalizzazione", "partizionamento", "accorpamento", "identificatore"}}),
+                         {"tipo": {"ridondanza", "generalizzazione", "partizionamento", "accorpamento", "identificatore",
+                                   "multivalore", "composto"}}),
     "tabelle": (("colonne", "chiave"), {"normalizzazione": {"1NF", "2NF", "3NF", "BCNF"}}),
     "colonne": (("nome", "tipo", "nullo"), {}),
     "indici": (("nome", "colonne"), {}),
@@ -232,19 +253,13 @@ def c_stato(ctx, voce):
     # La scheda nasce con progetto, responsabile, avvio e incremento (progetto.py inizia);
     # il profilo si compila alla voce 1.13 e il verdetto alla 1.14: prima mancano per forza.
     da_compilare = {"esposizione": "1.13", "criticita": "1.13", "processo": "1.13", "verdetto": "1.14"}
-    for campo in ("progetto", "responsabile", "esposizione", "criticita", "processo", "avvio", "verdetto", "incremento"):
+    for campo in CAMPI_SCHEDA:
         if not _pieno(scheda.get(campo)):
             if campo in da_compilare and voce != da_compilare[campo] and not _chiusa(ctx, da_compilare[campo]):
                 reperti.append(_r("avviso", dove, f"[scheda]: '{campo}' si compila alla voce {da_compilare[campo]}", "stato"))
             else:
                 reperti.append(_r("errore", dove, f"[scheda]: manca '{campo}'", "stato"))
-    ammessi = {
-        "esposizione": set(condizioni.ESPOSIZIONI), "criticita": set(condizioni.CRITICITA),
-        "processo": {"cascata", "v", "iterativo", "agile", "ibrido"},
-        "verdetto": {"nebbia", "fuori-metodo", "incremento-unico", "incrementi"},
-        "costruzione": {"parallela", "seriale"},
-    }
-    for campo, valori in ammessi.items():
+    for campo, valori in AMMESSI_SCHEDA.items():
         if campo in scheda and scheda[campo] not in valori:
             reperti.append(_r("errore", dove, f"[scheda].{campo} = '{scheda[campo]}', ammessi: {sorted(valori)}", "stato"))
     noti = set(ctx.catalogo.get("inneschi", {}))
@@ -355,13 +370,13 @@ def c_sistemi(ctx, voce):
 
 def c_fattibilita(ctx, voce):
     f = ctx.progetto.tabelle_libere.get("fattibilita", {})
-    mancano = [a for a in ("tecnica", "economica", "operativa", "legale", "temporale") if not _pieno(f.get(a))]
+    mancano = [a for a in ASSI_FATTIBILITA if not _pieno(f.get(a))]
     return [_r("errore", "prodotto.toml [fattibilita]", f"mancano gli assi {mancano}", "fattibilita")] if mancano else []
 
 
 def c_stima(ctx, voce):
     s = ctx.progetto.tabelle_libere.get("stima", {})
-    mancano = [a for a in ("ordine", "incertezza", "base") if not _pieno(s.get(a))]
+    mancano = [a for a in CAMPI_STIMA if not _pieno(s.get(a))]
     return [_r("errore", "prodotto.toml [stima]", f"mancano {mancano}", "stima")] if mancano else []
 
 
@@ -391,12 +406,22 @@ def _valori_priorita(p):
     return None, set()
 
 
+def storie_escluse(p):
+    """Le storie con la priorità che il metodo dichiara esclusa (MoSCoW: wont): restano
+    nell'inventario per dire cosa si è scelto di non fare, e non hanno incremento."""
+    metodo = p.tabelle_libere.get("metodo_priorita")
+    esclusa = metodo.get("esclusa") if isinstance(metodo, dict) else None
+    return {s.id for s in p.tutti("storie") if esclusa and s.dati.get("priorita") == esclusa}
+
+
 def c_storie(ctx, voce):
-    """L'inventario: priorità dal metodo dichiarato, attori, incremento di ogni storia."""
+    """L'inventario: priorità dal metodo dichiarato, attori, incremento di ogni storia
+    non esclusa; nessun elemento del progetto giustificato da una storia esclusa."""
     p, reperti = ctx.progetto, _presenza("storie")(ctx, voce)
     nome, valori = _valori_priorita(p)
     if not valori:
         reperti.append(_r("errore", "requisiti.toml", "metodo_priorita = { nome, valori } mancante", "storie"))
+    escluse = storie_escluse(p)
     attori = p.attori()
     for s in p.tutti("storie"):
         d, dove = s.dati, f"{s.sorgente} → {s.id}"
@@ -405,8 +430,18 @@ def c_storie(ctx, voce):
         if d.get("attore") and d.get("attore") not in attori:
             reperti.append(_r("errore", dove, f"l'attore '{d.get('attore')}' non è uno stakeholder con usa = true", "storie"))
         inc = d.get("incremento")
-        if not (isinstance(inc, int) and not isinstance(inc, bool) and inc >= 1):
+        if s.id in escluse:
+            if inc is not None:
+                reperti.append(_r("errore", dove, "una storia esclusa non ha incremento", "storie"))
+        elif not (isinstance(inc, int) and not isinstance(inc, bool) and inc >= 1):
             reperti.append(_r("errore", dove, "incremento è un intero da 1", "storie"))
+    if escluse:
+        for gruppo in p.elementi.values():
+            for el in gruppo.values():
+                for campo, valore, risolto in p.uscenti(el):
+                    if campo in CAMPI_DI_TRACCIA and risolto and risolto[0] == "storie" and risolto[1] in escluse:
+                        reperti.append(_r("avviso", el.id, f"'{campo}' cita la storia esclusa {risolto[1]}: "
+                                          "si progetta ciò che si costruirà", "storie"))
     return reperti
 
 
@@ -473,7 +508,8 @@ def c_conformita(ctx, voce):
         return [_r("errore", "[[vincoli]]", "nessun vincolo di conformità: se non ce ne sono, scrivilo come vincolo", "conformita")]
     testo = " ".join(e.dati.get("testo", "") + " " + e.dati.get("norma", "") for e in vincoli).lower()
     reperti = []
-    for innesco, parola in (("dati-personali", "gdpr"), ("mercato-ue", "cyber resilience"), ("ia", "ai act")):
+    for innesco, parola in (("dati-personali", "gdpr"), ("mercato-ue", "cyber resilience"), ("ia", "ai act"),
+                            ("dati-particolari", "dpia")):
         if innesco in p.scheda.get("inneschi", []) and parola not in testo:
             reperti.append(_r("avviso", "[[vincoli]]", f"innesco '{innesco}' senza un vincolo che nomini {parola.upper()}", "conformita"))
     return reperti
@@ -713,20 +749,35 @@ def c_regole(ctx, voce):
 
 
 def c_storie_entita(ctx, voce):
-    reperti = []
+    reperti, escluse = [], storie_escluse(ctx.progetto)
     for s in ctx.progetto.tutti("storie"):
-        if not _valori(s.dati.get("entita")):
+        if s.id not in escluse and not _valori(s.dati.get("entita")):
             reperti.append(_r("errore", s.id, "storia senza entità: il modello non è stato provato su di lei", "storie-entita"))
     return reperti
 
 
 def c_storie_moduli(ctx, voce):
-    reperti = []
-    for s in ctx.progetto.tutti("storie"):
+    """Ogni storia ha il modulo che la orchestra; e il progetto dice come si realizza,
+    con operazioni, schermate o elementi del dettaglio che la citano. Per l'incremento
+    corrente è un errore; per i successivi un avviso, perché il loro dettaglio si
+    completa con loro ma l'architettura le deve già reggere."""
+    p, reperti = ctx.progetto, []
+    escluse, corrente = storie_escluse(p), p.incremento_corrente()
+    realizzate = {s for op in p.tutti("api") for s in _valori(op.dati.get("x-storie"))}
+    realizzate |= {s for sc in p.tutti("schermate") for s in _valori(sc.dati.get("storie"))}
+    for tipo in ("facciata", "eventi", "componenti", "algoritmi"):
+        realizzate |= {s for el in p.tutti(tipo) for s in _valori(el.dati.get("traccia"))}
+    for s in p.tutti("storie"):
+        if s.id in escluse:
+            continue
         if not s.dati.get("modulo"):
             reperti.append(_r("errore", s.id, "storia senza il modulo che la orchestra", "storie-moduli"))
         if s.dati.get("modulo") in _valori(s.dati.get("tocca")):
             reperti.append(_r("errore", s.id, "'tocca' elenca gli altri moduli, non quello che la orchestra", "storie-moduli"))
+        if s.id not in realizzate:
+            livello = "errore" if s.dati.get("incremento") == corrente else "avviso"
+            reperti.append(_r(livello, s.id, "nessuna operazione, schermata o elemento del dettaglio la realizza",
+                              "storie-moduli"))
     return reperti
 
 
@@ -738,8 +789,6 @@ def c_strategie(ctx, voce):
         for innesco, tema in STRATEGIE_PER_INNESCO.items():
             if innesco in p.scheda.get("inneschi", []):
                 richieste.append(tema)
-    if voce is None:
-        richieste = sorted({t for temi in STRATEGIE_PER_VOCE.values() for t in temi})
     mancano = [t for t in richieste if t not in presenti]
     return [_r("errore", "[[strategie]]", f"mancano le strategie {['ST-' + t for t in mancano]}", "strategie")] if mancano else []
 
@@ -788,7 +837,7 @@ def c_adr(ctx, voce):
     p, reperti = ctx.progetto, _presenza("adr")(ctx, voce)
     for a in p.tutti("adr"):
         testo = a.dati.get("_testo", "")
-        for sezione in ("## Context", "## Decision", "## Consequences"):
+        for sezione in SEZIONI_ADR:
             if sezione not in testo:
                 reperti.append(_r("errore", a.sorgente, f"manca la sezione '{sezione}'", "adr"))
         if not a.dati.get("status"):
@@ -855,6 +904,7 @@ def c_dettaglio(ctx, voce):
 def _incremento_modulo(p, modulo):
     valori = [p.incremento_di(s) for s in p.tutti("storie") if s.dati.get("modulo") == modulo or modulo in _valori(s.dati.get("tocca"))]
     valori += [p.incremento_di(e) for e in p.tutti("entita") if e.dati.get("modulo") == modulo]
+    valori = [v for v in valori if v is not None]
     return min(valori) if valori else 1
 
 
@@ -899,6 +949,12 @@ def c_ristrutturazione(ctx, voce):
     for a in p.tutti("attributi"):
         if _pieno(a.dati.get("derivato")) and f"attributo:{a.id}" not in oggetti:
             reperti.append(_r("errore", a.id, "attributo derivato (ridondanza) senza decisione: tenerlo o no, con i numeri", "ristrutturazione"))
+        if a.dati.get("multiplo") is True and f"attributo:{a.id}" not in oggetti:
+            reperti.append(_r("errore", a.id, "attributo multivalore senza decisione: una tabella a parte, o perché no",
+                              "ristrutturazione"))
+        if _pieno(a.dati.get("composto")) and f"attributo:{a.id}" not in oggetti:
+            reperti.append(_r("errore", a.id, "attributo composto senza decisione: i componenti come colonne, o un "
+                              "valore solo", "ristrutturazione"))
     for e in p.tutti("entita"):
         if len(e.dati.get("identificatori") or []) > 1 and f"entita:{e.id}" not in oggetti:
             reperti.append(_r("errore", e.id, "più identificatori senza la scelta di quello principale", "ristrutturazione"))
@@ -1184,8 +1240,9 @@ def c_incrementi(ctx, voce):
     p = ctx.progetto
     reperti = _presenza("incrementi")(ctx, voce)
     dichiarati = {e.dati.get("numero") for e in p.tutti("incrementi")}
+    escluse = storie_escluse(p)
     for s in p.tutti("storie"):
-        if s.dati.get("incremento") not in dichiarati:
+        if s.id not in escluse and s.dati.get("incremento") not in dichiarati:
             reperti.append(_r("errore", s.id, f"incremento {s.dati.get('incremento')} non dichiarato in [[incrementi]]", "incrementi"))
     if not any(e.dati.get("mvp") for e in p.tutti("incrementi")):
         reperti.append(_r("errore", "[[incrementi]]", "nessun incremento con mvp = true", "incrementi"))
@@ -1278,7 +1335,7 @@ def c_congelamento(ctx, voce):
     if not isinstance(c, dict):
         return [_r("errore", dove, "manca", "congelamento")]
     senza_prova = prova_esclusa(ctx)
-    for campo in ("incremento", "data", "approvato_da", "tag", "revisione") + (() if senza_prova else ("prova",)):
+    for campo in (c for c in CAMPI_CONGELAMENTO if not (senza_prova and c == "prova")):
         if not _pieno(c.get(campo)):
             reperti.append(_r("errore", dove, f"manca '{campo}'", "congelamento"))
     corrente = p.incremento_corrente()
@@ -1443,11 +1500,34 @@ def stati_voci(ctx):
         risultato[voce["id"]] = {
             "fase": voce["fase"], "applicabilita": condizioni.stato_voce(voce, scheda, inneschi_noti=noti),
             "chiusura": chiusura, "riaperta_da": riaperta_da, "per_incremento": ripete,
-            "chiusa": chiusura is not None and chiusura.get("esito") in ("fatto", "non-applicabile") and riaperta_da is None,
+            "chiusa": chiusura is not None and chiusura.get("esito") in ESITI and riaperta_da is None,
             "skill": voce.get("skill", fasi_skill.get(voce["fase"])), "voce": voce,
         }
     ctx.__dict__["_stati_voci"] = risultato
     return risultato
+
+
+def stati_dod(ctx):
+    """id -> {applicabilita, esclusione, voce} per le voci della DoD: non si chiudono, si
+    escludono con il motivo (progetto.py chiudi D.n --non-applicabile), e
+    parallel-build applica le altre."""
+    scheda = condizioni.profilo(ctx.progetto.scheda)
+    noti = set(ctx.catalogo.get("inneschi", {}))
+    esclusioni = {c.get("voce"): c for c in ctx.progetto.chiusure
+                  if str(c.get("voce", "")).startswith("D.") and not c.get("annullata_da")}
+    return {v["id"]: {"applicabilita": condizioni.stato_voce(v, scheda, inneschi_noti=noti),
+                      "esclusione": esclusioni.get(v["id"]), "voce": v} for v in ctx.catalogo.get("dod", [])}
+
+
+def _stato_per_chiusura(ctx, ident):
+    """Lo stato di una voce del catalogo, o di una voce della DoD vista come voce che si
+    può solo escludere, senza fase né incremento."""
+    st = stati_voci(ctx).get(ident)
+    if st is None and ident in stati_dod(ctx):
+        d = stati_dod(ctx)[ident]
+        st = {"fase": None, "applicabilita": d["applicabilita"], "per_incremento": False, "skill": "parallel-build",
+              "voce": d["voce"], "chiusura": d["esclusione"], "chiusa": d["esclusione"] is not None, "dod": True}
+    return st
 
 
 def chiusure(ctx, fase_avvisi=None):
@@ -1455,9 +1535,9 @@ def chiusure(ctx, fase_avvisi=None):
     valgono ora anche la sostanza. Le chiusure di incrementi passati, o annullate da
     una modifica, sono storia. Gli avvisi dei controlli di una voce chiusa si
     riportano solo per la fase di fase_avvisi: si leggono al gate, non a ogni verifica."""
-    p, reperti, stati, viste = ctx.progetto, [], stati_voci(ctx), set()
+    p, reperti, viste = ctx.progetto, [], set()
     for c in p.chiusure:
-        st = stati.get(c.get("voce"))
+        st = _stato_per_chiusura(ctx, c.get("voce"))
         annullata = c.get("annullata_da")
         if annullata:
             m = p.trova("modifiche", annullata) if isinstance(annullata, str) else None
@@ -1471,7 +1551,7 @@ def chiusure(ctx, fase_avvisi=None):
                                   (f" nell'incremento {chiave[1]}" if chiave[1] else ""), "chiusure"))
             viste.add(chiave)
         reperti += valida_chiusura(ctx, c, completa=st is not None and st["chiusura"] is c and st["chiusa"],
-                                   avvisi=st is not None and st["fase"] == fase_avvisi)
+                                   avvisi=st is not None and st["fase"] is not None and st["fase"] == fase_avvisi)
     return reperti
 
 
@@ -1484,9 +1564,12 @@ def valida_chiusura(ctx, c, completa=True, scritta=True, avvisi=False):
     p, reperti = ctx.progetto, []
     dove = f"{PROGETTAZIONE}/gate.toml"
     ident = c.get("voce")
-    st = stati_voci(ctx).get(ident)
+    st = _stato_per_chiusura(ctx, ident)
     if st is None:
         return [_r("errore", dove, f"voce '{ident}' sconosciuta", "chiusure")]
+    if st.get("dod") and c.get("esito") != "non-applicabile":
+        return [_r("errore", dove, f"voce {ident}: una voce della DoD non si chiude, si esclude con il motivo",
+                   "chiusure")]
     corrente = p.incremento_corrente()
     inc = c.get("incremento")
     if st["per_incremento"]:
@@ -1496,8 +1579,11 @@ def valida_chiusura(ctx, c, completa=True, scritta=True, avvisi=False):
     elif inc is not None:
         reperti.append(_r("avviso", dove, f"voce {ident}: non si ripete per incremento, 'incremento' è superfluo", "chiusure"))
     esito = c.get("esito")
-    if esito not in ("fatto", "non-applicabile"):
-        return reperti + [_r("errore", dove, f"voce {ident}: esito 'fatto' o 'non-applicabile'", "chiusure")]
+    if esito not in ESITI:
+        return reperti + [_r("errore", dove, f"voce {ident}: esito uno tra {list(ESITI)}", "chiusure")]
+    if esito == "non-verificabile" and st["skill"] != "parallel-build":
+        return reperti + [_r("errore", dove, f"voce {ident}: una voce di progetto si fa o si esclude; solo una voce "
+                             "della costruzione può restare non verificabile in un ambiente", "chiusure")]
     if not isinstance(c.get("data"), datetime.date):
         reperti.append(_r("errore", dove, f"voce {ident}: manca la data", "chiusure"))
     elif c["data"] > ctx.oggi:
@@ -1506,6 +1592,13 @@ def valida_chiusura(ctx, c, completa=True, scritta=True, avvisi=False):
         return reperti
     if st["applicabilita"] != condizioni.APPLICABILE:
         reperti.append(_r("avviso", dove, f"voce {ident} chiusa ma {st['applicabilita']} per la scheda", "chiusure"))
+    if esito == "non-verificabile":
+        if not _pieno(c.get("motivo")):
+            reperti.append(_r("errore", dove, f"voce {ident}: il motivo dice cosa servirebbe per verificarla", "chiusure"))
+        if not _pieno(c.get("approvato")):
+            reperti.append(_r("errore", dove, f"voce {ident}: una voce non verificata la accetta l'utente (approvato)",
+                              "chiusure"))
+        return reperti
     if esito == "non-applicabile":
         criticita = p.scheda.get("criticita")
         alta = criticita in condizioni.CRITICITA and \
@@ -1623,7 +1716,9 @@ def voci_da_riaprire(ctx, elementi):
         candidati = [v["id"] for v in voci if el.tipo in v.get("produce", [])]
         if el.tipo == "strategie":
             candidati = [v for v, temi in STRATEGIE_PER_VOCE.items() if el.dati.get("tema") in temi] or candidati
-        produttori |= {i for i in candidati if not (stati[i]["per_incremento"] and p.incremento_di(el) > corrente)}
+        inc = p.incremento_di(el)
+        futuro = inc is None or inc > corrente
+        produttori |= {i for i in candidati if not (stati[i]["per_incremento"] and futuro)}
     raggiunte, coda = set(produttori), list(produttori)
     while coda:
         sopra = coda.pop()

@@ -66,7 +66,7 @@ Il brief di ogni task lo costruisce `parallel-build`: la sua procedura più `pro
 
 **7.05** `piano/test.toml`, un `[[livelli]]` per livello di test, con scopo, strumento, ambiente, dati, automazione, criteri di ingresso e di uscita. Obbligatori `accettazione`, `contratto`, `autorizzazione` ed `e2e`; l'accettazione dichiara le `tecniche` con cui si progettano i casi (classi di equivalenza, valori limite, tabelle di decisione, transizioni di stato). I dati di test sono sintetici. Le prove degli RNF che in locale non si verificano dicono dove si verificano.
 
-**7.06** La DoD di incremento è quella del catalogo, filtrata dal profilo: `progetto.py checklist --dod`. Si adotta così com'è, o con le esclusioni motivate; `parallel-build` la applica a ogni rientro (livello `task`) e alla chiusura dell'incremento (livello `incremento`).
+**7.06** La DoD di incremento è quella del catalogo, filtrata dal profilo: `progetto.py checklist --dod`. Si adotta così com'è, o con le esclusioni motivate, `progetto.py chiudi D.n --non-applicabile --motivo …`, che valgono per tutti gli incrementi; `parallel-build` la applica a ogni rientro (livello `task`) e alla chiusura della costruzione (livello `incremento`, voce 8.01), e le lenti della fase 10 e l'accettazione della 11 completano le voci che vengono dopo.
 
 ## Qualità del codice e CI/CD
 

@@ -41,6 +41,8 @@ AGENTI_PER_ONDATA = {
 }
 SCRIVONO_CODICE = ("motore", "esemplari", "costruzione")
 COMANDI_OBBLIGATORI = ("lint", "fitness", "suite", "e2e", "supply_chain")
+CAMPI_PROGETTO = ("nome", "branch_integrazione")
+CAMPI_STIMA = ("metodo", "incertezza")
 COMANDO_PER_LATO = {"backend": "modulo_backend", "frontend": "modulo_frontend"}
 LATO_DEL_COSTRUTTORE = {"backend-builder": "backend", "frontend-builder": "frontend"}
 SEGNAPOSTO_MODULO = "{modulo}"
@@ -156,7 +158,7 @@ def valida(progetto):
                         "un piano di un metodo precedente va riscritto sulle sorgenti del metodo 3", "piano")]
 
     prog = piano["progetto"]
-    for campo in ("nome", "branch_integrazione"):
+    for campo in CAMPI_PROGETTO:
         if not (isinstance(prog.get(campo), str) and prog[campo].strip()):
             errori.append(f"[progetto]: manca '{campo}'")
     percorsi_e2e = _valori(prog.get("percorsi_e2e"))
@@ -190,7 +192,7 @@ def valida(progetto):
                 errori.append(f"[rischio]: criterio aggiuntivo '{c}' di '{chiave}' non definito in [comandi]")
 
     stima = piano.get("stima") if isinstance(piano.get("stima"), dict) else {}
-    for campo in ("metodo", "incertezza"):
+    for campo in CAMPI_STIMA:
         if not (isinstance(stima.get(campo), str) and stima[campo].strip()):
             errori.append(f"[stima]: manca '{campo}'")
 

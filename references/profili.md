@@ -61,6 +61,9 @@ progetto.py chiudi 4.12 --non-applicabile --motivo "Un solo utente su un VPS: ca
 - Il motivo dice perché la voce non serve *a questo progetto*, non che non c'era tempo.
 - Da criticità `alta` in su un'esclusione porta anche chi l'ha approvata, `--approvato <nome>`, e ad approvarla è l'utente: lo script lo pretende.
 - Un'esclusione resta visibile nella checklist con il suo motivo, e al gate si rilegge.
+- Una voce della DoD si esclude allo stesso modo, `chiudi D.n --non-applicabile --motivo`: `checklist --dod` la mostra esclusa, e `parallel-build` non la applica.
+
+Diverso è il caso di una voce della costruzione che serve ma che l'ambiente non permette di provare, come un failover senza un secondo nodo: non è un'esclusione, perché il motivo non dice che non serve. Si chiude `--non-verificabile`, con il motivo che dice cosa servirebbe per verificarla e sempre con `--approvato`; `stato` la elenca, e il report di consegna la mette tra il non verificato. Una voce di progetto non è mai non verificabile: si fa o si esclude.
 
 ## Verdetto d'ingresso
 

@@ -4,7 +4,7 @@ Produce l'inventario completo di ciò che l'app deve fare, per tutti gli increme
 
 Sorgenti: `requisiti/requisiti.toml`, `requisiti/storie.toml` (o `storie-<area>.toml`), `dominio/glossario.toml`, i vincoli in `prodotto.toml`. La vista `viste/srs.md` presenta tutto come una specifica dei requisiti da leggere, e `viste/tracciabilita.md` è la matrice di tracciabilità: si generano, non si scrivono.
 
-Ordine utile: raccolta (2.01) e glossario (2.13), poi storie (2.02) e trasversali (2.14), qualità (2.03–2.05), conformità (2.06), priorità (2.09), percorsi critici (2.15), conflitti (2.08), e alla fine revisione (2.07), validazione (2.10) e baseline (2.11).
+Ordine utile, lo stesso delle dipendenze del catalogo che la frontiera segue: raccolta (2.01) e glossario (2.13), poi storie (2.02) e trasversali (2.14), qualità (2.03–2.05), conformità (2.06, e la 2.16 con categorie particolari di dati), priorità (2.09), percorsi critici (2.15), conflitti (2.08), e alla fine revisione (2.07), validazione (2.10) e baseline (2.11).
 
 ## 2.01 Raccolta
 
@@ -52,9 +52,11 @@ Ogni caratteristica di rilevanza alta ha almeno un RNF, e una di rilevanza media
 
 Un vincolo `conformita` per ogni obbligo, con la `norma`; se non ce ne sono, lo si scrive come vincolo. Con gli inneschi lo script si aspetta di vedere nominati il GDPR (`dati-personali`), il Cyber Resilience Act (`mercato-ue`) e l'AI Act (`ia`); l'accessibilità per i servizi ai consumatori nell'UE ha le sue norme. La valutazione giuridica è di `compliance-docs`, e gli obblighi correnti si verificano al momento: le date che il metodo conosce sono in `FONTI.md`, verificate in un giorno preciso.
 
+**2.16**, con l'innesco `dati-particolari`: la valutazione d'impatto sulla protezione dei dati, o la motivazione per cui non serve, con la base giuridica e le misure per quelle categorie. La prepara `compliance-docs`, un vincolo di conformità la cita (lo script si aspetta di leggervi "DPIA"), e un professionista la rivede prima del lancio.
+
 ## 2.09 Priorità
 
-`metodo_priorita` dichiara il metodo e i suoi valori (MoSCoW, o un altro), e ogni storia ne ha uno. La priorità decide l'`incremento` di ogni storia: l'incremento 1 è il primo che dà valore utilizzabile, non il più facile da costruire. Le storie `wont` restano nell'inventario: dicono cosa si è scelto di non fare.
+`metodo_priorita` dichiara il metodo e i suoi valori (MoSCoW, o un altro), e con `esclusa` il valore delle storie che non si faranno; ogni storia ne ha uno. La priorità decide l'`incremento` di ogni storia: l'incremento 1 è il primo che dà valore utilizzabile, non il più facile da costruire. Le storie escluse (`wont`) restano nell'inventario, senza incremento, modulo né entità: dicono cosa si è scelto di non fare, e nulla del progetto le cita (avviso).
 
 ## 2.15 Percorsi critici
 
@@ -74,7 +76,7 @@ Con gli stakeholder, non con un agente: un walkthrough delle storie dell'increme
 
 ## 2.11 e 2.12 Baseline e tracciabilità
 
-La baseline dei requisiti è il tag del gate: da lì ogni cambio passa dalla procedura delle modifiche di `gate.md`, uguale per tutti i progetti. La matrice di tracciabilità è `viste/tracciabilita.md`: si genera dalle tracce, e si completa da sola man mano che le fasi successive aggiungono entità, moduli, operazioni, schermate e test.
+La baseline dei requisiti è il tag che `approva 2` crea: da lì ogni cambio passa dalla procedura delle modifiche di `gate.md`, uguale per tutti i progetti. La 2.11 si chiude prima del tag, con il registro delle modifiche (`registri.toml`) come evidenza. La matrice di tracciabilità è `viste/tracciabilita.md`: si genera dalle tracce, e si completa da sola man mano che le fasi successive aggiungono entità, moduli, operazioni, schermate e test.
 
 ## Gate
 

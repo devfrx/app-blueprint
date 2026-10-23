@@ -89,6 +89,10 @@ Un ADR per decisione difficile da invertire (`decisioni.md`); lo script controll
 
 Nessun rischio tecnico resta `aperto` alla fine della fase: ridotto (con uno spike, una decisione), chiuso, o accettato dall'utente con un responsabile e il segnale che lo farà emergere.
 
+## 4.20 API usata da terzi
+
+Con l'innesco `api-pubblica`, la strategia `ST-api-pubblica`: versionamento e politica di deprecazione con il preavviso, limiti di frequenza e quote per chiave, autenticazione dei terzi, documentazione e ambiente di prova. Un'API che usa solo il proprio frontend cambia con lui; quella di un terzo no, e ogni rottura diventa una migrazione di qualcun altro.
+
 ## Gate
 
 Il brief: stile e moduli con archetipi e rischio, le decisioni difficili da invertire in testa con le alternative scartate, le strategie trasversali in una riga ciascuna, le minacce principali e le loro contromisure, gli esiti di analisi e valutazione, i rischi accettati. Da qui stack, stile e confini sono la base di tutto il dettaglio.

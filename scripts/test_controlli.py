@@ -335,6 +335,118 @@ class Piano(Base):
         self.assertErrore(self.verifica(), "la storia 'CLI-2' non è dell'incremento corrente")
 
 
+class StorieEscluse(Base):
+    def test_una_storia_esclusa_non_ha_incremento(self):
+        self.sostituisci(f"{P}/requisiti/storie.toml", 'priorita = "wont"\n', 'priorita = "wont"\nincremento = 3\n')
+        self.assertErrore(self.verifica(), "FAT-4", "una storia esclusa non ha incremento")
+
+    def test_cio_che_cita_una_storia_esclusa_e_un_avviso(self):
+        self.sostituisci("contracts/autorizzazioni.toml", 'traccia = ["FAT-2"]', 'traccia = ["FAT-2", "FAT-4"]')
+        avvisi = [r.testo() for r in self.verifica(fase_gate=2) if r.livello == "avviso"]
+        self.assertTrue(any("cita la storia esclusa FAT-4" in a for a in avvisi), avvisi)
+
+    def test_senza_esclusa_nel_metodo_la_wont_vuole_l_incremento(self):
+        self.sostituisci(f"{P}/requisiti/requisiti.toml", ', esclusa = "wont" }', " }")
+        self.assertErrore(self.verifica(), "FAT-4", "incremento è un intero da 1")
+
+
+class Realizzazione(Base):
+    def test_storia_futura_senza_realizzazione_e_un_avviso(self):
+        self.sostituisci("contracts/openapi.json", '"x-storie": [\n          "PRZ-1"\n        ]', '"x-storie": []')
+        self.sostituisci(f"{P}/ux/ux.toml", 'storie = ["PRZ-1"]', 'storie = []')
+        avvisi = [r.testo() for r in self.verifica(fase_gate=5) if r.livello == "avviso"]
+        self.assertTrue(any("PRZ-1" in a and "nessuna operazione, schermata o elemento" in a for a in avvisi), avvisi)
+
+    def test_storia_corrente_senza_realizzazione_e_un_errore(self):
+        self.aggiungi(f"{P}/requisiti/storie.toml", '\n[[storie]]\nid = "ACC-8"\ntitolo = "Il responsabile vede '
+                      'gli accessi del giorno"\nattore = "responsabile"\npriorita = "could"\nincremento = 1\n'
+                      'fonte = ["responsabile"]\nentita = ["account"]\nmodulo = "accessi"\n')
+        self.assertErrore(self.verifica(), "ACC-8", "nessuna operazione, schermata o elemento del dettaglio")
+
+
+class Ristrutturazione(Base):
+    def test_attributo_multivalore_senza_decisione(self):
+        self.sostituisci(f"{P}/dominio/entita.toml", '{ nome = "email", dominio = "email", descrizione = "Per l',
+                         '{ nome = "email", multiplo = true, dominio = "email", descrizione = "Per l')
+        self.assertErrore(self.verifica(), "cliente.email", "attributo multivalore senza decisione")
+
+    def test_attributo_composto_senza_decisione(self):
+        self.sostituisci(f"{P}/dominio/entita.toml", '{ nome = "email", dominio = "email", descrizione = "Per l',
+                         '{ nome = "email", composto = ["utente", "dominio"], dominio = "email", descrizione = "Per l')
+        self.assertErrore(self.verifica(), "cliente.email", "attributo composto senza decisione")
+
+
+class EsitiEDod(Base):
+    def test_una_voce_di_progetto_non_resta_non_verificabile(self):
+        self.sostituisci(f"{P}/gate.toml", 'voce = "4.12"\nesito = "fatto"\nevidenza = ["architettura/analisi.md"]',
+                         'voce = "4.12"\nesito = "non-verificabile"\nmotivo = "x"\napprovato = "responsabile"')
+        self.assertErrore(self.verifica(), "voce 4.12: una voce di progetto si fa o si esclude")
+
+    def test_una_voce_della_costruzione_non_verificata_la_accetta_l_utente(self):
+        self.aggiungi(f"{P}/gate.toml", '\n[[chiusure]]\nvoce = "7.09"\nesito = "non-verificabile"\n'
+                      'motivo = "serve lo staging"\ndata = 2026-10-22\n')
+        self.assertErrore(self.verifica(), "voce 7.09: una voce non verificata la accetta l'utente")
+        self.sostituisci(f"{P}/gate.toml", 'motivo = "serve lo staging"\n', 'motivo = "serve lo staging"\napprovato = "responsabile"\n')
+        self.assertEqual(self.errori(self.verifica()), [])
+
+    def test_esclusione_della_dod(self):
+        self.aggiungi(f"{P}/gate.toml", '\n[[chiusure]]\nvoce = "D.09"\nesito = "non-applicabile"\n'
+                      'motivo = "Ogni incremento rilascia storie intere."\ndata = 2026-10-22\n')
+        progetto = modello.carica(self.radice, CATALOGO)
+        dod = controlli.stati_dod(controlli.Contesto(progetto, CATALOGO))
+        self.assertEqual(dod["D.09"]["esclusione"]["motivo"], "Ogni incremento rilascia storie intere.")
+        self.assertEqual(self.errori(self.verifica()), [])
+
+    def test_una_voce_della_dod_non_si_chiude(self):
+        self.aggiungi(f"{P}/gate.toml", '\n[[chiusure]]\nvoce = "D.09"\nesito = "fatto"\nevidenza = ["x"]\n'
+                      'data = 2026-10-22\n')
+        self.assertErrore(self.verifica(), "voce D.09: una voce della DoD non si chiude")
+
+
+class Inneschi(Base):
+    def stati(self):
+        progetto = modello.carica(self.radice, CATALOGO)
+        return controlli.stati_voci(controlli.Contesto(progetto, CATALOGO))
+
+    def test_ogni_innesco_attiva_qualcosa(self):
+        attivati = {v["quando"].split()[-1] for v in CATALOGO["voci"] if v["quando"].startswith("innesco ")}
+        attivati |= {i for v in CATALOGO["voci"] for i in CATALOGO["inneschi"] if f"innesco {i}" in v["quando"]}
+        attivati |= set(controlli.STRATEGIE_PER_INNESCO)
+        self.assertEqual(sorted(set(CATALOGO["inneschi"]) - attivati), [])
+
+    def test_i_nuovi_inneschi_aprono_le_loro_voci(self):
+        self.sostituisci(f"{P}/stato.toml", 'inneschi = ["ui", "dati-personali", "denaro", "integrazioni"]',
+                         'inneschi = ["ui", "dati-personali", "dati-particolari", "denaro", "integrazioni", "api-pubblica", "ia"]')
+        stati = self.stati()
+        for voce in ("2.16", "4.20", "5.17"):
+            self.assertEqual(stati[voce]["applicabilita"], "applicabile", voce)
+        progetto = modello.carica(self.radice, CATALOGO)
+        reperti = controlli.c_strategie(controlli.Contesto(progetto, CATALOGO), "5.17")
+        self.assertTrue(any("ST-ia" in r.messaggio for r in reperti))
+
+
+class Dipendenze(Base):
+    def frontiera_senza(self, fase):
+        progetto = modello.carica(self.radice, CATALOGO)
+        progetto.chiusure = [c for c in progetto.chiusure if not str(c.get("voce")).startswith(f"{fase}.")]
+        return controlli.frontiera(controlli.Contesto(progetto, CATALOGO), limite=None)
+
+    def test_la_fase_2_parte_da_raccolta_e_glossario(self):
+        pronte = self.frontiera_senza(2)
+        self.assertIn("2.01", pronte)
+        self.assertIn("2.13", pronte)
+        for tarda in ("2.07", "2.10", "2.11", "2.12"):
+            self.assertNotIn(tarda, pronte)
+
+    def test_la_fase_8_parte_dagli_oracoli(self):
+        progetto = modello.carica(self.radice, CATALOGO)
+        ctx = controlli.Contesto(progetto, CATALOGO)
+        stati = controlli.stati_voci(ctx)
+        fase8 = sorted(i for i, st in stati.items() if st["fase"] == 8 and st["applicabilita"] == "applicabile")
+        pronte = [i for i in fase8 if all(stati[d]["chiusa"] for d in stati[i]["voce"].get("dipende", []))]
+        self.assertEqual(pronte, ["8.11"])
+
+
 class Profilo(Base):
     def test_passaggio_al_pubblico_riapre_le_voci_rinviate(self):
         progetto = modello.carica(self.radice, CATALOGO)

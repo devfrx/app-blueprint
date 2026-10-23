@@ -84,6 +84,7 @@ Una riga per elemento: id, descrizione, incremento in cui serve, sorgente. Il de
 | FAT-1 | Il responsabile emette la fattura di un intervento chiuso | 1 | docs/progettazione/requisiti/storie.toml |
 | FAT-2 | Il responsabile esporta in CSV le fatture del mese | 2 | docs/progettazione/requisiti/storie.toml |
 | FAT-3 | Il responsabile scarica il PDF di una fattura per il commercialista | 1 | docs/progettazione/requisiti/storie.toml |
+| FAT-4 | Il cliente paga la fattura online dall'area cliente | — | docs/progettazione/requisiti/storie.toml |
 | INT-1 | L'operatore apre un intervento su un veicolo | 1 | docs/progettazione/requisiti/storie.toml |
 | INT-2 | Il responsabile approva il preventivo | 1 | docs/progettazione/requisiti/storie.toml |
 | INT-3 | Il cliente vede lo stato del proprio intervento | 1 | docs/progettazione/requisiti/storie.toml |

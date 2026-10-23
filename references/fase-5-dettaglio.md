@@ -10,7 +10,7 @@ Indice: Moduli (5.01–5.04, 5.10, 5.11) · Dati (5.05.1–5.05.4, 5.05, 5.06) �
 
 ## Moduli
 
-**5.01** Ogni storia ha il `modulo` che la orchestra e i moduli che `tocca`; lo script controlla che nessuna resti senza. Una storia che attraversa più moduli la orchestra quello che ne possiede l'esito, e gli altri li usa tramite facciate o eventi.
+**5.01** Ogni storia ha il `modulo` che la orchestra e i moduli che `tocca`; lo script controlla che nessuna resti senza. Una storia che attraversa più moduli la orchestra quello che ne possiede l'esito, e gli altri li usa tramite facciate o eventi. E ogni storia ha chi la realizza: un'operazione, una schermata o un elemento del dettaglio che la cita. Per l'incremento corrente è un errore che manchi; per i successivi un avviso, perché il loro dettaglio si completa con loro ma l'architettura le deve già reggere.
 
 **5.02** Ogni modulo dell'incremento ha il suo `moduli/<modulo>.toml`:
 
@@ -46,9 +46,11 @@ Lo schema concettuale si trasforma in uno schema traducibile, con una decisione 
 - **ridondanze**: ogni attributo derivato si tiene o si toglie confrontando il costo delle letture che risparmia con quello delle scritture che lo aggiornano;
 - **generalizzazioni**: accorpamento dei figli nel padre, del padre nei figli, o sostituzione con relazioni, secondo come gli accessi leggono le entità;
 - **partizionamenti e accorpamenti** di entità e relazioni, quando gli accessi leggono separatamente parti di un concetto, o sempre insieme due concetti;
-- **identificatori principali**: per ogni entità con più identificatori, quale diventa la chiave; e se usare una chiave surrogata, e perché.
+- **identificatori principali**: per ogni entità con più identificatori, quale diventa la chiave; e se usare una chiave surrogata, e perché;
+- **attributi multivalore** (`multiplo`): di norma una tabella a parte; un tipo collezione del database solo con il motivo, perché non si indicizza né si vincola come una tabella;
+- **attributi composti** (`composto`): i componenti come colonne, o un valore solo, secondo come gli accessi li leggono e li filtrano.
 
-Lo script pretende una decisione per ogni generalizzazione, attributo derivato ed entità con più identificatori.
+Lo script pretende una decisione per ogni generalizzazione, attributo derivato, multivalore o composto, ed entità con più identificatori.
 
 ### 5.05.4 Traduzione e normalizzazione
 
@@ -83,6 +85,8 @@ Tipi concreti del database scelto, vincoli, e gli `indici` derivati dagli access
 Ogni regola genera test in entrambe le direzioni, e ogni condizione il test con la risorsa di un altro.
 
 **5.16 Configurazione.** `contracts/configurazione.toml`: le variabili con gli ambienti in cui servono e il default se c'è, e i nomi dei segreti con la rotazione. Mai i valori.
+
+**5.17 Funzionalità di IA**, con l'innesco `ia`: la strategia `ST-ia` dice per ogni funzionalità il modello e la versione (un deperibile), il compito e i limiti, l'insieme di casi con cui si valuta e la soglia d'accettazione, che diventano il criterio dei suoi oracoli, il comportamento quando il modello sbaglia o rifiuta, la trasparenza verso l'utente e la supervisione umana. Un modello non è una funzione deterministica: il suo "fatto" è una soglia, non un'uguaglianza.
 
 ## 5.08 Sequenze dei percorsi critici
 

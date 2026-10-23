@@ -58,6 +58,7 @@ Esposizione **pubblicabile**, criticità **media**, inneschi: ui, dati-personali
 | 2.13 | fatta | Glossario condiviso | dominio/glossario.toml |
 | 2.14 | fatta | Funzionalità trasversali passate in rassegna, ognuna con le sue storie o tra i non-obiettivi | requisiti/requisiti.toml#trasversali |
 | 2.15 | fatta | Percorsi critici individuati: le sequenze di storie che, se si rompono, rendono l'app inutile | PC-1, PC-2 |
+| 2.16 | non-applicabile | Con categorie particolari di dati: valutazione d'impatto sulla protezione dei dati (DPIA) svolta, o la sua non necessità motivata, con la base giuridica e le misure per quelle categorie | condizione falsa per la scheda (quando: innesco dati-particolari) |
 
 ## 3. Analisi e modellazione del dominio
 
@@ -101,6 +102,7 @@ Esposizione **pubblicabile**, criticità **media**, inneschi: ui, dati-personali
 | 4.17 | fatta | Un ADR per ogni decisione significativa: contesto, alternative, scelta, conseguenze | ADR-0001, ADR-0002, ADR-0003, ADR-0004, ADR-0005, ADR-0006 |
 | 4.18 | fatta | Diagrammi (C4 o 4+1) versionati come testo accanto al codice | architettura/architettura.md, viste/contesto.md, viste/moduli.md |
 | 4.19 | fatta | Rischi tecnici residui accettati esplicitamente, ciascuno con un responsabile | RK-2, RK-4, RK-5 |
+| 4.20 | non-applicabile | API usata da terzi governata: versionamento e deprecazione con preavviso, limiti di frequenza e quote, autenticazione dei terzi, documentazione e ambiente di prova | condizione falsa per la scheda (quando: innesco api-pubblica) |
 
 ## 5. Progettazione di dettaglio
 
@@ -128,6 +130,7 @@ Esposizione **pubblicabile**, criticità **media**, inneschi: ui, dati-personali
 | 5.14 ↻ | fatta | Design revisionato da qualcuno che non l'ha scritto | REV-6 |
 | 5.15 | fatta | Matrice delle autorizzazioni completa: negazione per default, un ruolo per attore, condizioni di proprietà esplicite | contracts/autorizzazioni.toml |
 | 5.16 | fatta | Configurazione definita: variabili e nomi dei segreti, mai i valori | contracts/configurazione.toml |
+| 5.17 | non-applicabile | Funzionalità di IA specificate: modello e versione, compito e limiti, valutazione su un insieme di casi con soglie d'accettazione, comportamento su errore o rifiuto, trasparenza verso l'utente e supervisione umana | condizione falsa per la scheda (quando: innesco ia) |
 
 ## 6. Progettazione UX/UI
 
@@ -172,7 +175,7 @@ Esposizione **pubblicabile**, criticità **media**, inneschi: ui, dati-personali
 
 ## 8. Implementazione
 
-**Gate:** Ogni task del perimetro ha superato la DoD di incremento e i controlli sull'intera base di codice sono verdi.
+**Gate:** Ogni task del perimetro è rientrato superando la DoD di task, e i controlli sull'intera base di codice sono verdi.
 
 | voce | stato | testo | evidenza o motivo |
 |---|---|---|---|
@@ -309,7 +312,7 @@ Esposizione **pubblicabile**, criticità **media**, inneschi: ui, dati-personali
 
 ## Controlli trasversali
 
-Si rivedono a ogni gate; l'esito va nella nota del registro.
+Si rivedono a ogni gate (progetto.py checklist --trasversali li esegue); l'esito va nella nota del registro.
 
 | voce | stato | testo |
 |---|---|---|
@@ -325,22 +328,22 @@ Si rivedono a ogni gate; l'esito va nella nota del registro.
 
 ## DoD di incremento
 
-La applica parallel-build a ogni rientro (task) e alla chiusura dell'incremento.
+La applica parallel-build a ogni rientro (task) e alla chiusura dell'incremento; una voce che non serve si esclude con il motivo.
 
-| voce | stato | testo |
-|---|---|---|
-| D.01 (task) | applicabile | Criteri di accettazione soddisfatti e verificati |
-| D.02 (task) | applicabile | Codice conforme alle convenzioni; linter e formatter verdi |
-| D.03 (task) | applicabile | Test unitari e di integrazione scritti e verdi |
-| D.04 (incremento) | applicabile | Regressione verde in pipeline |
-| D.05 (incremento) | applicabile | Code review completata |
-| D.06 (task) | applicabile | Nessun nuovo problema bloccante da SAST e SCA |
-| D.07 (task) | applicabile | Nessun segreto nel codice; configurazione esternalizzata |
-| D.08 (task) | applicabile | Log, metriche e tracce per il nuovo comportamento, senza dati personali o segreti |
-| D.09 (incremento) | applicabile | Funzionalità incomplete dietro feature flag |
-| D.10 (task) | applicabile | Contratti API e schema dati aggiornati; migrazioni compatibili all'indietro |
-| D.11 (task) | applicabile | Documentazione aggiornata: tecnica, utente, ADR e diagrammi se la modifica li tocca |
-| D.12 (task) | applicabile | Tracciabilità aggiornata tra requisito e test |
-| D.13 (task) | applicabile | Debito tecnico introdotto registrato, non nascosto |
-| D.14 (incremento) | applicabile | Incremento deployabile, o già deployato in staging |
-| D.15 (incremento) | applicabile | Accettato dal product owner |
+| voce | stato | testo | motivo dell'esclusione |
+|---|---|---|---|
+| D.01 (task) | applicabile | Criteri di accettazione soddisfatti e verificati |  |
+| D.02 (task) | applicabile | Codice conforme alle convenzioni; linter e formatter verdi |  |
+| D.03 (task) | applicabile | Test unitari e di integrazione scritti e verdi |  |
+| D.04 (incremento) | applicabile | Regressione verde in pipeline |  |
+| D.05 (incremento) | applicabile | Code review completata |  |
+| D.06 (task) | applicabile | Nessun nuovo problema bloccante da SAST e SCA |  |
+| D.07 (task) | applicabile | Nessun segreto nel codice; configurazione esternalizzata |  |
+| D.08 (task) | applicabile | Log, metriche e tracce per il nuovo comportamento, senza dati personali o segreti |  |
+| D.09 (incremento) | applicabile | Funzionalità incomplete dietro feature flag |  |
+| D.10 (task) | applicabile | Contratti API e schema dati aggiornati; migrazioni compatibili all'indietro |  |
+| D.11 (task) | applicabile | Documentazione aggiornata: tecnica, utente, ADR e diagrammi se la modifica li tocca |  |
+| D.12 (task) | applicabile | Tracciabilità aggiornata tra requisito e test |  |
+| D.13 (task) | applicabile | Debito tecnico introdotto registrato, non nascosto |  |
+| D.14 (incremento) | applicabile | Incremento deployabile, o già deployato in staging |  |
+| D.15 (incremento) | applicabile | Accettato dal product owner |  |

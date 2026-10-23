@@ -2,7 +2,7 @@
 
 # Matrice di tracciabilità
 
-Dalle storie al progetto e ai test. Gli esiti dei test li aggiunge parallel-build in chiusura.
+Dalle storie al progetto e ai test che le provano. Gli esiti non stanno qui: li dà la suite, che porta l'id della storia nel nome di ogni test, e la voce 11.06 si chiude con il suo rapporto.
 
 | storia | inc. | priorità | entità | modulo (tocca) | operazioni API | schermate | oracoli | end-to-end |
 |---|---|---|---|---|---|---|---|---|
@@ -18,6 +18,7 @@ Dalle storie al progetto e ai test. Gli esiti dei test li aggiunge parallel-buil
 | FAT-1 | 1 | must | fattura, riga_fattura, intervento, preventivo, riga_preventivo | fatture (interventi, prezzi) | emettiFattura | fattura, intervento | O-fatture | X-intervento-completo |
 | FAT-2 | 2 | could | fattura, riga_fattura | fatture | esportaFatture | esportazione-fatture |  |  |
 | FAT-3 | 1 | must | fattura, riga_fattura | fatture | dettaglioFattura, pdfFattura | fattura | O-fatture |  |
+| FAT-4 |  | wont |  |  |  |  |  |  |
 | INT-1 | 1 | must | intervento, preventivo, veicolo | interventi (veicoli) | apriIntervento | cliente-scheda, intervento | O-interventi | X-intervento-completo |
 | INT-2 | 1 | must | preventivo, intervento, riga_preventivo | interventi (prezzi) | approvaPreventivo | intervento | O-interventi | X-intervento-completo |
 | INT-3 | 1 | must | intervento, preventivo, riga_preventivo, veicolo, cliente | interventi (veicoli) | dettaglioIntervento | area-cliente-intervento | O-interventi | X-cliente-segue-intervento |

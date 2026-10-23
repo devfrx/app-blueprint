@@ -44,7 +44,7 @@ Lo script verifica che percorsi, id e tag esistano (i tag, se la radice è un re
 - **Fine**, in quest'ordine:
   1. tutte le voci applicabili chiuse: `progetto.py checklist --fase N`;
   2. `progetto.py verifica --gate N` senza errori, e con i suoi avvisi letti: sono anche quelli dei controlli delle voci della fase, che la verifica ordinaria non ripete;
-  3. controlli trasversali passati in rassegna: `progetto.py checklist --trasversali`, una riga d'esito per voce nella nota del registro;
+  3. controlli trasversali passati in rassegna: `progetto.py checklist --trasversali` esegue quelli che lo script sa controllare e segna gli altri da rivedere; una riga d'esito per voce nella nota del registro;
   4. il brief del gate presentato all'utente;
   5. l'approvazione esplicita dell'utente, e solo allora `progetto.py approva N --da <chi approva> --note "<trasversali, in breve>"`;
   6. commit, e il tag che `approva` stampa: se lo stesso gate si è già approvato nello stesso giorno, il nome prende un suffisso, `-2`.

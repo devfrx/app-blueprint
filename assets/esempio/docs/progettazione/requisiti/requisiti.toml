@@ -1,6 +1,6 @@
 # Requisiti — fase 2. Le storie stanno in storie.toml (si possono spezzare in storie-<area>.toml).
 
-metodo_priorita = { nome = "MoSCoW", valori = ["must", "should", "could", "wont"] }
+metodo_priorita = { nome = "MoSCoW", valori = ["must", "should", "could", "wont"], esclusa = "wont" }
 
 [[aree]]
 prefisso = "ACC"

@@ -285,6 +285,14 @@ entita = ["fattura", "riga_fattura"]
 modulo = "fatture"
 
 [[storie]]
+id = "FAT-4"
+titolo = "Il cliente paga la fattura online dall'area cliente"
+attore = "cliente"
+priorita = "wont"
+fonte = ["responsabile"]
+note = "Esclusa con MOD-1: porterebbe un fornitore di pagamento e l'autenticazione forte del cliente; si rivaluta dopo il secondo incremento."
+
+[[storie]]
 id = "FAT-3"
 titolo = "Il responsabile scarica il PDF di una fattura per il commercialista"
 attore = "responsabile"

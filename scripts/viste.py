@@ -46,7 +46,8 @@ def indice(progetto, catalogo):
             continue
         righe += [f"## {tipo}", "", "| id | descrizione | inc. | sorgente |", "|---|---|---|---|"]
         for e in elementi:
-            righe.append(f"| {_cella(e.id)} | {_cella(e.etichetta())} | {progetto.incremento_di(e)} | {e.sorgente} |")
+            inc = progetto.incremento_di(e)
+            righe.append(f"| {_cella(e.id)} | {_cella(e.etichetta())} | {inc if inc is not None else '—'} | {e.sorgente} |")
         righe.append("")
     return "\n".join(righe)
 
@@ -76,7 +77,7 @@ def checklist(progetto, catalogo):
                     if st["applicabilita"] != condizioni.FUORI_CATENA else "fasi 13–15: fuori dalla catena"
             elif st["chiusa"]:
                 c = st["chiusura"]
-                stato = "fatta" if c.get("esito") == "fatto" else "esclusa"
+                stato = ESITO_IN_VISTA.get(c.get("esito"), c.get("esito"))
                 nota = ", ".join(_valori(c.get("evidenza"))) or c.get("motivo", "")
                 if c.get("nota"):
                     nota += f" — {c['nota']}"
@@ -89,14 +90,21 @@ def checklist(progetto, catalogo):
         righe.append("")
     noti = set(catalogo.get("inneschi", {}))
     profilo = condizioni.profilo(scheda)
-    for chiave, titolo, testa in (("trasversali", "Controlli trasversali", "Si rivedono a ogni gate; l'esito va nella nota del registro."),
-                                  ("dod", "DoD di incremento", "La applica parallel-build a ogni rientro (task) e alla chiusura dell'incremento.")):
-        righe += [f"## {titolo}", "", testa, "", "| voce | stato | testo |", "|---|---|---|"]
-        for voce in catalogo.get(chiave, []):
-            st = condizioni.stato_voce(voce, profilo, inneschi_noti=noti)
-            livello = f" ({voce['livello']})" if voce.get("livello") else ""
-            righe.append(f"| {voce['id']}{livello} | {st} | {_cella(voce['testo'])} |")
-        righe.append("")
+    righe += ["## Controlli trasversali", "",
+              "Si rivedono a ogni gate (progetto.py checklist --trasversali li esegue); l'esito va nella nota del registro.",
+              "", "| voce | stato | testo |", "|---|---|---|"]
+    for voce in catalogo.get("trasversali", []):
+        st = condizioni.stato_voce(voce, profilo, inneschi_noti=noti)
+        righe.append(f"| {voce['id']} | {st} | {_cella(voce['testo'])} |")
+    righe += ["", "## DoD di incremento", "",
+              "La applica parallel-build a ogni rientro (task) e alla chiusura dell'incremento; una voce che non serve "
+              "si esclude con il motivo.", "", "| voce | stato | testo | motivo dell'esclusione |", "|---|---|---|---|"]
+    for ident, d in controlli.stati_dod(ctx).items():
+        livello = f" ({d['voce']['livello']})" if d["voce"].get("livello") else ""
+        stato = "esclusa" if d["esclusione"] else d["applicabilita"]
+        motivo = d["esclusione"].get("motivo", "") if d["esclusione"] else ""
+        righe.append(f"| {ident}{livello} | {stato} | {_cella(d['voce']['testo'])} | {_cella(motivo)} |")
+    righe.append("")
     return "\n".join(righe)
 
 
@@ -116,12 +124,16 @@ def debito_pubblicazione(progetto, catalogo):
     return "\n".join(righe) + "\n"
 
 
+ESITO_IN_VISTA = {"fatto": "fatta", "non-applicabile": "esclusa", "non-verificabile": "non verificata"}
+
+
 # --- tracciabilità --------------------------------------------------------------------
 
 def tracciabilita(progetto, catalogo):
     entranti = progetto.entranti()
     righe = [INTESTAZIONE, "# Matrice di tracciabilità", "",
-             "Dalle storie al progetto e ai test. Gli esiti dei test li aggiunge parallel-build in chiusura.", "",
+             "Dalle storie al progetto e ai test che le provano. Gli esiti non stanno qui: li dà la suite, che porta "
+             "l'id della storia nel nome di ogni test, e la voce 11.06 si chiude con il suo rapporto.", "",
              "| storia | inc. | priorità | entità | modulo (tocca) | operazioni API | schermate | oracoli | end-to-end |",
              "|---|---|---|---|---|---|---|---|---|"]
     for s in _ordina(progetto.tutti("storie")):
@@ -185,6 +197,8 @@ def er_concettuale(progetto, catalogo):
                 nota.append("facoltativo")
             if a.get("multiplo"):
                 nota.append("multiplo")
+            if _valori(a.get("composto")):
+                nota.append("composto di " + " ".join(_valori(a.get("composto"))))
             if a.get("derivato"):
                 nota.append("derivato")
             commento = f" {_etichetta(', '.join(nota))}" if nota else ""

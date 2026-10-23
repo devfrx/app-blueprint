@@ -21,7 +21,7 @@ class Lettura(unittest.TestCase):
 
     def test_ogni_sorgente_diventa_elementi(self):
         conteggi = {tipo: len(g) for tipo, g in self.p.elementi.items()}
-        self.assertEqual(conteggi["storie"], 21)
+        self.assertEqual(conteggi["storie"], 22)
         self.assertEqual(conteggi["moduli"], 6)
         self.assertEqual(conteggi["api"], 27)
         self.assertEqual(conteggi["voci"], len(CATALOGO["voci"]))

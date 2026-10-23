@@ -192,11 +192,12 @@ class Progetto:
 
     def incremento_di(self, elemento, _visitati=None):
         """L'incremento in cui un elemento serve: il minimo tra quelli delle storie che
-        lo giustificano. Le storie lo dichiarano; tutto il resto lo eredita dalla
-        traccia. Senza storie nella traccia vale 1: è trasversale."""
+        lo giustificano. Le storie lo dichiarano, e una storia esclusa non ne ha (None);
+        tutto il resto lo eredita dalla traccia. Senza storie nella traccia vale 1: è
+        trasversale."""
         if elemento.tipo == "storie":
             valore = elemento.dati.get("incremento")
-            return valore if isinstance(valore, int) and not isinstance(valore, bool) else 1
+            return valore if isinstance(valore, int) and not isinstance(valore, bool) else None
         cache = self.__dict__.setdefault("_incrementi", {})
         chiave = (elemento.tipo, elemento.id)
         if chiave in cache:
@@ -214,7 +215,7 @@ class Progetto:
         if not candidati and elemento.tipo == "entita":
             # un'entità serve dall'incremento della prima storia che la usa
             for s in self.tutti("storie"):
-                if elemento.id in _valori(s.dati.get("entita")):
+                if elemento.id in _valori(s.dati.get("entita")) and self.incremento_di(s) is not None:
                     candidati.append(self.incremento_di(s))
         if not candidati and elemento.tipo == "relazioni":
             # senza traccia, una relazione non esiste prima delle sue entità

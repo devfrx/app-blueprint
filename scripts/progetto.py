@@ -9,6 +9,8 @@ Si esegue dalla radice del repo progettato (o con --radice):
   progetto.py apri <voce>                 inizio di un punto: lo registra e stampa il suo fascio
   progetto.py chiudi <voce> --evidenza E… fine di un punto: controlla e registra la chiusura
                 [--non-applicabile --motivo M [--approvato A]] [--nota "…"] [--data AAAA-MM-GG]
+                [--non-verificabile --motivo "serve …" --approvato A]  (voci della costruzione)
+  progetto.py chiudi D.n --non-applicabile --motivo M   esclude una voce della DoD
   progetto.py approva <fase> --da NOME    fine di una fase: gate verde, approvazione nel registro
   progetto.py modifica <MOD-n> --da NOME  approva e applica una modifica: annulla le chiusure che riapre
   progetto.py congela --da NOME           Definition of Ready verde: congela l'incremento e chiude la 7.17
@@ -130,6 +132,10 @@ def cmd_stato(args):
         righe.append(f"Modifiche in attesa di decisione: {', '.join(proposte)}")
     for m in progetto.stato.get("mappe", []):
         righe.append(f"Mappa di decision-map aperta dal punto {m.get('punto')}: {m.get('link')}")
+    non_verificate = sorted((i for i, st in stati.items()
+                             if st["chiusa"] and st["chiusura"].get("esito") == "non-verificabile"), key=condizioni.chiave_id)
+    if non_verificate:
+        righe.append(f"Non verificabili in questo ambiente, accettate: {', '.join(non_verificate)}")
     rinviate = sum(1 for st in stati.values() if st["applicabilita"] == condizioni.RINVIATA)
     if rinviate:
         righe.append(f"Debito di pubblicazione: {rinviate} voci (viste/debito-pubblicazione.md)")
@@ -290,21 +296,26 @@ def cmd_chiudi(args):
     # le viste si rigenerano dopo, e solo se la chiusura passa
     ctx = _contesto(progetto, catalogo, viste_rigenerate=True)
     ident = args.voce
-    st = controlli.stati_voci(ctx).get(ident)
+    st = controlli._stato_per_chiusura(ctx, ident)
     if st is None:
         raise ErroreUso(f"voce '{ident}' sconosciuta")
+    if st.get("dod") and not args.non_applicabile:
+        raise ErroreUso(f"{ident} è una voce della DoD: non si chiude, si esclude con --non-applicabile --motivo")
     if st["chiusa"] and controlli.righe_correnti(ctx).get(st["fase"], {}).get("stato") == "superato":
         raise ErroreUso(f"voce {ident} chiusa il {st['chiusura'].get('data')} e fase {st['fase']} superata: "
                         "cambiarne la chiusura è una modifica (MOD-n, references/gate.md)")
     chiusura = {"voce": ident}
     if st["per_incremento"]:
         chiusura["incremento"] = progetto.incremento_corrente()
-    if args.non_applicabile:
+    if args.non_applicabile and args.non_verificabile:
+        raise ErroreUso("o --non-applicabile, o --non-verificabile")
+    if args.non_applicabile or args.non_verificabile:
         if not args.motivo:
-            raise ErroreUso("un'esclusione ha il motivo: --motivo \"…\"")
+            raise ErroreUso("serve il motivo: --motivo \"…\"")
         if args.evidenza:
-            raise ErroreUso("un'esclusione non ha evidenze: o --evidenza, o --non-applicabile")
-        chiusura.update(esito="non-applicabile", motivo=args.motivo, approvato=args.approvato)
+            raise ErroreUso("una voce esclusa o non verificabile non ha evidenze")
+        chiusura.update(esito="non-applicabile" if args.non_applicabile else "non-verificabile",
+                        motivo=args.motivo, approvato=args.approvato)
     else:
         if not args.evidenza:
             raise ErroreUso("una voce fatta ha l'evidenza: --evidenza <percorso | id | tag:…>")
@@ -330,11 +341,11 @@ def cmd_chiudi(args):
     viste.scrivi(progetto, catalogo)
     ctx = _contesto(progetto, catalogo)
     stati = controlli.stati_voci(ctx)
-    prove = ", ".join(args.evidenza) if args.evidenza else f"non applicabile — {args.motivo}"
+    prove = ", ".join(args.evidenza) if args.evidenza else f"{chiusura['esito'].replace('-', ' ')} — {args.motivo}"
     print(f"Fine punto {ident} — {prove}")
     aperte = [i for i, s in stati.items() if s["fase"] == st["fase"]
               and s["applicabilita"] == condizioni.APPLICABILE and not s["chiusa"]]
-    if not aperte:
+    if not aperte and st["fase"] is not None:
         print(f"Fase {st['fase']}: voci tutte chiuse. Il gate si chiude con l'approvazione dell'utente: "
               f"progetto.py approva {st['fase']} --da <chi approva>")
     pronte = controlli.frontiera(ctx, limite=3)
@@ -556,13 +567,24 @@ def cmd_checklist(args):
     ctx = _contesto(progetto, catalogo)
     scheda = condizioni.profilo(progetto.scheda)
     noti = set(catalogo.get("inneschi", {}))
-    if args.dod or args.trasversali:
-        chiave = "dod" if args.dod else "trasversali"
-        for voce in catalogo.get(chiave, []):
+    if args.dod:
+        for ident, d in controlli.stati_dod(ctx).items():
+            livello = f" [{d['voce']['livello']}]" if d["voce"].get("livello") else ""
+            if d["esclusione"]:
+                stato, nota = "esclusa", f" — {d['esclusione'].get('motivo')}"
+            else:
+                stato, nota = d["applicabilita"], f" — {d['voce']['nota']}" if d["voce"].get("nota") else ""
+            print(f"{ident}{livello} {stato:<15} {d['voce']['testo']}{nota}")
+        return 0
+    if args.trasversali:
+        # i controlli si eseguono: l'esito di ciascuno va nella nota del registro al gate
+        for voce in catalogo.get("trasversali", []):
             st = condizioni.stato_voce(voce, scheda, inneschi_noti=noti)
-            livello = f" [{voce['livello']}]" if voce.get("livello") else ""
-            nota = f" — {voce['nota']}" if voce.get("nota") else ""
-            print(f"{voce['id']}{livello} {st:<15} {voce['testo']}{nota}")
+            errori = [r for nome in voce.get("controllo", []) for r in controlli.controllo(nome)(ctx, None)
+                      if r.livello == "errore"] if st == condizioni.APPLICABILE else []
+            esito = ("da rivedere" if not voce.get("controllo") else
+                     f"✗ {len(errori)} errori: {errori[0].testo()}" if errori else "✓ controlli verdi")
+            print(f"{voce['id']} {st:<15} {voce['testo']}\n     {esito if st == condizioni.APPLICABILE else ''}".rstrip())
         return 0
     stati = controlli.stati_voci(ctx)
     fase = args.fase if args.fase is not None else progetto.stato.get("corrente", {}).get("fase")
@@ -576,7 +598,7 @@ def cmd_checklist(args):
         if st["applicabilita"] != condizioni.APPLICABILE:
             stato = st["applicabilita"]
         elif st["chiusa"]:
-            stato = "fatta" if st["chiusura"].get("esito") == "fatto" else "esclusa"
+            stato = viste.ESITO_IN_VISTA.get(st["chiusura"].get("esito"), st["chiusura"].get("esito"))
         elif st["riaperta_da"]:
             stato = f"riaperta {st['riaperta_da']}"
         else:
@@ -601,7 +623,8 @@ def _trova(progetto, ident):
 
 
 def rendi(progetto, el, completo=True):
-    righe = [f"### {el.tipo} {el.id}  ({el.sorgente}; incremento {progetto.incremento_di(el)})"]
+    inc = progetto.incremento_di(el)
+    righe = [f"### {el.tipo} {el.id}  ({el.sorgente}; incremento {inc if inc is not None else '— esclusa'})"]
     for chiave, valore in el.dati.items():
         if chiave.startswith("_") and chiave != "_corpo":
             continue
@@ -948,7 +971,8 @@ def _rendi_schermata(progetto, schermata, corrente, futuri):
     corrente: ciò che chiama un'operazione futura si costruirà con lei."""
     def presente(tipo, ident):
         el = progetto.trova(tipo, ident) if ident else None
-        if el and progetto.incremento_di(el) > corrente:
+        inc = progetto.incremento_di(el) if el else None
+        if el and (inc is None or inc > corrente):
             futuri.append(f"{'storia' if tipo == 'storie' else 'operazione'} {ident} nella schermata {schermata.id} "
                           f"(incremento {progetto.incremento_di(el)})")
             return False
@@ -1027,9 +1051,64 @@ def modifiche_dell_incremento(progetto, catalogo, tipi, modulo=None):
     return risultato
 
 
+# Le sezioni che non sono elenchi di elementi: dove stanno, i campi che i controlli
+# pretendono (le stesse costanti dei controlli) e a cosa servono.
+P = modello.PROGETTAZIONE
+SEZIONI = {
+    "scheda": (f"{P}/stato.toml", "[scheda]", controlli.CAMPI_SCHEDA, controlli.AMMESSI_SCHEDA,
+               "Profilo (1.13), verdetto (1.14), incremento corrente e costruzione (7.12); inneschi dal catalogo."),
+    "fattibilita": (f"{P}/prodotto/prodotto.toml", "[fattibilita]", controlli.ASSI_FATTIBILITA, {},
+                    "Un giudizio per asse, con il ragionamento in visione.md (1.05)."),
+    "stima": (f"{P}/prodotto/prodotto.toml", "[stima]", controlli.CAMPI_STIMA, {},
+              "L'ordine di grandezza dell'impegno, con l'incertezza e la base (1.11)."),
+    "trasversali": (f"{P}/requisiti/requisiti.toml", "[trasversali]", controlli.TRASVERSALI, {},
+                    "Per ogni funzionalità trasversale, le storie o i non-obiettivi che la coprono (2.14)."),
+    "metodo_priorita": (f"{P}/requisiti/requisiti.toml", "metodo_priorita", ("nome", "valori"), {},
+                        "Il metodo di prioritizzazione (2.09); 'esclusa' è il valore delle storie che non si faranno."),
+    "sicurezza": (f"{P}/moduli/<modulo>.toml", "[sicurezza]", ("asvs", "requisiti"), {},
+                  "Il livello ASVS del modulo e i suoi requisiti verificabili (5.12)."),
+    "mappe": (f"{P}/stato.toml", "[[mappe]]", ("punto", "link"), {},
+              "Una mappa di decision-map aperta da un punto (gate.md, decision-map)."),
+    "congelamento": (f"{P}/stato.toml", "[congelamento]", controlli.CAMPI_CONGELAMENTO, {},
+                     "Lo scrive progetto.py congela; 'prova' manca se la 7.14 è esclusa."),
+    "matrice-testa": (f"{modello.CONTRATTI}/autorizzazioni.toml", "predefinito, ruoli, risorse, [condizioni]",
+                      ("predefinito", "ruoli"), {"predefinito": {"nega"}},
+                      "La testa della matrice; le regole sono il tipo 'matrice' (5.15)."),
+    "piano.progetto": (f"{P}/piano/piano.toml", "[progetto]",
+                       ("versione_metodo", "incremento") + modulo_piano.CAMPI_PROGETTO + ("percorsi_e2e",), {},
+                       "Il piano dell'incremento: intoccabili e percorsi dei test end-to-end."),
+    "piano.comandi": (f"{P}/piano/piano.toml", "[comandi]", modulo_piano.COMANDI_OBBLIGATORI, {},
+                      "Più modulo_backend e modulo_frontend con {modulo}; i criteri dei task sono chiavi di qui."),
+    "piano.rischio": (f"{P}/piano/piano.toml", "[rischio]", (), {},
+                      "criteri_alto_backend e criteri_alto_frontend: i comandi in più per i moduli ad alto rischio."),
+    "piano.oracoli": (f"{P}/piano/piano.toml", "[oracoli]", (), {},
+                      "Per ogni modulo dell'incremento, i percorsi dei suoi test."),
+    "piano.archetipi": (f"{P}/piano/piano.toml", "[[archetipi]]", ("id", "esemplare"), {},
+                        "Un archetipo con il suo esemplare; costruito_in se l'esemplare è di un incremento precedente."),
+    "piano.stima": (f"{P}/piano/piano.toml", "[stima]", modulo_piano.CAMPI_STIMA, {},
+                    "Metodo e incertezza sui conteggi di verifica --json (7.02); nessuna durata."),
+}
+MODELLI_SENZA_ESEMPIO = {"mappe": '[[mappe]]\npunto = "4.13"\nlink = "https://github.com/<proprietario>/<repo>/issues/<n>"'}
+
+
+def _blocco_dell_esempio(relativo, intestazione):
+    """Il testo di una sezione in un file dell'esempio, come modello."""
+    if "<modulo>" in relativo:
+        relativo = next((ESEMPIO / relativo).parent.glob("*.toml")).relative_to(ESEMPIO).as_posix()
+    testo = (ESEMPIO / relativo).read_text(encoding="utf-8")
+    sezioni = scrittura._sezioni(testo)
+    if intestazione.startswith("["):
+        return next((parte.strip() for testa, parte in sezioni if testa == intestazione), None)
+    preambolo = next((parte for testa, parte in sezioni if testa is None), "")
+    chiavi = [c.strip() for c in intestazione.split(",") if not c.strip().startswith("[")]
+    righe = [r for r in preambolo.splitlines() if any(r.startswith(f"{c} ") or r.startswith(f"{c}=") for c in chiavi)]
+    altre = [parte.strip() for testa, parte in sezioni for c in intestazione.split(",") if testa == c.strip()]
+    return "\n".join(righe + altre) or None
+
+
 def cmd_formato(args):
-    """Il formato di ogni tipo, ricavato dalle regole dello script e dall'esempio: la
-    documentazione dei formati è il codice che li controlla, non un testo a parte."""
+    """Il formato di ogni tipo e di ogni sezione, ricavato dalle regole dello script e
+    dall'esempio: la documentazione dei formati è il codice che li controlla."""
     catalogo = modello.leggi_catalogo(args.catalogo)
     esempio = modello.carica(ESEMPIO, catalogo)
     tipi = sorted(set(controlli.CAMPI) | {"adr"})
@@ -1039,23 +1118,42 @@ def cmd_formato(args):
             elementi = esempio.tutti(tipo)
             sorgente = elementi[0].sorgente if elementi else SORGENTI_SENZA_ESEMPIO.get(tipo, "?")
             print(f"  {tipo:<18} {sorgente}")
+        print("Sezioni (progetto.py formato <sezione>):")
+        for nome, (relativo, intestazione, *_) in SEZIONI.items():
+            print(f"  {nome:<18} {relativo} {intestazione}")
         return 0
     tipo = args.tipo
+    if tipo in SEZIONI:
+        relativo, intestazione, obbligatori, ammessi, scopo = SEZIONI[tipo]
+        righe = [f"## {tipo} — {relativo} {intestazione}", scopo, f"obbligatori: {', '.join(obbligatori) or '—'}"]
+        for campo, valori in ammessi.items():
+            righe.append(f"valori di {campo}: {', '.join(sorted(valori))}")
+        modello_esempio = _blocco_dell_esempio(relativo, intestazione) or MODELLI_SENZA_ESEMPIO.get(tipo)
+        righe += ["", "Esempio:" if modello_esempio else "Nessun esempio.", modello_esempio or ""]
+        print("\n".join(righe).rstrip())
+        return 0
     if tipo not in tipi:
-        raise ErroreUso(f"tipo '{tipo}' sconosciuto: progetto.py formato elenca i tipi")
+        raise ErroreUso(f"tipo '{tipo}' sconosciuto: progetto.py formato elenca tipi e sezioni")
     elementi = sorted(esempio.tutti(tipo), key=lambda e: viste._chiave_naturale(e.id))
     sorgente = elementi[0].sorgente if elementi else SORGENTI_SENZA_ESEMPIO.get(tipo, "?")
     prefisso = next((k for k, v in modello.PREFISSI.items() if v == tipo), None)
     tipizzato = next((k for k, v in modello.TIPIZZATI.items() if v == tipo), None)
-    if prefisso:
+    if tipo == "adr":
+        forma = "ADR-NNNN, dal nome del file docs/adr/NNNN-titolo.md"
+    elif prefisso:
         forma = f"{prefisso}-n, citato così da ogni campo"
     elif tipo == "storie":
         forma = "<AREA>-n, con il prefisso di un'area di [[aree]]"
+    elif tipo == "task":
+        forma = ("libero, senza spazi; per convenzione O-<modulo>, M-<modulo>, E-<modulo>, C-<modulo>-be|fe, "
+                 "X-<percorso>; citato come \"task:<id>\"")
     elif tipo in modello.CONTENITORE:
         forma = f"<{modello.CONTENITORE[tipo]}>.<nome>, citato come \"{tipizzato or tipo}:<id>\""
     else:
         forma = f"slug in minuscolo, citato come \"{tipizzato}:<id>\"" if tipizzato else "slug in minuscolo"
     obbligatori, ammessi = controlli.CAMPI.get(tipo, ((), {}))
+    if tipo == "adr":
+        obbligatori = ("- **Status:** …",) + controlli.SEZIONI_ADR
     righe = [f"## {tipo} — {sorgente}", f"id: {forma}",
              f"obbligatori: {', '.join(obbligatori) or '—'}"]
     produttori = [v["id"] for v in catalogo.get("voci", []) if tipo in v.get("produce", [])]
@@ -1179,6 +1277,8 @@ def principale(argv=None):
     ch.add_argument("voce")
     ch.add_argument("--evidenza", nargs="+")
     ch.add_argument("--non-applicabile", action="store_true")
+    ch.add_argument("--non-verificabile", action="store_true",
+                    help="voce della costruzione che serve ma che questo ambiente non permette di provare")
     ch.add_argument("--motivo")
     ch.add_argument("--approvato")
     ch.add_argument("--nota", help="una riga che spiega l'evidenza")

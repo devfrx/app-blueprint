@@ -152,7 +152,7 @@ class Lettura(Base):
 
     def test_fascio_di_una_voce_per_incremento(self):
         _, testo = self.esegui("fascio", "5.07")
-        self.assertIn("## storie (17; 4 di altri incrementi omessi)", testo)
+        self.assertIn("## storie (17; 5 di altri incrementi omessi)", testo)
 
     def test_apri_un_fascio_grande_stampa_gli_id(self):
         self.togli_chiusura("4.12")
@@ -178,9 +178,16 @@ class Lettura(Base):
         self.assertEqual(esito, 0)
         self.assertIn("storie", testo)
         esito, testo = self.esegui("formato", "storie")
-        self.assertIn("obbligatori: titolo, attore, priorita, incremento, fonte", testo)
+        self.assertIn("obbligatori: titolo, attore, priorita, fonte", testo)
         self.assertIn("### storie ACC-1", testo)
         self.assertEqual(self.esegui("formato", "ignoto")[0], 2)
+        _, testo = self.esegui("formato", "adr")
+        self.assertIn("obbligatori: - **Status:** …, ## Context, ## Decision, ## Consequences", testo)
+        _, testo = self.esegui("formato", "scheda")
+        self.assertIn("valori di esposizione: personale, pubblicabile, pubblico", testo)
+        self.assertIn('progetto = "Officina"', testo)
+        _, testo = self.esegui("formato", "mappe")
+        self.assertIn('[[mappe]]\npunto = "4.13"', testo)
 
     def test_schema_dell_incremento(self):
         esito, testo = self.esegui("schema")
@@ -309,6 +316,23 @@ class Punti(Base):
         self.assertEqual(esito, 1)
         dopo = {f: f.read_text(encoding="utf-8") for f in (self.radice / P).rglob("*") if f.is_file()}
         self.assertEqual(prima, dopo)
+
+    def test_non_verificabile_e_dod(self):
+        esito, testo = self.esegui("chiudi", "7.09", "--non-verificabile", "--motivo", "serve lo staging",
+                                   "--approvato", "responsabile")
+        self.assertEqual(esito, 0, testo)
+        self.assertIn("Fine punto 7.09 — non verificabile — serve lo staging", testo)
+        _, testo = self.esegui("stato")
+        self.assertIn("Non verificabili in questo ambiente, accettate: 7.09", testo)
+        self.assertEqual(self.esegui("chiudi", "D.09", "--evidenza", "x")[0], 2)
+        esito, _ = self.esegui("chiudi", "D.09", "--non-applicabile", "--motivo", "Storie sempre intere.")
+        self.assertEqual(esito, 0)
+        _, testo = self.esegui("checklist", "--dod")
+        self.assertRegex(testo, r"D\.09 \[incremento\] esclusa\s+.*— Storie sempre intere\.")
+        _, testo = self.esegui("checklist", "--trasversali")
+        self.assertIn("T.01 applicabile", testo)
+        self.assertIn("✓ controlli verdi", testo)
+        self.assertEqual(self.esegui("verifica")[0], 0)
 
     def test_esclusione(self):
         self.togli_chiusura("4.12")

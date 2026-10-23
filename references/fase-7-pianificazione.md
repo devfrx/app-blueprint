@@ -12,7 +12,7 @@ Indice: Incrementi e modalità · Il piano · Strategia di test e DoD · Qualit�
 
 **7.03** `[[incrementi]]` nel piano: numero, obiettivo, `rilascio` (locale, staging o produzione) e quale è l'`mvp`, il primo incremento di valore. Ogni storia ha un incremento dichiarato qui: la roadmap è l'insieme degli incrementi, non un documento a parte.
 
-**7.12** `[scheda].costruzione`: `parallela` con `parallel-build`, o `seriale` quando l'incremento è piccolo o l'ambiente non ha sotto-agenti. La costruzione seriale segue lo stesso piano, le stesse ondate e gli stessi gate in una sessione sola, senza la concorrenza.
+**7.12** `[scheda].costruzione`: `parallela`, o `seriale` quando l'incremento è piccolo o l'ambiente non ha la concorrenza che serve. Le esegue entrambe `parallel-build`: la seriale con lo stesso piano, le stesse ondate e gli stessi gate, un task alla volta, e senza sotto-agenti con la separazione tra oracoli e costruzione affidata a sessioni diverse.
 
 ## Il piano
 

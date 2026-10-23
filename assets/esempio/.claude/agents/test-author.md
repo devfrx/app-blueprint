@@ -7,6 +7,17 @@ skills:
   - dev-discipline
   - lean-code
 isolation: worktree
+hooks:
+  PreToolUse:
+    - matcher: "Bash"
+      hooks:
+        - type: command
+          command: >-
+            python3 -c "import json, re, sys;
+            c = json.load(sys.stdin).get('tool_input', {}).get('command', '');
+            b = re.search(r'(^|[;&|(]\s*)git\s+(-C\s+\S+\s+)?push\b', c);
+            b and print('Il push lo fa la sessione principale, al rientro: un sotto-agente non pubblica.', file=sys.stderr);
+            sys.exit(2 if b else 0)"
 ---
 
 Scrivi i test che decidono quando un modulo è finito. Li farà passare qualcun altro, senza poterli toccare: devono misurare ciò che i contratti promettono, non un'implementazione che immagini.

@@ -92,6 +92,19 @@ class EsempioVerde(Base):
         prodotti = {t for v in CATALOGO["voci"] for t in v.get("produce", [])}
         self.assertEqual(sorted(set(controlli.CAMPI) - registri - prodotti), [])
 
+    def test_l_hook_degli_agenti_blocca_solo_il_push(self):
+        import json
+        import subprocess
+        testo = (SKILL / "assets" / "agenti" / "backend-builder.md").read_text(encoding="utf-8")
+        righe = testo.split("command: >-\n", 1)[1].split("\n---", 1)[0].splitlines()
+        comando = " ".join(r.strip() for r in righe)
+        for riga, bloccata in (("git push origin task", True), ("cd wt && git push", True),
+                               ("git -C wt push --dry-run", True), ('git commit -m "push del bottone"', False),
+                               ("composer test:modulo -- veicoli", False), ("git log --oneline", False)):
+            esito = subprocess.run(comando, shell=True, input=json.dumps({"tool_input": {"command": riga}}),
+                                   capture_output=True, text=True)
+            self.assertEqual(esito.returncode, 2 if bloccata else 0, (riga, esito.stderr))
+
     def test_gli_agenti_dell_esempio_sono_quelli_della_skill(self):
         installati = ESEMPIO / ".claude" / "agents"
         for definizione in (SKILL / "assets" / "agenti").glob("*.md"):

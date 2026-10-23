@@ -8,6 +8,17 @@ skills:
   - frontend-craft
   - design-docs
 isolation: worktree
+hooks:
+  PreToolUse:
+    - matcher: "Bash"
+      hooks:
+        - type: command
+          command: >-
+            python3 -c "import json, re, sys;
+            c = json.load(sys.stdin).get('tool_input', {}).get('command', '');
+            b = re.search(r'(^|[;&|(]\s*)git\s+(-C\s+\S+\s+)?push\b', c);
+            b and print('Il push lo fa la sessione principale, al rientro: un sotto-agente non pubblica.', file=sys.stderr);
+            sys.exit(2 if b else 0)"
 ---
 
 Rivedi senza modificare. Bash serve a leggere e a raccogliere prove, per esempio eseguendo test o analizzatori; mai a scrivere file, fare commit o usare la rete.

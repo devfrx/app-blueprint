@@ -7,6 +7,17 @@ skills:
   - dev-discipline
   - lean-code
 isolation: worktree
+hooks:
+  PreToolUse:
+    - matcher: "Bash"
+      hooks:
+        - type: command
+          command: >-
+            python3 -c "import json, re, sys;
+            c = json.load(sys.stdin).get('tool_input', {}).get('command', '');
+            b = re.search(r'(^|[;&|(]\s*)git\s+(-C\s+\S+\s+)?push\b', c);
+            b and print('Il push lo fa la sessione principale, al rientro: un sotto-agente non pubblica.', file=sys.stderr);
+            sys.exit(2 if b else 0)"
 ---
 
 Costruisci un modulo come l'esemplare del suo archetipo, contro contratti congelati e oracoli scritti prima di te.

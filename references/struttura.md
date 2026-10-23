@@ -33,6 +33,7 @@ contracts/              openapi.json (o asyncapi.json), schema.toml, autorizzazi
                         configurazione.toml
 docs/adr/NNNN-<titolo>.md   il perché delle decisioni difficili da invertire
 docs/design/mockups/        mockup HTML self-contained
+docs/consegna/incremento-<n>/   li scrive parallel-build: esemplari.md (8.12), report.md (fase 12)
 ```
 
 `assets/esempio/` è un progetto completo congelato all'incremento 1, verde a `progetto.py verifica --congelamento`: è il modello di ogni file, al posto dei template vuoti. I file si creano quando la prima voce che li riguarda si apre, non tutti all'inizio.

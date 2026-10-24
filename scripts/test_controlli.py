@@ -111,6 +111,14 @@ class EsempioVerde(Base):
             self.assertEqual((installati / definizione.name).read_text(encoding="utf-8"),
                              definizione.read_text(encoding="utf-8"), definizione.name)
 
+    def test_la_descrizione_della_skill_si_puo_caricare(self):
+        # specifica Agent Skills: description di 1024 caratteri al massimo, senza tag;
+        # una chiave per riga, e niente ": " nel valore, che in YAML non sarebbe valido
+        frontmatter = (SKILL / "SKILL.md").read_text(encoding="utf-8").split("---\n")[1]
+        descrizione = dict(riga.split(": ", 1) for riga in frontmatter.splitlines())["description"]
+        self.assertLessEqual(len(descrizione), 1024)
+        self.assertNotRegex(descrizione, "[<>]|: ")
+
 
 class Struttura(Base):
     def test_campo_obbligatorio_mancante(self):
